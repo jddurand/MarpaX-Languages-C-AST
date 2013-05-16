@@ -3,6 +3,8 @@ package MarpaX::Languages::C::AST::Scope;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
+use Clone qw/clone/;
+use Log::Any qw/$log/;
 
 =head1 NAME
 
@@ -48,17 +50,173 @@ Example:
 
 =head2 new
 
+=head3 Instance a new object. Takes no parameter.
+
 =cut
 
 sub new {
+  my ($class) = @_;
+
+  my $self  = {
+               delayedExitScope => 0,
+               typedefPerScope => [ {} ],
+               enumAnyScope => {}
+              };
+  bless($self, $class);
+
+  return $self;
 }
 
-=head2 process
+=head2 parseEnterScope
+
+=head3 Say we enter a new scope. Takes no parameter.
 
 =cut
 
-sub process {
+sub parseEnterScope {
+  my ($self) = @_;
+
+  $self->_doDelayedExitScope();
+
+  my $scope = $#{$self->{typedefPerScope}};
+  push(@{$self->{typedefPerScope}}, clone($self->{typedefPerScope}->[$scope]));
+
+  $log->debugf('Duplicated scope %d to %d', $scope, $scope + 1);
 }
+
+=head2 parseExitScope
+
+=head3 Say we leave current scope. Takes no parameter.
+
+=cut
+
+sub parseExitScope {
+  my ($self) = @_;
+
+  my $scope = $#{$self->{typedefPerScope}};
+  $self->{delayedExitScope} = 1;
+
+  $log->debugf('Setting delay flag on scope %d', $scope);
+}
+
+=head2 parseReenterScope
+
+=head3 Say we re-enter last scope. Takes no parameter.
+
+=cut
+
+sub parseReenterScope {
+  my ($self) = @_;
+
+  my $scope = $#{$self->{typedefPerScope}};
+  $self->{delayedExitScope} = 0;
+
+  $log->debugf('Resetting delay flag on scope %d', $scope);
+}
+
+=head2 parseEnterTypedef($token)
+
+=head3 Declare a new typedef, that will be visible until current scope is left. Takes the corresponding token value in input.
+
+=cut
+
+sub parseEnterTypedef {
+  my ($self, $token) = @_;
+
+  $self->_doDelayedExitScope();
+
+  my $scope = $#{$self->{typedefPerScope}};
+  $self->{typedefPerScope}->[$scope]->{$token} = 1;
+
+  $log->debugf('"%s" at scope %d', $token, $scope);
+}
+
+=head2 parseEnterEnum($token)
+
+=head3 Declare a new enum, that will be visible at any scope from now on. Takes the corresponding token value in input.
+
+=cut
+
+sub parseEnterEnum {
+  my ($self, $token) = @_;
+
+  $self->_doDelayedExitScope();
+
+  $self->{enumAnyScope}->{$token} = 1;
+
+  $log->debugf('"%s"', $token);
+}
+
+=head2 parseObscureTypedef($token)
+
+=head3 Obscured a typedef. Takes the corresponding token value in input.
+
+=cut
+
+sub parseObscureTypedef {
+  my ($self, $token) = @_;
+
+  $self->_doDelayedExitScope();
+
+  my $scope = $#{$self->{typedefPerScope}};
+  $self->{typedefPerScope}->[$scope]->{$token} = 0;
+
+  $log->debugf('"%s obscured at scope %d', $token, $scope);
+}
+
+=head2 parseIsTypedef($token)
+
+=head3 Return a true value if the corresponding token value in input is a typedef. Returns false otherwise.
+
+=cut
+
+sub parseIsTypedef {
+  my ($self, $token) = @_;
+
+  $self->_doDelayedExitScope();
+
+  my $scope = $#{$self->{typedefPerScope}};
+  my $rc = (exists($self->{typedefPerScope}->[$scope]->{$token}) && $self->{typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
+
+  $log->debugf('"%s" at scope %d ? %s', $token, $scope, $rc ? 'yes' : 'no');
+
+  return($rc);
+}
+
+=head2 parseIsEnum($token)
+
+=head3 Return a true value if the corresponding token value in input is an enum. Returns false otherwise.
+
+=cut
+
+sub parseIsEnum {
+  my ($self, $token) = @_;
+
+  $self->_doDelayedExitScope();
+
+  my $rc = (exists($self->{enumAnyScope}->{$token}) && $self->{enumAnyScope}->{$token}) ? 1 : 0;
+
+  $log->debugf('"%s" ? %s', $token, $rc ? 'yes' : 'no');
+
+  return($rc);
+}
+
+#
+# INTERNAL METHODS
+#
+sub _doDelayedExitScope {
+  my ($self) = @_;
+
+  if ($self->{delayedExitScope}) {
+    my $scope = $#{$self->{typedefPerScope}};
+    pop(@{$self->{typedefPerScope}});
+    $self->{delayedExitScope} = 0;
+
+    $log->debugf('Removed scope %d and resetted delay flag', $scope);
+    }
+}
+
+
 
 =head1 AUTHOR
 
