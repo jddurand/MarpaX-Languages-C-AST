@@ -6,8 +6,8 @@ use Module::Info qw/new_from_loaded inc_dir/;
 use File::Slurp qw/read_file/;
 use File::Spec qw/catfile/;
 use Log::Any qw/$log/;
-
-our $SUFFIX = '.bnf';
+use constant {DIRPATH => 'DIRPATH'};
+use File::Find qw/find/;
 
 =head1 NAME
 
@@ -36,7 +36,12 @@ Example:
     use MarpaX::Languages::C::AST::Grammar;
 
     my $grammar = MarpaX::Languages::C::AST::Grammar->new();
-    my $isoAnsiC2011 = $grammar->read('ISO-ANSI-C-2011');
+    my $isoAnsiC2011 = $grammar->read('ISO-ANSI-C-2011.bnf');
+
+    # Use you own grammars directory path
+    $grammar->dirpath('My_Directory');
+    my $myIsoAnsiC2011 = $grammar->read('MY-ISO-ANSI-C-2011.bnf');
+
 
 =head1 SUBROUTINES/METHODS
 
@@ -49,7 +54,10 @@ Example:
 sub new {
   my ($class) = @_;
 
-  my $self  = {};
+  my $DIRPATH = sprintf('%s::%s', __PACKAGE__, DIRPATH);
+  my $self  = {
+      dirpath => defined($ENV{$DIRPATH}) ? $DIRPATH : File::Spec->catdir(Module::Info->new_from_loaded(__PACKAGE__)->inc_dir, split('::', __PACKAGE__), 'inc'),
+  };
   bless($self, $class);
 
   return $self;
@@ -57,15 +65,49 @@ sub new {
 
 =head2 read
 
-=head3 Returns the grammar. Takes the name of the grammar in parameter, located in the 'inc' directory of MarpaX::Language::C::AST, with a hardcoded suffix '.bnf'.
+=head3 Returns the grammar. Takes the filename of the grammar in parameter, that must be located in the $self->dirpath() directory. Will croak if the file does not exist.
 
 =cut
 
 sub read {
-    my ($self, $name) = @_;
-    my $filepath = File::Spec->catfile(Module::Info->new_from_loaded(__PACKAGE__)->inc_dir, split('::', __PACKAGE__), 'inc', "$name$SUFFIX");
+    my ($self, $filename) = @_;
+    my $filepath = File::Spec->catfile($self->dirpath(), $filename);
     $log->debugf('Reading %s', $filepath);
-    return read_file($filepath, err_mode => 'carp');
+    return read_file($filepath);
+}
+
+=head2 dirpath([$dirPath])
+
+=head3 Get/set the directory path where are located the grammars. Default value is, in order of preference, the environment variable MarpaX::Languages::C::AST::Grammar::DIRPATH, the 'inc' directory distributed with this package.
+
+=cut
+
+sub dirpath {
+    my $self = shift;
+    if (@_) {
+	$self->{dirpath} = shift;
+    }
+    return $self->{dirpath};
+}
+
+=head2 list
+
+=head3 Returns an array of available grammars. This is in reality just the list of recursive files that are in $self->dirpath().
+
+=cut
+
+sub list {
+    my ($self) = @_;
+
+    my @found = ();
+    find(
+	{
+	    wanted => sub {(-f $_) && push(@found, $_);},
+	    no_chdir => 1
+	},
+	$self->dirpath()
+	);
+    return \@found;
 }
 
 =head1 AUTHOR
