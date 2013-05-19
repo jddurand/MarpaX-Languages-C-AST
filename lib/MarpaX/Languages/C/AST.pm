@@ -83,31 +83,71 @@ sub new {
   return $self;
 }
 
-=head2 parse($referenceToSourceCode)
+=head2 parse($referenceToSourceCodep[, $arrayOfValuesb])
 
-Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code.
+Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code. Takes as optional second parameter a flag saying if the return value should be an array of all values or not. If this flag is false, the module will croak if there more than one parsee tree value.
 
 =cut
 
 sub parse {
-    my ($self, $referenceToSourceCode) = @_;
+    my ($self, $referenceToSourceCodep, $arrayOfValuesb) = @_;
 
-    my $max = length(${$referenceToSourceCode});
-    my $pos = $self->{_impl}->read($referenceToSourceCode);
+    my $max = length(${$referenceToSourceCodep});
+    my $pos = $self->{_impl}->read($referenceToSourceCodep);
     do {
-	$self->_doEvent($referenceToSourceCode);
-	$self->_doLexeme($referenceToSourceCode);
+	$self->_doEvent($referenceToSourceCodep);
+	$self->_doLexeme($referenceToSourceCodep);
     } while (($pos = $self->{_impl}->resume()) < $max);
+    
+    return($self->_value($arrayOfValuesb));
 }
 
 #
 # INTERNAL METHODS
 #
+#######################
+# _show_last_expression
+#######################
+sub _show_last_expression {
+    my ($self) = @_;
+
+    my ($start, $end) = $self->{_impl}->last_completed_range('translationUnit');
+    return 'No expression was successfully parsed' if (! defined($start));
+    my $lastExpression = $self->{_impl}->range_to_string($start, $end);
+    return "Last expression successfully parsed was: $lastExpression";
+}
+
+########
+# _value
+########
+sub _value {
+    my ($self, $arrayOfValuesb) = @_;
+
+    my @rc = ();
+    my $nvalue = 0;
+    my $valuep = $self->{_impl}->value() || croak $self->_show_last_expression();
+    do {
+	++$nvalue;
+	$valuep = $self->{_impl}->value();
+	if (defined($valuep)) {
+	    push(@rc, $valuep);
+	}
+    } while (defined($valuep));
+    if ($nvalue != 1 && ! $arrayOfValuesb) {
+	croak 'Number of parse tree value should be 1';
+    }
+    if ($arrayOfValuesb) {
+	return [ @rc ];
+    } else {
+	return shift(@rc);
+    }
+}
+
 ##########
 # _doEvent
 ##########
 sub _doEvent {
-    my ($self, $referenceToSourceCode) = @_;
+    my ($self, $referenceToSourceCodep) = @_;
 
     my $iEvent = 0;
     my $g1 = undef;
@@ -123,7 +163,7 @@ sub _doEvent {
 		$g1 ||= $self->{_impl}->latest_g1_location;
 		$self->_doGrammarConstraint($g1,
 					    'TYPEDEF',
-					    $referenceToSourceCode,
+					    $referenceToSourceCodep,
 					    [DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
 					    $self->{_G1LocationToTypedef},
 					    [DOT_PREDICTION, $event, undef ],
@@ -134,7 +174,7 @@ sub _doEvent {
 		#
 		#$self->_doGrammarConstraint($g1,
 		#                            'TYPEDEF_NAME',
-		#				 $referenceToSourceCode,
+		#				 $referenceToSourceCodep,
 		#				 [DOT_PREDICTION, DOT_COMPLETION, 'typeSpecifier' , undef ],
 		#				 $self->{_G1LocationToTypedefName},
 		#				 [DOT_PREDICTION, $event, undef ],
@@ -152,7 +192,7 @@ sub _doEvent {
 		$g1 ||= $self->{_impl}->latest_g1_location;
 		$self->_doGrammarConstraint($g1,
 					    'TYPEDEF',
-					    $referenceToSourceCode,
+					    $referenceToSourceCodep,
 					    [DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
 					    $self->{_G1LocationToTypedef},
 					    [DOT_PREDICTION, $event, undef],
@@ -180,7 +220,7 @@ sub _doEvent {
 			$log->debugf('> Declaration of IDENTIFIER "%s" that can introduce name in name-space', $directDeclarator);
 			if ($self->_doGrammarConstraint($g1,
 							'TYPEDEF',
-							$referenceToSourceCode,
+							$referenceToSourceCodep,
 							[DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
 							$self->{_G1LocationToTypedef},
 							[DOT_PREDICTION, 'functionDefinition', undef ],
@@ -196,7 +236,7 @@ sub _doEvent {
 		# Enum is not scope dependend - from now on it obscures any use of its
 		# identifier in any scope
 		#
-		my $enumerationConstant = $self->{_impl}->substring(M_last_completed('enumerationConstant'));
+		my $enumerationConstant = $self->{_impl}->substring($self->{_impl}->last_completed('enumerationConstant'));
 		$self->{_scope}->parseEnterEnum($enumerationConstant);
 	    } elsif ($event eq 'primaryExpression') {
 		#
@@ -211,7 +251,7 @@ sub _doEvent {
 # _doLexeme
 ###########
 sub _doLexeme {
-    my ($self, $referenceToSourceCode) = @_;
+    my ($self, $referenceToSourceCodep) = @_;
 
     my $lexeme = $self->{_impl}->pause_lexeme();
 
@@ -228,7 +268,7 @@ sub _doLexeme {
     #
     if (grep {$lexeme eq $_} qw/IDENTIFIER TYPEDEF_NAME ENUMERATION_CONSTANT/) {
 	my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
-	my $lexeme_value = substr(${$referenceToSourceCode}, $lexeme_start, $lexeme_length);
+	my $lexeme_value = substr(${$referenceToSourceCodep}, $lexeme_start, $lexeme_length);
 	$g1 ||= $self->{_impl}->latest_g1_location;
 	if ($self->{_impl}->findInProgress($g1, DOT_PREDICTION, 'typeSpecifier', [ 'TYPEDEF_NAME' ]) && $self->{_scope}->parseIsTypedef($lexeme_value) && $self->_canEnterTypedefName($g1)) {
 	    $lexeme = 'TYPEDEF_NAME';
@@ -253,7 +293,7 @@ sub _doLexeme {
 	#
 	# A lexeme_read() can generate an event
 	#
-	$self->_doEvent($referenceToSourceCode);
+	$self->_doEvent($referenceToSourceCodep);
     }
     #
     # Scope management: Associated with file-scope, function body, compound statement, or prototype
@@ -274,7 +314,7 @@ sub _doLexeme {
 	    #
 	    $self->_doGrammarConstraint($g1,
 					'TYPEDEF',
-					$referenceToSourceCode,
+					$referenceToSourceCodep,
 					[DOT_PREDICTION, DOT_COMPLETION, 'initDeclarator' , undef ],
 					$self->{_G1LocationToTypedef},
 					[DOT_PREDICTION, 'declarationSpecifiers', undef ],
@@ -302,7 +342,7 @@ sub _doLexeme {
 # _doGrammarConstraint
 ######################
 sub _doGrammarConstraint {
-    my ($self, $g1, $what, $referenceToSourceCode, $candidateRulep, $matchesInG1p, $endConditionp, $fatal_mode) = @_;
+    my ($self, $g1, $what, $referenceToSourceCodep, $candidateRulep, $matchesInG1p, $endConditionp, $fatal_mode) = @_;
 
     $fatal_mode ||= 0;
     my ($start_g1_location, $end_g1_location);
@@ -315,9 +355,9 @@ sub _doGrammarConstraint {
 	my ($start_g1_location_g0_start, $start_g1_location_g1_g0_length) = $self->{_impl}->g1_location_to_span($start_g1_location);
 	if ($start_g1_location < $end_g1_location) {
 	    my ($end_g1_location_g0_start, $end_g1_location_g1_g0_length) = $self->{_impl}->g1_location_to_span($end_g1_location);
-	    push(@args, substr(${$referenceToSourceCode}, $start_g1_location_g0_start, ($end_g1_location_g0_start - $start_g1_location_g0_start) + $end_g1_location_g1_g0_length));
+	    push(@args, substr(${$referenceToSourceCodep}, $start_g1_location_g0_start, ($end_g1_location_g0_start - $start_g1_location_g0_start) + $end_g1_location_g1_g0_length));
 	} else {
-	    push(@args, substr(${$referenceToSourceCode}, $start_g1_location_g0_start, $start_g1_location_g1_g0_length));
+	    push(@args, substr(${$referenceToSourceCodep}, $start_g1_location_g0_start, $start_g1_location_g1_g0_length));
 	}
 	if ($fatal_mode) {
 	    my $msg = sprintf('%s is not allowed in "%s"', @args);
