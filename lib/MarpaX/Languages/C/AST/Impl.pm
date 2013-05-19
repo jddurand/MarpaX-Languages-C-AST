@@ -28,7 +28,7 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-This modules implements all needed Marpa calls using its Scanless interface
+This modules implements all needed Marpa calls using its Scanless interface. Please be aware that logging is done via Log::Any.
 
 Example:
 
@@ -42,11 +42,11 @@ The constants DOT_PREDICTION (0), DOT_COMPLETION (-1) and LATEST_EARLEY_SET_ID (
 
 =head1 SUBROUTINES/METHODS
 
-Please note that except for the new, cacheProgress, findInProgress methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, cacheProgress, and findInProgress are documented. Please see Marpa documentation for the other methods whenever needed.
+Please note that except for the new, findInProgress, inspectG1 methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, findInProgress and inspectG1 are documented. Please see Marpa documentation for the other methods whenever needed.
 
 =head2 new
 
-=head3 Instance a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object.
+=head3 Instanciate a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object.
 
 =cut
 
@@ -54,40 +54,23 @@ sub new {
   my ($class, $grammarOptionsHashp, $recceOptionsHashp) = @_;
 
   my $self  = {
-      _cacheProgress => {}
+      _cacheRule => {}
   };
   $self->{grammar} = Marpa::R2::Scanless::G->new($grammarOptionsHashp);
-  $self->{recce} = Marpa::R2::Scanless::R->new({%{$recceOptionsHashp}, grammar => $self->{grammar}});
+  if (defined($recceOptionsHashp)) {
+      $recceOptionsHashp->{grammar} = $self->{grammar};
+  } else {
+      $recceOptionsHashp = {grammar => $self->{grammar}};
+  }
+  $self->{recce} = Marpa::R2::Scanless::R->new($recceOptionsHashp);
   bless($self, $class);
 
   return $self;
 }
 
-=head2 cacheProgress($earleySetId[, $progressOutputp])
-
-=head3 Caches or return the result of Marpa's progress() for the Earley Set Id $earleySetId. You should use the $earleySetId value LATEST_G1_EARLEY_SET_ID (or -1) or undef, to always cache/get the latest progress(), which is then converted internally to current G1 Earley Set Id. Take care about caching progress(): as soon as it is cached, the findInProgress() method will use it, it is the responsability of the caller to update the cache or remove it, by setting an undef value for $progressOutputp, and to provide in $progressOutputp the result of $self->progress($earleySetId). If calledd without $progressOutputp argument, this method will return the current cached value.
-
-=cut
-
-sub cacheProgress {
-    my $self = shift;
-    my $earleySetId = shift;
-
-    if (! defined($earleySetId) || ($earleySetId == LATEST_G1_EARLEY_SET_ID)) {
-	$earleySetId = $self->latest_g1_location();
-    }
-    
-    if (@_) {
-	my $progressOutputp = shift;
-	$self->{_cacheProgress}->{$earleySetId} = $progressOutputp;   
-    }
-
-    return $self->{_cacheProgress};
-}
-
 =head2 findInProgress($earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode)
 
-=head3 Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. Please note that findInProgress() will use the cached value of progress() for the Earley Set Id if it is defined. It will call progress() if not. It will never try to update progress() cache. Therefore, if you are caching progress() output, you should make sure your cache is either up-to-date before calling findInProgress(), or undef. This method will return a true value if there is a match.
+=head3 Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. Please note that findInProgress() will use the cached value of progress() for the Earley Set Id if it is defined. It will call progress() if not. It will never try to update progress() cache. This method will return a true value if there is a match.
 
 =cut
 
@@ -96,14 +79,12 @@ sub findInProgress {
 
     $fatalMode ||= 0;
 
+    $log->debugf('findInProgress(%d, %s, "%s", %s, %d)', $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode);
+
     my $rc = 0;
-    my $progressOutputp = $self->cacheProgress($earleySetId);
-    if (! defined($progressOutputp)) {
-	$progressOutputp = $self->progress($earleySetId);
-    }
 
     my $i = 0;
-    foreach (@{$progressOutputp}) {
+    foreach (@{$self->progress($earleySetId)}) {
 	my ($rule_id, $dotPosition, $origin) = @{$_};
 	#
 	# There two special cases in findInprogress:
@@ -137,7 +118,7 @@ sub findInProgress {
 	    next if (defined($wantedDotPosition) && ($dotPosition != $wantedDotPosition));
 	    ($lhs, @rhs) = $self->rule($rule_id);
 	    next if (defined($wantedLhs) && ($lhs ne $wantedLhs));
-	    next if (defined($wantedRhsp) && ! arrayEq(\@rhs, $wantedRhsp));
+	    next if (defined($wantedRhsp) && ! __PACKAGE__->_arrayEq(\@rhs, $wantedRhsp));
 	    $found = 1;
 	}
 	next if (! $found);
@@ -160,6 +141,103 @@ sub findInProgress {
     return($rc);
 }
 
+=head2 inspectG1($lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp)
+
+=head3 Inspects G1. Searched for a lexeme with name $lexeme, using $matchedInG1p as a match condition, from G1 Earley Set Id $g1_location and downwards. $matchesG1p is a reference to hash, where the key is a G1 location, and the value is 0 or 1. The match is successful only when $matchesG1p->{$g1} exist and has a true value. This match appear within $candidateRulesp and the search will end if $endConditionp is reached. $candidateRulesp is a reference to an array of arrays, where each later array has the form: [dotLocationStart, dotLocationEnd, $lhs, [ @rhs ]]. These are send as is to the method findProgress() using [dotLocation, $lhs, [ @rhs ]] and [dotLocationEnd, $lhs, [@rhs]]. The $endConditionp is an array of arrays, where each later array has the form [dotLocation, $lhs, [@rhs]], send as-is to the findProgress() method. If there is no match, this method returns undef. If there a match on $candidateRulesp but no match on $lexeme, it returns a false value. If there is match on both it returns a true value.
+
+=cut
+
+##################################################################
+# inspectG1
+# rc undef: no candidate rule found
+# rc 0    : candidate rule found, no match on $lexeme
+# rc 1    : candidate rule found, match on $lexeme
+#
+# ${ $start_g1_locationp} would contain the prediction G1 location
+# ${ $end_g1_locationp}   would contain its completion
+#
+# Take care they can be equal
+##################################################################
+sub inspectG1 {
+    my ($self, $lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp) = @_;
+
+    $g1_location ||= $self->latest_g1_location();
+
+    my ($start_g1_location, $end_g1_location) = (undef, undef);
+    my $indexInCandidates = 0;
+    my $end_condition = 0;
+    my $rc = undef;
+    while (1) {
+	#
+	# Search
+	#
+	if (! defined($end_g1_location) && defined($candidateRulesp)) {
+	    my $i = 0;
+	    foreach (@{$candidateRulesp}) {
+		my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$_};
+		if ($self->findInProgress($g1_location, $dotPredictionEnd, $lhs, $rhsp, 0)) {
+		    $end_g1_location = $g1_location;
+		    $indexInCandidates = $i;
+		    last;
+		}
+		++$i;
+	    }
+	}
+	if (defined($end_g1_location) && ! defined($start_g1_location) && defined($candidateRulesp)) {
+	    my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$candidateRulesp->[$indexInCandidates]};
+	    if ($self->findInProgress($g1_location, $dotPredictionStart, $lhs, $rhsp, 0)) {
+		$start_g1_location = $g1_location;
+	    }
+	}
+	if (defined($start_g1_location) && defined($end_g1_location)) {
+	    $rc = 0;
+	    $log->tracef('G1 range [%d, %d]', $start_g1_location, $end_g1_location);
+	    if ($start_g1_location > $end_g1_location) {
+		my $msg = sprintf('$start_g1_location %d > $end_g1_location %d !?', $start_g1_location, $end_g1_location);
+		$log->fatalf($msg);
+		croak $msg;
+	    }
+	    if (grep {exists($matchesInG1p->{$_}) && $matchesInG1p->{$_}} ($start_g1_location..$end_g1_location)) {
+		$log->tracef('G1 range [%d, %d] have %s', $start_g1_location, $end_g1_location, $lexeme);
+		if (defined($start_g1_locationp)) {
+		    ${$start_g1_locationp} = $start_g1_location;
+		}
+		if (defined($end_g1_locationp)) {
+		    ${$end_g1_locationp} = $end_g1_location;
+		}
+		$rc = 1;
+		last;
+	    } else {
+		$log->tracef('G1 range [%d, %d] do not have %s', $start_g1_location, $end_g1_location, $lexeme);
+	    }
+	    $start_g1_location = undef;
+	    $end_g1_location = undef;
+	}
+	#
+	# End condition
+	if (defined($endConditionp)) {
+	    foreach (@{$endConditionp}) {
+		my ($dotPrediction, $lhs, $rhsp) = @{$_};
+		if ($self->findInProgress($g1_location, $dotPrediction, $lhs, $rhsp, 0)) {
+		    $end_condition = 1;
+		    last;
+		}
+	    }
+	}
+	if ($end_condition) {
+	    last;
+	}
+	#
+	# Next loop
+	#
+	if (--$g1_location < 0) {
+	    last;
+	}
+    }
+
+    return($rc);
+}
+
 =head2 rule
 
 =head3 Returns Marpa's grammar's rule
@@ -167,9 +245,18 @@ sub findInProgress {
 =cut
 
 sub rule {
-  my ($self) = @_;
-  $log->tracef('\$grammar->rule(%s)', @_);
-  return $self->{grammar}->rule(@_);
+  my $self = shift;
+  #
+  # For a given grammar, the conversion ruleid->rule is a constant
+  # so it is legal to cache this data
+  #
+  my $ruleId = shift;
+  if (! exists($self->{_cacheRule}->{$ruleId})) {
+      $log->tracef('$grammar->rule(%d)', $ruleId);
+      my ($lhs, @rhs) = $self->{grammar}->rule($ruleId);
+      $self->{_cacheRule}->{$ruleId} = [ $lhs, @rhs ];
+  }
+  return @{$self->{_cacheRule}->{$ruleId}};
 }
 
 =head2 value
@@ -179,9 +266,9 @@ sub rule {
 =cut
 
 sub value {
-  my ($self) = @_;
-  $log->tracef('\$recce->value(%s)', @_);
-  return $self->{recce}->value(@_);
+  my $self = shift;
+  $log->tracef('$recce->value()');
+  return $self->{recce}->value();
 }
 
 =head2 read
@@ -191,10 +278,10 @@ sub value {
 =cut
 
 sub read {
-  my ($self) = @_;
+  my $self = shift;
   #
   # Well, we know that input is a reference to a string, and do not want its dump in the log...
-  $log->tracef('\$recce->read(%s)', "@_");
+  $log->tracef('$recce->read(%s)', "@_");
   return $self->{recce}->read(@_);
 }
 
@@ -205,9 +292,9 @@ sub read {
 =cut
 
 sub resume {
-  my ($self) = @_;
-  $log->tracef('\$recce->resume(%s)', @_);
-  return $self->{recce}->resume(@_);
+  my $self = shift;
+  $log->tracef('$recce->resume()');
+  return $self->{recce}->resume();
 }
 
 =head2 last_completed
@@ -217,8 +304,8 @@ sub resume {
 =cut
 
 sub last_completed {
-  my ($self) = @_;
-  $log->tracef('\$recce->last_completed(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->last_completed("%s")', @_);
   return $self->{recce}->last_completed(@_);
 }
 
@@ -229,8 +316,8 @@ sub last_completed {
 =cut
 
 sub last_completed_range {
-  my ($self) = @_;
-  $log->tracef('\$recce->last_completed_range(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->last_completed_range("%s")', @_);
   return $self->{recce}->last_completed_range(@_);
 }
 
@@ -241,8 +328,8 @@ sub last_completed_range {
 =cut
 
 sub range_to_string {
-  my ($self) = @_;
-  $log->tracef('\$recce->range_to_string(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->range_to_string(%d, %d)', @_);
   return $self->{recce}->range_to_string(@_);
 }
 
@@ -253,8 +340,8 @@ sub range_to_string {
 =cut
 
 sub progress {
-  my ($self) = @_;
-  $log->tracef('\$recce->progress(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->progress(%d)', @_);
   return $self->{recce}->progress(@_);
 }
 
@@ -265,8 +352,8 @@ sub progress {
 =cut
 
 sub event {
-  my ($self) = @_;
-  $log->tracef('\$recce->event(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->event(%d)', @_);
   return $self->{recce}->event(@_);
 }
 
@@ -277,9 +364,9 @@ sub event {
 =cut
 
 sub pause_lexeme {
-  my ($self) = @_;
-  $log->tracef('\$recce->pause_lexeme(%s)', @_);
-  return $self->{recce}->pause_lexeme(@_);
+  my $self = shift;
+  $log->tracef('$recce->pause_lexeme()');
+  return $self->{recce}->pause_lexeme();
 }
 
 =head2 pause_span
@@ -289,9 +376,9 @@ sub pause_lexeme {
 =cut
 
 sub pause_span {
-  my ($self) = @_;
-  $log->tracef('\$recce->pause_span(%s)', @_);
-  return $self->{recce}->pause_span(@_);
+  my $self = shift;
+  $log->tracef('$recce->pause_span()');
+  return $self->{recce}->pause_span();
 }
 
 =head2 line_column
@@ -301,8 +388,8 @@ sub pause_span {
 =cut
 
 sub line_column {
-  my ($self) = @_;
-  $log->tracef('\$recce->line_column(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->line_column(%d)', @_);
   return $self->{recce}->line_column(@_);
 }
 
@@ -313,8 +400,8 @@ sub line_column {
 =cut
 
 sub substring {
-  my ($self) = @_;
-  $log->tracef('\$recce->substring(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->substring(%d, %d)', @_);
   return $self->{recce}->substring(@_);
 }
 
@@ -325,8 +412,8 @@ sub substring {
 =cut
 
 sub lexeme_read {
-  my ($self) = @_;
-  $log->tracef('\$recce->lexeme_read(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->lexeme_read("%s", %d, %d, "%s")', @_);
   return $self->{recce}->lexeme_read(@_);
 }
 
@@ -337,9 +424,9 @@ sub lexeme_read {
 =cut
 
 sub latest_g1_location {
-  my ($self) = @_;
-  $log->tracef('\$recce->latest_g1_location(%s)', @_);
-  return $self->{recce}->latest_g1_location(@_);
+  my $self = shift;
+  $log->tracef('$recce->latest_g1_location()');
+  return $self->{recce}->latest_g1_location();
 }
 
 =head2 g1_location_to_span
@@ -349,8 +436,8 @@ sub latest_g1_location {
 =cut
 
 sub g1_location_to_span {
-  my ($self) = @_;
-  $log->tracef('\$recce->g1_location_to_span(%s)', @_);
+  my $self = shift;
+  $log->tracef('$recce->g1_location_to_span(%d)', @_);
   return $self->{recce}->g1_location_to_span(@_);
 }
 
@@ -407,6 +494,25 @@ sub _sprintfDotPosition {
     }
 }
 
+sub _arrayEq {
+    my ($class, $ap, $bp) = @_;
+    my $rc = 1;
+    if ($#{$ap} != $#{$bp}) {
+	$rc = 0;
+    } else {
+	foreach (0..$#{$ap}) {
+	    if ($ap->[$_] ne $bp->[$_]) {
+		$rc = 0;
+		last;
+	    }
+	}
+    }
+    return($rc);
+}
+
+=head1 SEE ALSO
+
+L<Log::Any>, L<Marpa::R2>, L<MarpaX::Languages::C::AST::Impl::Logger>
 
 =head1 AUTHOR
 

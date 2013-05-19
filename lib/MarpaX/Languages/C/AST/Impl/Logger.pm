@@ -9,7 +9,7 @@ use Log::Any;
 
 =head1 NAME
 
-MarpaX::Languages::C::AST::Impl::Logger - Logger implementation on top of Marpa
+MarpaX::Languages::C::AST::Impl::Logger - Log::Any implementation on top of Marpa
 
 =head1 VERSION
 
@@ -68,7 +68,9 @@ sub UNTIE {
   }
 }
 
+=head1 SEE ALSO
 
+L<Log::Any>
 
 =head1 AUTHOR
 

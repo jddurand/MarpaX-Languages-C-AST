@@ -46,6 +46,8 @@ Example:
     }
     $cAstScopeObject->parseExitScope();
 
+Please note that this module is logging via Log::Any.
+
 =head1 SUBROUTINES/METHODS
 
 =head2 new
@@ -217,6 +219,10 @@ sub _doDelayedExitScope {
 }
 
 
+
+=head1 SEE ALSO
+
+L<Log::Any>
 
 =head1 AUTHOR
 

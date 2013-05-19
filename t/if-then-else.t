@@ -14,8 +14,10 @@ my $blessed = $cAst->parse(\$cSourceCode);
 ok(defined($blessed));
 
 __DATA__
-if (a > b) then
- if (c > d) then
-   print(1)
- else
-   print(2)
+void function() {
+    if (a > b)
+	if (c > d)
+	    something(1);
+	else
+	    somethingElse(2);
+}

@@ -11,9 +11,11 @@ MANIFEST			This list of files
 README
 t/00-load.t
 t/boilerplate.t
+t/if-then-else.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+t/synopsis.t
 t/Grammar/00-load.t
 t/Grammar/boilerplate.t
 t/Grammar/synopsis.t

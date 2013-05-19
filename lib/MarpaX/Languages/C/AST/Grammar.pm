@@ -36,23 +36,24 @@ Example:
     use MarpaX::Languages::C::AST::Grammar;
 
     my $grammar = MarpaX::Languages::C::AST::Grammar->new();
+
     my $isoAnsiC2011 = $grammar->read('ISO-ANSI-C-2011.bnf');
 
-    # Use you own grammars directory path
+    # or
     $grammar->dirpath('My_Directory');
-    my $myIsoAnsiC2011 = $grammar->read('MY-ISO-ANSI-C-2011.bnf');
+    $myIsoAnsiC2011 = $grammar->read(filename => 'MY-ISO-ANSI-C-2011.bnf');
 
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new
+=head2 new()
 
-=head3 Instance a new object. Takes no parameter.
+=head3 Instance a new object. Takes no argument.
 
 =cut
 
 sub new {
-  my ($class) = @_;
+  my ($class, %hash) = @_;
 
   my $DIRPATH = sprintf('%s::%s', __PACKAGE__, DIRPATH);
   my $self  = {
@@ -60,12 +61,19 @@ sub new {
   };
   bless($self, $class);
 
+  if (exists($hash{dirpath})) {
+      $self->dirpath($hash{dirpath});
+  }
+  if (exists($hash{filename})) {
+      $self->read($hash{filename});
+  }
+
   return $self;
 }
 
-=head2 read
+=head2 read($fileName)
 
-=head3 Returns the grammar. Takes the filename of the grammar in parameter, that must be located in the $self->dirpath() directory. Will croak if the file does not exist.
+=head3 Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the $self->dirpath() directory. Will croak if the file does not exist.
 
 =cut
 
