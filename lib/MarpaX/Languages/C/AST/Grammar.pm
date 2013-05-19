@@ -48,7 +48,7 @@ Example:
 
 =head2 new()
 
-=head3 Instance a new object. Takes no argument.
+Instance a new object. Takes no argument.
 
 =cut
 
@@ -73,7 +73,7 @@ sub new {
 
 =head2 read($fileName)
 
-=head3 Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the $self->dirpath() directory. Will croak if the file does not exist.
+Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file does not exist.
 
 =cut
 
@@ -86,7 +86,7 @@ sub read {
 
 =head2 dirpath([$dirPath])
 
-=head3 Get/set the directory path where are located the grammars. Default value is, in order of preference, the environment variable MarpaX::Languages::C::AST::Grammar::DIRPATH, the 'inc' directory distributed with this package.
+Get/set the directory path where are located the grammars. Default value is, in order of preference, the environment variable MarpaX::Languages::C::AST::Grammar::DIRPATH, the 'inc' directory distributed with this package.
 
 =cut
 
@@ -100,7 +100,7 @@ sub dirpath {
 
 =head2 list
 
-=head3 Returns an array of available grammars. This is in reality just the list of recursive files that are in $self->dirpath().
+Returns an array of available grammars. This is in reality just the list of recursive files that are in dirpath().
 
 =cut
 

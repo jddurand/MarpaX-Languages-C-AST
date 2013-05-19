@@ -62,7 +62,7 @@ C_SOURCE_CODE
 
 =head2 new
 
-=head3 Instanciate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011.bnf'.
+Instanciate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011.bnf'.
 
 =cut
 
@@ -85,7 +85,7 @@ sub new {
 
 =head2 parse($referenceToSourceCode)
 
-=head3 Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code.
+Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code.
 
 =cut
 

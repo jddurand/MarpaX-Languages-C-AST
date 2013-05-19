@@ -38,9 +38,9 @@ Example:
     $cAstScopeObject->parseEnterEnum("myEnum");
     $cAstScopeObject->parseObscureTypedef("myVariable");
     foreach (qw/myTypedef myEnum myVariable/) {
-      if (parseIsTypedef($_)) {
+      if ($cAstScopeObject->parseIsTypedef($_)) {
         print "\"$_\" is a typedef\n";
-      } elsif (parseIsEnum($_)) {
+      } elsif ($cAstScopeObject->parseIsEnum($_)) {
         print "\"$_\" is an enum\n";
       }
     }
@@ -52,7 +52,7 @@ Please note that this module is logging via Log::Any.
 
 =head2 new
 
-=head3 Instance a new object. Takes no parameter.
+Instance a new object. Takes no parameter.
 
 =cut
 
@@ -71,7 +71,7 @@ sub new {
 
 =head2 parseEnterScope
 
-=head3 Say we enter a new scope. Takes no parameter.
+Say we enter a new scope. Takes no parameter.
 
 =cut
 
@@ -88,7 +88,7 @@ sub parseEnterScope {
 
 =head2 parseExitScope
 
-=head3 Say we leave current scope. Takes no parameter.
+Say we leave current scope. Takes no parameter.
 
 =cut
 
@@ -103,7 +103,7 @@ sub parseExitScope {
 
 =head2 parseReenterScope
 
-=head3 Say we re-enter last scope. Takes no parameter.
+Say we re-enter last scope. Takes no parameter.
 
 =cut
 
@@ -118,7 +118,7 @@ sub parseReenterScope {
 
 =head2 parseEnterTypedef($token)
 
-=head3 Declare a new typedef, that will be visible until current scope is left. Takes the corresponding token value in input.
+Declare a new typedef, that will be visible until current scope is left. Takes the corresponding token value in input.
 
 =cut
 
@@ -135,7 +135,7 @@ sub parseEnterTypedef {
 
 =head2 parseEnterEnum($token)
 
-=head3 Declare a new enum, that will be visible at any scope from now on. Takes the corresponding token value in input.
+Declare a new enum, that will be visible at any scope from now on. Takes the corresponding token value in input.
 
 =cut
 
@@ -151,7 +151,7 @@ sub parseEnterEnum {
 
 =head2 parseObscureTypedef($token)
 
-=head3 Obscured a typedef. Takes the corresponding token value in input.
+Obscured a typedef. Takes the corresponding token value in input.
 
 =cut
 
@@ -168,7 +168,7 @@ sub parseObscureTypedef {
 
 =head2 parseIsTypedef($token)
 
-=head3 Return a true value if the corresponding token value in input is a typedef. Returns false otherwise.
+Return a true value if the corresponding token value in input is a typedef. Returns false otherwise.
 
 =cut
 
@@ -187,7 +187,7 @@ sub parseIsTypedef {
 
 =head2 parseIsEnum($token)
 
-=head3 Return a true value if the corresponding token value in input is an enum. Returns false otherwise.
+Return a true value if the corresponding token value in input is an enum. Returns false otherwise.
 
 =cut
 

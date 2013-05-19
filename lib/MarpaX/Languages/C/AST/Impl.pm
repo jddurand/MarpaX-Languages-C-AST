@@ -46,7 +46,7 @@ Please note that except for the new, findInProgress, inspectG1 methods, all othe
 
 =head2 new
 
-=head3 Instanciate a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object.
+Instanciate a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object.
 
 =cut
 
@@ -70,7 +70,7 @@ sub new {
 
 =head2 findInProgress($earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode)
 
-=head3 Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. Please note that findInProgress() will use the cached value of progress() for the Earley Set Id if it is defined. It will call progress() if not. It will never try to update progress() cache. This method will return a true value if there is a match.
+Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
 
 =cut
 
@@ -143,7 +143,7 @@ sub findInProgress {
 
 =head2 inspectG1($lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp)
 
-=head3 Inspects G1. Searched for a lexeme with name $lexeme, using $matchedInG1p as a match condition, from G1 Earley Set Id $g1_location and downwards. $matchesG1p is a reference to hash, where the key is a G1 location, and the value is 0 or 1. The match is successful only when $matchesG1p->{$g1} exist and has a true value. This match appear within $candidateRulesp and the search will end if $endConditionp is reached. $candidateRulesp is a reference to an array of arrays, where each later array has the form: [dotLocationStart, dotLocationEnd, $lhs, [ @rhs ]]. These are send as is to the method findProgress() using [dotLocation, $lhs, [ @rhs ]] and [dotLocationEnd, $lhs, [@rhs]]. The $endConditionp is an array of arrays, where each later array has the form [dotLocation, $lhs, [@rhs]], send as-is to the findProgress() method. If there is no match, this method returns undef. If there a match on $candidateRulesp but no match on $lexeme, it returns a false value. If there is match on both it returns a true value.
+Inspects G1. Searched for a lexeme with name $lexeme, using $matchedInG1p as a match condition, from G1 Earley Set Id $g1_location and downwards. $matchesG1p is a reference to hash, where the key is a G1 location, and the value is 0 or 1. The match is successful only when $matchesG1p->{$g1} exist and has a true value. This match appear within $candidateRulesp and the search will end if $endConditionp is reached. $candidateRulesp is a reference to an array of arrays, where each later array has the form: [dotLocationStart, dotLocationEnd, $lhs, [ @rhs ]]. These are send as is to the method findProgress() using [dotLocation, $lhs, [ @rhs ]] and [dotLocationEnd, $lhs, [@rhs]]. The $endConditionp is an array of arrays, where each later array has the form [dotLocation, $lhs, [@rhs]], send as-is to the findProgress() method. If there is no match, this method returns undef. If there a match on $candidateRulesp but no match on $lexeme, it returns a false value. If there is match on both it returns a true value.
 
 =cut
 
@@ -240,7 +240,7 @@ sub inspectG1 {
 
 =head2 rule
 
-=head3 Returns Marpa's grammar's rule
+Returns Marpa's grammar's rule
 
 =cut
 
@@ -261,7 +261,7 @@ sub rule {
 
 =head2 value
 
-=head3 Returns Marpa's recognizer's value
+Returns Marpa's recognizer's value
 
 =cut
 
@@ -273,7 +273,7 @@ sub value {
 
 =head2 read
 
-=head3 Returns Marpa's recognizer's read
+Returns Marpa's recognizer's read
 
 =cut
 
@@ -287,7 +287,7 @@ sub read {
 
 =head2 resume
 
-=head3 Returns Marpa's recognizer's resume
+Returns Marpa's recognizer's resume
 
 =cut
 
@@ -299,7 +299,7 @@ sub resume {
 
 =head2 last_completed
 
-=head3 Returns Marpa's recognizer's last_completed
+Returns Marpa's recognizer's last_completed
 
 =cut
 
@@ -311,7 +311,7 @@ sub last_completed {
 
 =head2 last_completed_range
 
-=head3 Returns Marpa's recognizer's last_completed_range
+Returns Marpa's recognizer's last_completed_range
 
 =cut
 
@@ -323,7 +323,7 @@ sub last_completed_range {
 
 =head2 range_to_string
 
-=head3 Returns Marpa's recognizer's range_to_string
+Returns Marpa's recognizer's range_to_string
 
 =cut
 
@@ -335,7 +335,7 @@ sub range_to_string {
 
 =head2 progress
 
-=head3 Returns Marpa's recognizer's progress
+Returns Marpa's recognizer's progress
 
 =cut
 
@@ -347,7 +347,7 @@ sub progress {
 
 =head2 event
 
-=head3 Returns Marpa's recognizer's event
+Returns Marpa's recognizer's event
 
 =cut
 
@@ -359,7 +359,7 @@ sub event {
 
 =head2 pause_lexeme
 
-=head3 Returns Marpa's recognizer's pause_lexeme
+Returns Marpa's recognizer's pause_lexeme
 
 =cut
 
@@ -371,7 +371,7 @@ sub pause_lexeme {
 
 =head2 pause_span
 
-=head3 Returns Marpa's recognizer's pause_span
+Returns Marpa's recognizer's pause_span
 
 =cut
 
@@ -383,7 +383,7 @@ sub pause_span {
 
 =head2 line_column
 
-=head3 Returns Marpa's recognizer's line_column
+Returns Marpa's recognizer's line_column
 
 =cut
 
@@ -395,7 +395,7 @@ sub line_column {
 
 =head2 substring
 
-=head3 Returns Marpa's recognizer's substring
+Returns Marpa's recognizer's substring
 
 =cut
 
@@ -407,7 +407,7 @@ sub substring {
 
 =head2 lexeme_read
 
-=head3 Returns Marpa's recognizer's lexeme_read
+Returns Marpa's recognizer's lexeme_read
 
 =cut
 
@@ -419,7 +419,7 @@ sub lexeme_read {
 
 =head2 latest_g1_location
 
-=head3 Returns Marpa's recognizer's latest_g1_location
+Returns Marpa's recognizer's latest_g1_location
 
 =cut
 
@@ -431,7 +431,7 @@ sub latest_g1_location {
 
 =head2 g1_location_to_span
 
-=head3 Returns Marpa's recognizer's g1_location_to_span
+Returns Marpa's recognizer's g1_location_to_span
 
 =cut
 
