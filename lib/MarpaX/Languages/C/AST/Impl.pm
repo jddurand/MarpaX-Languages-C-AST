@@ -5,6 +5,7 @@ use strict;
 use warnings FATAL => 'all';
 use Marpa::R2 2.054_000;
 use Carp qw/croak/;
+use MarpaX::Languages::C::AST::Impl::Logger;
 use Log::Any qw/$log/;
 use constant {LATEST_G1_EARLEY_SET_ID => -1};
 use constant {DOT_PREDICTION => 0, DOT_COMPLETION => -1};
@@ -356,6 +357,29 @@ sub g1_location_to_span {
 #
 # INTERNAL METHODS
 #
+our $MARPA_TRACE_FILE_HANDLE;
+our $MARPA_TRACE_BUFFER;
+
+sub BEGIN {
+    #
+    ## We do not want Marpa to pollute STDERR
+    #
+    ## Autovivify a new file handle
+    #
+    open($MARPA_TRACE_FILE_HANDLE, '>', \$MARPA_TRACE_BUFFER);
+    if (! defined($MARPA_TRACE_FILE_HANDLE)) {
+      croak "Cannot create temporary file handle to tie Marpa logging, $!\n";
+    } else {
+      if (! tie ${$MARPA_TRACE_FILE_HANDLE}, 'MarpaX::Languages::C::AST::Impl::Logger') {
+        croak "Cannot tie $MARPA_TRACE_FILE_HANDLE, $!\n";
+        if (! close($MARPA_TRACE_FILE_HANDLE)) {
+          croak "Cannot close temporary file handle, $!\n";
+        }
+        $MARPA_TRACE_FILE_HANDLE = undef;
+      }
+    }
+}
+
 sub _sprintfDotPosition {
     my ($self, $earleySetId, $i, $dotPosition, $lhs, @rhs) = @_;
 
