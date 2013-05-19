@@ -307,4 +307,4 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-1; # End of MarpaX::Languages::C::AST
+1; # End of MarpaX::Languages::C::AST::Scope

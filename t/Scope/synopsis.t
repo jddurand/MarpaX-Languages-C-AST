@@ -2,9 +2,7 @@
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use Test::More;
-
-plan tests => 7;
+use Test::More tests => 7;
 
 BEGIN {
     use_ok( 'MarpaX::Languages::C::AST::Scope' ) || print "Bail out!\n";

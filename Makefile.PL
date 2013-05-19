@@ -1,10 +1,14 @@
-use 5.006;
+use 5.10.0;
+use version 0.77; # perl 5.10 minimum, which Marpa's requirement as well
 use strict;
 use warnings FATAL => 'all';
 use ExtUtils::MakeMaker;
 use File::Spec;
+use File::Find;
 
-my @tests = (File::Spec->catfile('t', '*.t'), File::Spec->catfile('t', 'Scope', '*.t'));
+my @tests = ();
+find({wanted => \&wanted}, 't');
+sub wanted { /\.t$/i && push(@tests, File::Spec->catfile($File::Find::dir, $_)); }
 
 my %args = (
     NAME             => 'MarpaX::Languages::C::AST',
@@ -30,10 +34,18 @@ my %args = (
 );
 
 my $TEST_REQUIRES = {
+    'Clone'                       => 0,
     'Test::More'                  => 0,
     'Log::Any'                    => 0,
-    'Log::Log4perl'               => 0,
-    'Log::Any::Adapter::Log4perl' => 0
+    'Marpa::R2'                   => 2.055002,
+    'File::Slurp'                 => 0,
+    'Module::Info'                => 0,
 };
+
+if (version->parse($ExtUtils::MakeMaker::VERSION) >= version->parse('6.63_03')) {
+    $args{TEST_REQUIRES} = $TEST_REQUIRES;
+} else {
+    $args{BUILD_REQUIRES} = $TEST_REQUIRES;
+}
 
 WriteMakefile(%args);

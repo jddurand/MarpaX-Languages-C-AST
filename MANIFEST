@@ -1,7 +1,10 @@
 ignore.txt
 Changes
 lib/MarpaX/Languages/C/AST.pm
+lib/MarpaX/Languages/C/AST/Grammar.pm
 lib/MarpaX/Languages/C/AST/Scope.pm
+lib/MarpaX/Languages/C/AST/Grammar/inc/ISO-ANSI-C-2011.bnf
+lib/MarpaX/Languages/C/AST/Impl.pm
 Makefile.PL
 MANIFEST			This list of files
 README
@@ -10,6 +13,11 @@ t/boilerplate.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+t/Grammar/00-load.t
+t/Grammar/boilerplate.t
+t/Grammar/synopsis.t
+t/Impl/boilerplate.t
+t/Impl/00-load.t
 t/Scope/00-load.t
 t/Scope/boilerplate.t
 t/Scope/synopsis.t
