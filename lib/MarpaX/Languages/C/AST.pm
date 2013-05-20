@@ -99,6 +99,7 @@ sub parse {
 	$self->_doLexeme($referenceToSourceCodep);
     } while (($pos = $self->{_impl}->resume()) < $max);
     
+    $arrayOfValuesb ||= 0;
     return($self->_value($arrayOfValuesb));
 }
 
@@ -126,6 +127,9 @@ sub _value {
     my @rc = ();
     my $nvalue = 0;
     my $valuep = $self->{_impl}->value() || croak $self->_show_last_expression();
+    if (defined($valuep)) {
+	push(@rc, $valuep);
+    }
     do {
 	++$nvalue;
 	$valuep = $self->{_impl}->value();
@@ -133,13 +137,13 @@ sub _value {
 	    push(@rc, $valuep);
 	}
     } while (defined($valuep));
-    if ($nvalue != 1 && ! $arrayOfValuesb) {
+    if ($#rc != 0 && ! $arrayOfValuesb) {
 	croak 'Number of parse tree value should be 1';
     }
     if ($arrayOfValuesb) {
 	return [ @rc ];
     } else {
-	return shift(@rc);
+	return $rc[0];
     }
 }
 
