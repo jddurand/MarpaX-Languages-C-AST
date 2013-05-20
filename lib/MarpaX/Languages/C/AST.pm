@@ -56,7 +56,7 @@ struct x1 {x1 i2;};
 x1 x;
 C_SOURCE_CODE
     my $cAstObject = MarpaX::Languages::C::AST->new(\$cSourceCode);
-    print Dumper($cAstObject->parse(\$input);
+    print Dumper($cAstObject->parse(\$input));
 
 =head1 SUBROUTINES/METHODS
 
