@@ -3,7 +3,7 @@ package MarpaX::Languages::C::AST::Impl;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use Marpa::R2 2.054_000;
+use Marpa::R2 2.055_003;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Impl::Logger;
 use Log::Any qw/$log/;
