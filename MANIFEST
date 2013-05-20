@@ -11,7 +11,7 @@ MANIFEST			This list of files
 README
 t/00-load.t
 t/boilerplate.t
-t/if-then-else.t
+t/if-if-else.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
