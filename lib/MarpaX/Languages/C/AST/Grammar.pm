@@ -53,20 +53,13 @@ Instance a new object. Takes no argument.
 =cut
 
 sub new {
-  my ($class, %hash) = @_;
+  my ($class) = @_;
 
   my $DIRPATH = sprintf('%s::%s', __PACKAGE__, DIRPATH);
   my $self  = {
       dirpath => defined($ENV{$DIRPATH}) ? $DIRPATH : File::Spec->catdir(Module::Info->new_from_loaded(__PACKAGE__)->inc_dir, split('::', __PACKAGE__), 'inc'),
   };
   bless($self, $class);
-
-  if (exists($hash{dirpath})) {
-      $self->dirpath($hash{dirpath});
-  }
-  if (exists($hash{filename})) {
-      $self->read($hash{filename});
-  }
 
   return $self;
 }
