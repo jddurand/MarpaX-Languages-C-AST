@@ -28,6 +28,11 @@ my %args = (
         #'ABC'              => 1.6,
         #'Foo::Bar::Module' => 5.0401,
     },
+    META_MERGE        => {
+	resources => {
+	    repository  =>  'https://github.com/jddurand/MarpaX-Languages-C-AST',
+	},
+    },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'MarpaX-Languages-C-AST-*' },
     test => { TESTS => "@tests" } # Works on all platforms because there is no special char, no space, etc
