@@ -1,0 +1,339 @@
+\bless( [
+           bless( [
+                    bless( [
+                             bless( [
+                                      bless( [
+                                               'void'
+                                             ], 'C::AST::typeSpecifier' )
+                                    ], 'C::AST::declarationSpecifiers' ),
+                             bless( [
+                                      bless( [
+                                               bless( [
+                                                        'function'
+                                                      ], 'C::AST::directDeclarator' ),
+                                               '(',
+                                               ')'
+                                             ], 'C::AST::directDeclarator' )
+                                    ], 'C::AST::declarator' ),
+                             bless( [
+                                      '{',
+                                      bless( [
+                                               bless( [
+                                                        bless( [
+                                                                 bless( [
+                                                                          'if',
+                                                                          '(',
+                                                                          bless( [
+                                                                                   bless( [
+                                                                                            bless( [
+                                                                                                     bless( [
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            '1'
+                                                                                                                                                                                                                                          ], 'C::AST::constant' )
+                                                                                                                                                                                                                                 ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                               ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                      ], 'C::AST::castExpression' )
+                                                                                                                                                                                             ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                    ], 'C::AST::additiveExpression' )
+                                                                                                                                                                           ], 'C::AST::shiftExpression' )
+                                                                                                                                                                  ], 'C::AST::relationalExpression' )
+                                                                                                                                                         ], 'C::AST::equalityExpression' )
+                                                                                                                                                ], 'C::AST::andExpression' )
+                                                                                                                                       ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                              ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                     ], 'C::AST::logicalAndExpression' )
+                                                                                                            ], 'C::AST::logicalOrExpression' )
+                                                                                                   ], 'C::AST::conditionalExpression' )
+                                                                                          ], 'C::AST::assignmentExpression' )
+                                                                                 ], 'C::AST::expression' ),
+                                                                          ')',
+                                                                          bless( [
+                                                                                   bless( [
+                                                                                            'if',
+                                                                                            '(',
+                                                                                            bless( [
+                                                                                                     bless( [
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              '2'
+                                                                                                                                                                                                                                                            ], 'C::AST::constant' )
+                                                                                                                                                                                                                                                   ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                          ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::castExpression' )
+                                                                                                                                                                                                               ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                      ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                             ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                    ], 'C::AST::relationalExpression' )
+                                                                                                                                                                           ], 'C::AST::equalityExpression' )
+                                                                                                                                                                  ], 'C::AST::andExpression' )
+                                                                                                                                                         ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                       ], 'C::AST::logicalAndExpression' )
+                                                                                                                              ], 'C::AST::logicalOrExpression' )
+                                                                                                                     ], 'C::AST::conditionalExpression' )
+                                                                                                            ], 'C::AST::assignmentExpression' )
+                                                                                                   ], 'C::AST::expression' ),
+                                                                                            ')',
+                                                                                            bless( [
+                                                                                                     bless( [
+                                                                                                              'if',
+                                                                                                              '(',
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              bless( [
+                                                                                                                                                                                                                                                                       bless( [
+                                                                                                                                                                                                                                                                                '3'
+                                                                                                                                                                                                                                                                              ], 'C::AST::constant' )
+                                                                                                                                                                                                                                                                     ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                                            ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                                   ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                                          ], 'C::AST::castExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                                               ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                                      ], 'C::AST::relationalExpression' )
+                                                                                                                                                                                             ], 'C::AST::equalityExpression' )
+                                                                                                                                                                                    ], 'C::AST::andExpression' )
+                                                                                                                                                                           ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                                  ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                                         ], 'C::AST::logicalAndExpression' )
+                                                                                                                                                ], 'C::AST::logicalOrExpression' )
+                                                                                                                                       ], 'C::AST::conditionalExpression' )
+                                                                                                                              ], 'C::AST::assignmentExpression' )
+                                                                                                                     ], 'C::AST::expression' ),
+                                                                                                              ')',
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              bless( [
+                                                                                                                                                                                                                                                                       bless( [
+                                                                                                                                                                                                                                                                                bless( [
+                                                                                                                                                                                                                                                                                         bless( [
+                                                                                                                                                                                                                                                                                                  'something3'
+                                                                                                                                                                                                                                                                                                ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                                                                       ], 'C::AST::postfixExpression' ),
+                                                                                                                                                                                                                                                                                '(',
+                                                                                                                                                                                                                                                                                ')'
+                                                                                                                                                                                                                                                                              ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                                                     ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                                                            ], 'C::AST::castExpression' )
+                                                                                                                                                                                                                                                   ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                                                          ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::relationalExpression' )
+                                                                                                                                                                                                               ], 'C::AST::equalityExpression' )
+                                                                                                                                                                                                      ], 'C::AST::andExpression' )
+                                                                                                                                                                                             ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                                                    ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                                                           ], 'C::AST::logicalAndExpression' )
+                                                                                                                                                                  ], 'C::AST::logicalOrExpression' )
+                                                                                                                                                         ], 'C::AST::conditionalExpression' )
+                                                                                                                                                ], 'C::AST::assignmentExpression' )
+                                                                                                                                       ], 'C::AST::expression' ),
+                                                                                                                                ';'
+                                                                                                                              ], 'C::AST::expressionStatement' )
+                                                                                                                     ], 'C::AST::statement' ),
+                                                                                                              'else',
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              bless( [
+                                                                                                                                                                                                                                                                       bless( [
+                                                                                                                                                                                                                                                                                bless( [
+                                                                                                                                                                                                                                                                                         bless( [
+                                                                                                                                                                                                                                                                                                  'somethingElse3'
+                                                                                                                                                                                                                                                                                                ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                                                                       ], 'C::AST::postfixExpression' ),
+                                                                                                                                                                                                                                                                                '(',
+                                                                                                                                                                                                                                                                                ')'
+                                                                                                                                                                                                                                                                              ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                                                     ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                                                            ], 'C::AST::castExpression' )
+                                                                                                                                                                                                                                                   ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                                                          ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::relationalExpression' )
+                                                                                                                                                                                                               ], 'C::AST::equalityExpression' )
+                                                                                                                                                                                                      ], 'C::AST::andExpression' )
+                                                                                                                                                                                             ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                                                    ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                                                           ], 'C::AST::logicalAndExpression' )
+                                                                                                                                                                  ], 'C::AST::logicalOrExpression' )
+                                                                                                                                                         ], 'C::AST::conditionalExpression' )
+                                                                                                                                                ], 'C::AST::assignmentExpression' )
+                                                                                                                                       ], 'C::AST::expression' ),
+                                                                                                                                ';'
+                                                                                                                              ], 'C::AST::expressionStatement' )
+                                                                                                                     ], 'C::AST::statement' )
+                                                                                                            ], 'C::AST::selectionStatement' )
+                                                                                                   ], 'C::AST::statement' ),
+                                                                                            'else',
+                                                                                            bless( [
+                                                                                                     bless( [
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              bless( [
+                                                                                                                                                                                                                                                                       bless( [
+                                                                                                                                                                                                                                                                                'somethingElse2'
+                                                                                                                                                                                                                                                                              ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                                                     ], 'C::AST::postfixExpression' ),
+                                                                                                                                                                                                                                                              '(',
+                                                                                                                                                                                                                                                              ')'
+                                                                                                                                                                                                                                                            ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                                   ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                                          ], 'C::AST::castExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                                               ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                                      ], 'C::AST::relationalExpression' )
+                                                                                                                                                                                             ], 'C::AST::equalityExpression' )
+                                                                                                                                                                                    ], 'C::AST::andExpression' )
+                                                                                                                                                                           ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                                  ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                                         ], 'C::AST::logicalAndExpression' )
+                                                                                                                                                ], 'C::AST::logicalOrExpression' )
+                                                                                                                                       ], 'C::AST::conditionalExpression' )
+                                                                                                                              ], 'C::AST::assignmentExpression' )
+                                                                                                                     ], 'C::AST::expression' ),
+                                                                                                              ';'
+                                                                                                            ], 'C::AST::expressionStatement' )
+                                                                                                   ], 'C::AST::statement' )
+                                                                                          ], 'C::AST::selectionStatement' )
+                                                                                 ], 'C::AST::statement' ),
+                                                                          'else',
+                                                                          bless( [
+                                                                                   bless( [
+                                                                                            bless( [
+                                                                                                     bless( [
+                                                                                                              bless( [
+                                                                                                                       bless( [
+                                                                                                                                bless( [
+                                                                                                                                         bless( [
+                                                                                                                                                  bless( [
+                                                                                                                                                           bless( [
+                                                                                                                                                                    bless( [
+                                                                                                                                                                             bless( [
+                                                                                                                                                                                      bless( [
+                                                                                                                                                                                               bless( [
+                                                                                                                                                                                                        bless( [
+                                                                                                                                                                                                                 bless( [
+                                                                                                                                                                                                                          bless( [
+                                                                                                                                                                                                                                   bless( [
+                                                                                                                                                                                                                                            bless( [
+                                                                                                                                                                                                                                                     bless( [
+                                                                                                                                                                                                                                                              'somethingElse1'
+                                                                                                                                                                                                                                                            ], 'C::AST::primaryExpression' )
+                                                                                                                                                                                                                                                   ], 'C::AST::postfixExpression' ),
+                                                                                                                                                                                                                                            '(',
+                                                                                                                                                                                                                                            ')'
+                                                                                                                                                                                                                                          ], 'C::AST::postfixExpression' )
+                                                                                                                                                                                                                                 ], 'C::AST::unaryExpression' )
+                                                                                                                                                                                                                        ], 'C::AST::castExpression' )
+                                                                                                                                                                                                               ], 'C::AST::multiplicativeExpression' )
+                                                                                                                                                                                                      ], 'C::AST::additiveExpression' )
+                                                                                                                                                                                             ], 'C::AST::shiftExpression' )
+                                                                                                                                                                                    ], 'C::AST::relationalExpression' )
+                                                                                                                                                                           ], 'C::AST::equalityExpression' )
+                                                                                                                                                                  ], 'C::AST::andExpression' )
+                                                                                                                                                         ], 'C::AST::exclusiveOrExpression' )
+                                                                                                                                                ], 'C::AST::inclusiveOrExpression' )
+                                                                                                                                       ], 'C::AST::logicalAndExpression' )
+                                                                                                                              ], 'C::AST::logicalOrExpression' )
+                                                                                                                     ], 'C::AST::conditionalExpression' )
+                                                                                                            ], 'C::AST::assignmentExpression' )
+                                                                                                   ], 'C::AST::expression' ),
+                                                                                            ';'
+                                                                                          ], 'C::AST::expressionStatement' )
+                                                                                 ], 'C::AST::statement' )
+                                                                        ], 'C::AST::selectionStatement' )
+                                                               ], 'C::AST::statement' )
+                                                      ], 'C::AST::blockItem' )
+                                             ], 'C::AST::blockItemList' ),
+                                      '}'
+                                    ], 'C::AST::compoundStatement' )
+                           ], 'C::AST::functionDefinition' )
+                  ], 'C::AST::externalDeclaration' )
+         ], 'C::AST::translationUnit' )
