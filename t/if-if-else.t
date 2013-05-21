@@ -12,8 +12,6 @@ my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
 my $blessed = $cAst->parse(\$cSourceCode);
 ok(defined($blessed));
-use Data::Dumper;
-print Dumper($blessed);
 __DATA__
 void function() {
 	if (1)
