@@ -62,19 +62,23 @@ C_SOURCE_CODE
 
 =head2 new
 
-Instanciate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011.bnf'.
+Instanciate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011'.
 
 =cut
 
 sub new {
   my ($class, $grammarName) = @_;
 
-  $grammarName //= 'ISO-ANSI-C-2011.bnf';
+  $grammarName //= 'ISO-ANSI-C-2011';
 
   my $self  = {};
   $self->{_scope} = MarpaX::Languages::C::AST::Scope->new(),
-  $self->{_grammar} = MarpaX::Languages::C::AST::Grammar->new()->read($grammarName);
-  $self->{_impl} = MarpaX::Languages::C::AST::Impl->new({bless_package => 'C::AST', source => \$self->{_grammar}});
+  $self->{_grammar} = MarpaX::Languages::C::AST::Grammar->new($grammarName);
+  my $grammar_option = $self->{_grammar}->grammar_option();
+  my $recce_option = $self->{_grammar}->recce_option();
+  $grammar_option->{bless_package} = 'C::AST';
+  $grammar_option->{source} = \$self->{_grammar}->content();
+  $self->{_impl} = MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option);
   $self->{_G1LocationToTypedef} = {};
   $self->{_G1LocationToTypedefName} = {};
 

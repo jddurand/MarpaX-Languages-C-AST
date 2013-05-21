@@ -2,13 +2,8 @@ package MarpaX::Languages::C::AST::Grammar;
 
 use strict;
 use warnings FATAL => 'all';
-use Module::Info qw/new_from_loaded inc_dir/;
-use IO::File;
-use File::Spec qw/catfile/;
-use Log::Any qw/$log/;
-use constant {DIRPATH => 'DIRPATH'};
-use File::Find qw/find/;
-use Carp qw/croak carp/;
+use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
+use Carp qw/croak/;
 
 =head1 NAME
 
@@ -36,94 +31,71 @@ Example:
 
     use MarpaX::Languages::C::AST::Grammar;
 
-    my $grammar = MarpaX::Languages::C::AST::Grammar->new();
-
-    my $isoAnsiC2011 = $grammar->read('ISO-ANSI-C-2011.bnf');
-
-    # or
-    $grammar->dirpath('My_Directory');
-    $myIsoAnsiC2011 = $grammar->read(filename => 'MY-ISO-ANSI-C-2011.bnf');
-
+    my $grammar = MarpaX::Languages::C::AST::Grammar->new('ISO-ANSI-C-2011');
+    my $grammar_content = $grammar->content();
+    my $grammar_option = $grammar->grammar_option();
+    my $recce_option = $grammar->recce_option();
 
 =head1 SUBROUTINES/METHODS
 
 =head2 new()
 
-Instance a new object. Takes no argument.
+Instance a new object. Takes the name of the grammar as argument.
 
 =cut
 
 sub new {
-  my ($class) = @_;
+  my ($class, $grammarName) = @_;
 
-  my $DIRPATH = sprintf('%s::%s', __PACKAGE__, DIRPATH);
-  my $self  = {
-      dirpath => defined($ENV{$DIRPATH}) ? $DIRPATH : File::Spec->catdir(Module::Info->new_from_loaded(__PACKAGE__)->inc_dir, split('::', __PACKAGE__), 'inc'),
-  };
+  my $self = {};
+  if (! defined($grammarName)) {
+    croak 'Usage: new($grammar_Name)';
+  } elsif ($grammarName eq 'ISO-ANSI-C-2011') {
+    $self->{_grammar} = MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011->new();
+  } else {
+    croak "Unsupported grammar name $grammarName";
+  }
   bless($self, $class);
 
   return $self;
 }
 
-=head2 read($fileName)
+=head2 content()
 
-Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file cannot be opened for reading, and carp if there is a warning when closing it. The content of the file is explicitely untainted.
-
-=cut
-
-sub read {
-    my ($self, $filename) = @_;
-    my $filepath = File::Spec->catfile($self->dirpath(), $filename);
-    $log->debugf('Reading %s', $filepath);
-    my $fh = IO::File->new($filepath, 'r');
-    if (! defined($fh)) {
-	croak "$filepath, $!";
-    }
-    $fh->untaint;
-    my $rc = do { local $/; <$fh> };
-    if (! $fh->close) {
-	carp "$filepath, $!";
-    }
-    return $rc;
-}
-
-=head2 dirpath([$dirPath])
-
-Get/set the directory path where are located the grammars. Default value is, in order of preference, the environment variable MarpaX::Languages::C::AST::Grammar::DIRPATH, the 'inc' directory distributed with this package.
+Returns the content of the grammar.
 
 =cut
 
-sub dirpath {
-    my $self = shift;
-    if (@_) {
-	$self->{dirpath} = shift;
-    }
-    return $self->{dirpath};
-}
-
-=head2 list
-
-Returns an array of available grammars. This is in reality just the list of recursive files that are in dirpath(). Please note that the returned paths are always sanitized using File::Spec->canonpath().
-
-=cut
-
-sub list {
+sub content {
     my ($self) = @_;
+    return $self->{_grammar}->content(@_);
+}
 
-    my @found = ();
-    find(
-	{
-	    wanted => sub {(-f $_) && push(@found, File::Spec->canonpath($_));},
-	    no_chdir => 1
-	},
-	$self->dirpath()
-	);
-    return \@found;
+=head2 grammar_option()
+
+Returns recommended option for Marpa::R2::Scanless::G->new(), returned as a reference to a hash.
+
+=cut
+
+sub grammar_option {
+    my ($self) = @_;
+    return $self->{_grammar}->grammar_option(@_);
+}
+
+=head2 recce_option()
+
+Returns recommended option for Marpa::R2::Scanless::R->new(), returned as a reference to a hash.
+
+=cut
+
+sub recce_option {
+    my ($self) = @_;
+    return $self->{_grammar}->recce_option(@_);
 }
 
 =head1 SEE ALSO
 
-L<File::Spec>
+L<Marpa::R2>, L<MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011>
 
 =head1 AUTHOR
 

@@ -5,10 +5,10 @@ use warnings FATAL => 'all';
 use Test::More tests => 4;
 
 BEGIN {
-    use_ok( 'MarpaX::Languages::C::AST::Grammar' ) || print "Bail out!\n";
+    use_ok( 'MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011' ) || print "Bail out!\n";
 }
 
-my $grammar  = MarpaX::Languages::C::AST::Grammar->new('ISO-ANSI-C-2011');
+my $grammar  = MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011->new();
 
 my $isoAnsiC2011 = $grammar->content();
 ok(defined($isoAnsiC2011));
