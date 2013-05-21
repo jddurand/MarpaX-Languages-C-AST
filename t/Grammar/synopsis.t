@@ -5,6 +5,7 @@ use warnings FATAL => 'all';
 use Test::More tests => 4;
 use File::Temp qw/tempfile tempdir/;
 use File::Basename;
+use File::Spec;
 
 BEGIN {
     use_ok( 'MarpaX::Languages::C::AST::Grammar' ) || print "Bail out!\n";
@@ -20,4 +21,4 @@ my ($fh, $filename) = tempfile(DIR => $dir);
 $grammar->dirpath($dir);
 my $filesp = $grammar->list();
 ok($#{$filesp} == 0);
-ok($filesp->[0] eq $filename);
+ok($filesp->[0] eq File::Spec->canonpath($filename));

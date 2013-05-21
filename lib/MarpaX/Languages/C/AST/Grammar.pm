@@ -103,7 +103,7 @@ sub dirpath {
 
 =head2 list
 
-Returns an array of available grammars. This is in reality just the list of recursive files that are in dirpath().
+Returns an array of available grammars. This is in reality just the list of recursive files that are in dirpath(). Please note that the returned paths are always sanitized using File::Spec->canonpath().
 
 =cut
 
@@ -113,13 +113,17 @@ sub list {
     my @found = ();
     find(
 	{
-	    wanted => sub {(-f $_) && push(@found, $_);},
+	    wanted => sub {(-f $_) && push(@found, File::Spec->canonpath($_));},
 	    no_chdir => 1
 	},
 	$self->dirpath()
 	);
     return \@found;
 }
+
+=head1 SEE ALSO
+
+L<File::Spec>
 
 =head1 AUTHOR
 
