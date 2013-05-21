@@ -67,7 +67,7 @@ sub new {
 
 =head2 read($fileName)
 
-Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file does not exist, and carp if there is a warning with it.
+Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file cannot be opened for reading, and carp if there is a warning when closing it. The content of the file is explicitely untainted.
 
 =cut
 
