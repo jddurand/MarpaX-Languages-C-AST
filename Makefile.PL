@@ -34,7 +34,6 @@ my %args = (
 );
 
 my $TEST_REQUIRES = {
-    'Clone'                       => 0,
     'Test::More'                  => 0,
     'Log::Any'                    => 0,
     'Marpa::R2'                   => 2.055002,
