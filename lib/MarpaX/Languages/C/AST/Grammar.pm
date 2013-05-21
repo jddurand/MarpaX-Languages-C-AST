@@ -3,11 +3,12 @@ package MarpaX::Languages::C::AST::Grammar;
 use strict;
 use warnings FATAL => 'all';
 use Module::Info qw/new_from_loaded inc_dir/;
-use File::Slurp qw/read_file/;
+use IO::File;
 use File::Spec qw/catfile/;
 use Log::Any qw/$log/;
 use constant {DIRPATH => 'DIRPATH'};
 use File::Find qw/find/;
+use Carp qw/croak carp/;
 
 =head1 NAME
 
@@ -66,7 +67,7 @@ sub new {
 
 =head2 read($fileName)
 
-Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file does not exist.
+Returns the content of the grammar. Takes the filename of the grammar in parameter, that must be located in the dirpath() directory. Will croak if the file does not exist, and carp if there is a warning with it.
 
 =cut
 
@@ -74,7 +75,16 @@ sub read {
     my ($self, $filename) = @_;
     my $filepath = File::Spec->catfile($self->dirpath(), $filename);
     $log->debugf('Reading %s', $filepath);
-    return read_file($filepath);
+    my $fh = IO::File->new($filepath, 'r');
+    if (! defined($fh)) {
+	croak "$filepath, $!";
+    }
+    $fh->untaint;
+    my $rc = do { local $/; <$fh> };
+    if (! $fh->close) {
+	carp "$filepath, $!";
+    }
+    return $rc;
 }
 
 =head2 dirpath([$dirPath])

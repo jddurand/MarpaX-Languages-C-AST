@@ -38,7 +38,6 @@ my $TEST_REQUIRES = {
     'Test::More'                  => 0,
     'Log::Any'                    => 0,
     'Marpa::R2'                   => 2.055002,
-    'File::Slurp'                 => 0,
     'Module::Info'                => 0,
 };
 
