@@ -1,5 +1,8 @@
 Revision history for MarpaX-Languages-C-AST
 
-0.01    Date/time
+0.02    21.05.2013
+        Fixed main synopsis, move from Clone to Storable
+
+0.01    21.05.2013
         First version, released on an unsuspecting world.
 
