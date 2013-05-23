@@ -21,9 +21,6 @@ my %args = (
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },
-    BUILD_REQUIRES => {
-        'Test::More' => 0,
-    },
     PREREQ_PM => {
         'Log::Any'                    => 0,
         'Marpa::R2'                   => 2.056000
