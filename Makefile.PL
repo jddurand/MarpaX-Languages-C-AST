@@ -1,4 +1,3 @@
-use 5.10.0;
 use version 0.77; # perl 5.10 minimum, which Marpa's requirement as well
 use strict;
 use warnings FATAL => 'all';
@@ -17,7 +16,6 @@ my %args = (
     ABSTRACT_FROM    => 'lib/MarpaX/Languages/C/AST.pm',
     LICENSE          => 'Artistic_2_0',
     PL_FILES         => {},
-    MIN_PERL_VERSION => 5.006,
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },
