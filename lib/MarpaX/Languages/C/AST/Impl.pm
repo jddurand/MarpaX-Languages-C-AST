@@ -130,8 +130,10 @@ sub findInProgress {
 	} else {
 	    $log->tracef('Match on: %s', $self->_sprintfDotPosition($earleySetId, $i, $dotPosition, $lhs, @rhs));
 	}
-	if (defined($wantedDotPosition) ||
-	    defined($wantedLhs) ||
+	if (defined($wantedRuleId) ||
+            defined($wantedDotPosition) ||
+	    defined($wantedOrigin) ||
+            defined($wantedLhs) ||
 	    defined($wantedRhsp)) {
 	    $rc = 1;
 	    last;
