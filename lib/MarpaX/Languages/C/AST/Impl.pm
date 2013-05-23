@@ -3,7 +3,7 @@ package MarpaX::Languages::C::AST::Impl;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use Marpa::R2 2.055_003;
+use Marpa::R2;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Impl::Logger;
 use Log::Any qw/$log/;
@@ -70,12 +70,12 @@ sub new {
 
 =head2 findInProgress($earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode)
 
-Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
+Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
 
 =cut
 
 sub findInProgress {
-    my ($self, $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode) = @_;
+    my ($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode) = @_;
 
     $fatalMode ||= 0;
 
@@ -85,7 +85,7 @@ sub findInProgress {
 
     my $i = 0;
     foreach (@{$self->progress($earleySetId)}) {
-	my ($rule_id, $dotPosition, $origin) = @{$_};
+	my ($ruleId, $dotPosition, $origin) = @{$_};
 	#
 	# There two special cases in findInprogress:
 	# if $wantedDotPrediction == DOT_PREDICTION, $wantedLhs is defined, and $wantedRhsp is undef
@@ -97,12 +97,12 @@ sub findInProgress {
 	my ($lhs, @rhs);
 	if (defined($wantedDotPosition) && defined($wantedLhs) && ! defined($wantedRhsp)) {
 	    if ($wantedDotPosition == DOT_PREDICTION) {
-		($lhs, @rhs) = $self->rule($rule_id);
+		($lhs, @rhs) = $self->rule($ruleId);
 		if ($dotPosition != DOT_COMPLETION && $rhs[$dotPosition] eq $wantedLhs) {
 		    $found = 1;
 		}
 	    } elsif ($wantedDotPosition == DOT_COMPLETION) {
-		($lhs, @rhs) = $self->rule($rule_id);
+		($lhs, @rhs) = $self->rule($ruleId);
 		if ($dotPosition != DOT_PREDICTION) {
 		    if ($dotPosition != DOT_COMPLETION) {
 			if ($rhs[$dotPosition-1] eq $wantedLhs) {
@@ -115,8 +115,10 @@ sub findInProgress {
 	    }
 	}
 	if (! $found) {
+	    next if (defined($wantedRuleId) && ($ruleId != $wantedRuleId));
 	    next if (defined($wantedDotPosition) && ($dotPosition != $wantedDotPosition));
-	    ($lhs, @rhs) = $self->rule($rule_id);
+	    next if (defined($wantedOrigin) && ($origin != $wantedOrigin));
+	    ($lhs, @rhs) = $self->rule($ruleId);
 	    next if (defined($wantedLhs) && ($lhs ne $wantedLhs));
 	    next if (defined($wantedRhsp) && ! __PACKAGE__->_arrayEq(\@rhs, $wantedRhsp));
 	    $found = 1;
@@ -175,7 +177,7 @@ sub inspectG1 {
 	    my $i = 0;
 	    foreach (@{$candidateRulesp}) {
 		my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, $dotPredictionEnd, $lhs, $rhsp, 0)) {
+		if ($self->findInProgress($g1_location, undef, $dotPredictionEnd, undef, $lhs, $rhsp, 0)) {
 		    $end_g1_location = $g1_location;
 		    $indexInCandidates = $i;
 		    last;
@@ -185,7 +187,7 @@ sub inspectG1 {
 	}
 	if (defined($end_g1_location) && ! defined($start_g1_location) && defined($candidateRulesp)) {
 	    my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$candidateRulesp->[$indexInCandidates]};
-	    if ($self->findInProgress($g1_location, $dotPredictionStart, $lhs, $rhsp, 0)) {
+	    if ($self->findInProgress($g1_location, undef, $dotPredictionStart, undef, $lhs, $rhsp, 0)) {
 		$start_g1_location = $g1_location;
 	    }
 	}
@@ -218,7 +220,7 @@ sub inspectG1 {
 	if (defined($endConditionp)) {
 	    foreach (@{$endConditionp}) {
 		my ($dotPrediction, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, $dotPrediction, $lhs, $rhsp, 0)) {
+		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, 0)) {
 		    $end_condition = 1;
 		    last;
 		}
