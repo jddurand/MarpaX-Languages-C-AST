@@ -44,7 +44,7 @@ The constants DOT_PREDICTION (0), DOT_COMPLETION (-1) and LATEST_EARLEY_SET_ID (
 
 Please note that except for the new, findInProgress, inspectG1 methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, findInProgress and inspectG1 are documented. Please see Marpa documentation for the other methods whenever needed.
 
-=head2 new
+=head2 new($class, $grammarOptionsHashp, $recceOptionsHashp)
 
 Instanciate a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object.
 
@@ -68,7 +68,7 @@ sub new {
   return $self;
 }
 
-=head2 findInProgress($earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode)
+=head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode)
 
 Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
 
@@ -143,7 +143,7 @@ sub findInProgress {
     return($rc);
 }
 
-=head2 inspectG1($lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp)
+=head2 inspectG1($self, $lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp)
 
 Inspects G1. Searched for a lexeme with name $lexeme, using $matchesInG1p as a match condition, from G1 Earley Set Id $g1_location and downwards. $matchesInG1p is a reference to hash, where the key is a G1 location, and the value is 0 or 1. The match is successful only when $matchesInG1p->{$g1} exist and has a true value. This match appear within $candidateRulesp and the search will end if $endConditionp is reached. $candidateRulesp is a reference to an array of arrays, where each later array has the form: [dotLocationStart, dotLocationEnd, $lhs, [ @rhs ]]. These are send as is to the method findProgress() using [dotLocation, $lhs, [ @rhs ]] and [dotLocationEnd, $lhs, [@rhs]]. The $endConditionp is an array of arrays, where each later array has the form [dotLocation, $lhs, [@rhs]], send as-is to the findProgress() method. If there is no match, this method returns undef. If there a match on $candidateRulesp but no match on $lexeme, it returns a false value. If there is match on both it returns a true value.
 
@@ -240,9 +240,9 @@ sub inspectG1 {
     return($rc);
 }
 
-=head2 rule
+=head2 rule($self, $ruleId)
 
-Returns Marpa's grammar's rule
+Returns Marpa's grammar's rule. Because the output of Marpa's rule is a constant for a given $ruleId, any call to this method will use a cached result if it exist, create a cache otherwise.
 
 =cut
 
@@ -261,7 +261,7 @@ sub rule {
   return @{$self->{_cacheRule}->{$ruleId}};
 }
 
-=head2 value
+=head2 value($self)
 
 Returns Marpa's recognizer's value
 
@@ -273,9 +273,9 @@ sub value {
   return $self->{recce}->value();
 }
 
-=head2 read
+=head2 read($self, @_)
 
-Returns Marpa's recognizer's read
+Returns Marpa's recognizer's read. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -287,7 +287,7 @@ sub read {
   return $self->{recce}->read(@_);
 }
 
-=head2 resume
+=head2 resume($self)
 
 Returns Marpa's recognizer's resume
 
@@ -299,9 +299,9 @@ sub resume {
   return $self->{recce}->resume();
 }
 
-=head2 last_completed
+=head2 last_completed($self, @_)
 
-Returns Marpa's recognizer's last_completed
+Returns Marpa's recognizer's last_completed. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -311,9 +311,9 @@ sub last_completed {
   return $self->{recce}->last_completed(@_);
 }
 
-=head2 last_completed_range
+=head2 last_completed_range($self, @_)
 
-Returns Marpa's recognizer's last_completed_range
+Returns Marpa's recognizer's last_completed_range. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -323,9 +323,9 @@ sub last_completed_range {
   return $self->{recce}->last_completed_range(@_);
 }
 
-=head2 range_to_string
+=head2 range_to_string($self, @_)
 
-Returns Marpa's recognizer's range_to_string
+Returns Marpa's recognizer's range_to_string. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -335,9 +335,9 @@ sub range_to_string {
   return $self->{recce}->range_to_string(@_);
 }
 
-=head2 progress
+=head2 progress($self, @_)
 
-Returns Marpa's recognizer's progress
+Returns Marpa's recognizer's progress. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -347,9 +347,9 @@ sub progress {
   return $self->{recce}->progress(@_);
 }
 
-=head2 event
+=head2 event($self, @_)
 
-Returns Marpa's recognizer's event
+Returns Marpa's recognizer's event. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -359,7 +359,7 @@ sub event {
   return $self->{recce}->event(@_);
 }
 
-=head2 pause_lexeme
+=head2 pause_lexeme($self)
 
 Returns Marpa's recognizer's pause_lexeme
 
@@ -371,7 +371,7 @@ sub pause_lexeme {
   return $self->{recce}->pause_lexeme();
 }
 
-=head2 pause_span
+=head2 pause_span($self)
 
 Returns Marpa's recognizer's pause_span
 
@@ -383,9 +383,9 @@ sub pause_span {
   return $self->{recce}->pause_span();
 }
 
-=head2 line_column
+=head2 line_column($self, @_)
 
-Returns Marpa's recognizer's line_column
+Returns Marpa's recognizer's line_column. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -395,9 +395,9 @@ sub line_column {
   return $self->{recce}->line_column(@_);
 }
 
-=head2 substring
+=head2 substring($self, @_)
 
-Returns Marpa's recognizer's substring
+Returns Marpa's recognizer's substring. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -407,9 +407,9 @@ sub substring {
   return $self->{recce}->substring(@_);
 }
 
-=head2 lexeme_read
+=head2 lexeme_read($self, @_)
 
-Returns Marpa's recognizer's lexeme_read
+Returns Marpa's recognizer's lexeme_read. Arguments other but $self are passed as-is.
 
 =cut
 
@@ -419,7 +419,7 @@ sub lexeme_read {
   return $self->{recce}->lexeme_read(@_);
 }
 
-=head2 latest_g1_location
+=head2 latest_g1_location($self)
 
 Returns Marpa's recognizer's latest_g1_location
 
@@ -431,9 +431,9 @@ sub latest_g1_location {
   return $self->{recce}->latest_g1_location();
 }
 
-=head2 g1_location_to_span
+=head2 g1_location_to_span($self, @_)
 
-Returns Marpa's recognizer's g1_location_to_span
+Returns Marpa's recognizer's g1_location_to_span. Arguments other but $self are passed as-is.
 
 =cut
 
