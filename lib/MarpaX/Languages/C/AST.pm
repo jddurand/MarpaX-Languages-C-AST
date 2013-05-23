@@ -1,6 +1,5 @@
 package MarpaX::Languages::C::AST;
 
-use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Log::Any qw/$log/;

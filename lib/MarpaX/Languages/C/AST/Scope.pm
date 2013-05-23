@@ -1,6 +1,5 @@
 package MarpaX::Languages::C::AST::Scope;
 
-use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Storable qw/dclone/;
