@@ -41,8 +41,7 @@ my %args = (
 my $TEST_REQUIRES = {
     'Test::More'                  => 0,
     'Log::Any'                    => 0,
-    'Marpa::R2'                   => 2.056000,
-    'Module::Info'                => 0,
+    'Marpa::R2'                   => 2.056000
 };
 
 if (version->parse($ExtUtils::MakeMaker::VERSION) >= version->parse('6.63_03')) {
