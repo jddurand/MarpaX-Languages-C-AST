@@ -62,7 +62,7 @@ C_SOURCE_CODE
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new
+=head2 new($class, $grammarName)
 
 Instanciate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011'.
 
@@ -89,14 +89,14 @@ sub new {
   return $self;
 }
 
-=head2 parse($referenceToSourceCodep[, $arrayOfValuesb])
+=head2 parse($self, $referenceToSourceCodep, $optionalArrayOfValuesb)
 
 Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code. Takes as optional second parameter a flag saying if the return value should be an array of all values or not. If this flag is false, the module will croak if there more than one parsee tree value.
 
 =cut
 
 sub parse {
-    my ($self, $referenceToSourceCodep, $arrayOfValuesb) = @_;
+    my ($self, $referenceToSourceCodep, $optionalArrayOfValuesb) = @_;
 
     my $max = length(${$referenceToSourceCodep});
     my $pos = $self->{_impl}->read($referenceToSourceCodep);
@@ -105,8 +105,8 @@ sub parse {
 	$self->_doLexeme($referenceToSourceCodep);
     } while (($pos = $self->{_impl}->resume()) < $max);
     
-    $arrayOfValuesb ||= 0;
-    return($self->_value($arrayOfValuesb));
+    $optionalArrayOfValuesb ||= 0;
+    return($self->_value($optionalArrayOfValuesb));
 }
 
 #
