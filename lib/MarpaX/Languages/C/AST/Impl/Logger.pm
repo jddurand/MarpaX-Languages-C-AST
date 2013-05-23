@@ -3,6 +3,7 @@ package MarpaX::Languages::C::AST::Impl::Logger;
 ## C.f. http://osdir.com/ml/lang.perl.modules.log4perl.devel/2007-03/msg00030.html
 #
 use strict;
+use warnings FATAL => 'all';
 use diagnostics;
 use Carp;
 use Log::Any;
