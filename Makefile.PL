@@ -1,4 +1,4 @@
-use version 0.77; # perl 5.10 minimum, which Marpa's requirement as well
+use version 0.77; # perl 5.10 minimum, which is Marpa's requirement as well
 use strict;
 use warnings FATAL => 'all';
 use ExtUtils::MakeMaker;
