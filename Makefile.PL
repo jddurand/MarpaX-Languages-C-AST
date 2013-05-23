@@ -25,8 +25,8 @@ my %args = (
         'Test::More' => 0,
     },
     PREREQ_PM => {
-        #'ABC'              => 1.6,
-        #'Foo::Bar::Module' => 5.0401,
+        'Log::Any'                    => 0,
+        'Marpa::R2'                   => 2.056000
     },
     META_MERGE        => {
 	resources => {
@@ -40,8 +40,7 @@ my %args = (
 
 my $TEST_REQUIRES = {
     'Test::More'                  => 0,
-    'Log::Any'                    => 0,
-    'Marpa::R2'                   => 2.056000
+    %{$args{PREREQ_PM}}
 };
 
 if (version->parse($ExtUtils::MakeMaker::VERSION) >= version->parse('6.63_03')) {
