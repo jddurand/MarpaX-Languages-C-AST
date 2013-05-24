@@ -215,14 +215,14 @@ sub _doEvent {
 		# declaration: declarationSpecifiers initDeclaratorList . SEMICOLON
 		#
 		$g1 ||= $self->{_impl}->latest_g1_location;
-		if ($self->{_impl}->findInProgress($g1, undef, DOT_COMPLETION, undef, 'directDeclarator', ['IDENTIFIER'], undef) &&
-		    $self->{_impl}->findInProgress($g1, undef,              2, undef, 'declaration',      ['declarationSpecifiers', 'initDeclaratorList', 'SEMICOLON'], undef)) {
+		if ($self->{_impl}->findInProgressShort($g1, DOT_COMPLETION, 'directDeclarator', ['IDENTIFIER']) &&
+		    $self->{_impl}->findInProgressShort($g1,              2, 'declaration',      ['declarationSpecifiers', 'initDeclaratorList', 'SEMICOLON'])) {
 		    #
 		    ## In structDeclarator ordinaty name space names cannot be defined
 		    #
 		    my $directDeclarator = $self->{_impl}->substring($self->{_impl}->last_completed('directDeclarator'));
-		    if ($self->{_impl}->findInProgress($g1, undef, 1, undef, 'structDeclarator', [ 'declarator', 'COLON', 'constantExpression' ], undef) ||
-			$self->{_impl}->findInProgress($g1, undef, 1, undef, 'structDeclarator', [ 'declarator' ], undef)) {
+		    if ($self->{_impl}->findInProgressShort($g1, 1, 'structDeclarator', [ 'declarator', 'COLON', 'constantExpression' ]) ||
+			$self->{_impl}->findInProgressShort($g1, 1, 'structDeclarator', [ 'declarator' ])) {
 			$log->debugf('> Declaration of IDENTIFIER "%s" in structDeclarator context: parse symbol inactive', $directDeclarator);
 		    } else {
 			my $directDeclarator = $self->{_impl}->substring($self->{_impl}->last_completed('directDeclarator'));
@@ -279,9 +279,9 @@ sub _doLexeme {
 	my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
 	my $lexeme_value = substr(${$referenceToSourceCodep}, $lexeme_start, $lexeme_length);
 	$g1 ||= $self->{_impl}->latest_g1_location;
-	if ($self->{_impl}->findInProgress($g1, undef, DOT_PREDICTION, undef, 'typeSpecifier', [ 'TYPEDEF_NAME' ], undef) && $self->{_scope}->parseIsTypedef($lexeme_value) && $self->_canEnterTypedefName($g1)) {
+	if ($self->{_impl}->findInProgressShort($g1, DOT_PREDICTION, 'typeSpecifier', [ 'TYPEDEF_NAME' ]) && $self->{_scope}->parseIsTypedef($lexeme_value) && $self->_canEnterTypedefName($g1)) {
 	    $lexeme = 'TYPEDEF_NAME';
-	} elsif ($self->{_impl}->findInProgress($g1, undef, DOT_PREDICTION, undef, 'constant', [ 'ENUMERATION_CONSTANT' ], undef) && $self->{_scope}->parseIsEnum($lexeme_value) && $self->_canEnterEnumerationConstant($g1)) {
+	} elsif ($self->{_impl}->findInProgressShort($g1, DOT_PREDICTION, 'constant', [ 'ENUMERATION_CONSTANT' ]) && $self->{_scope}->parseIsEnum($lexeme_value) && $self->_canEnterEnumerationConstant($g1)) {
 	    $lexeme = 'ENUMERATION_CONSTANT';
 	} else {
 	    $lexeme = 'IDENTIFIER';
@@ -389,7 +389,7 @@ sub _canEnterTypedefName {
     my ($self, $g1) = @_;
 
     my $rc = 1;
-    if ($self->{_impl}->findInProgress($g1, undef, 1, undef, 'parameterDeclaration', ['declarationSpecifiers', 'declarator'], undef)) {
+    if ($self->{_impl}->findInProgressShort($g1, 1, 'parameterDeclaration', ['declarationSpecifiers', 'declarator'])) {
 	#
 	# In parameterDeclaration a typedef-name cannot be entered.
 	#
@@ -415,8 +415,8 @@ sub _canEnterEnumerationConstant {
 sub _canReenterScope {
     my ($self, $g1) = @_;
 
-    return ($self->{_impl}->findInProgress($g1 - 1, undef, 3, undef, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'declarationList', 'compoundStatement' ], undef) ||
-	    $self->{_impl}->findInProgress($g1 - 1, undef, 2, undef, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'compoundStatement' ], undef));
+    return ($self->{_impl}->findInProgressShort($g1 - 1, 3, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'declarationList', 'compoundStatement' ]) ||
+	    $self->{_impl}->findInProgressShort($g1 - 1, 2, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'compoundStatement' ]));
 }
 
 =head1 SEE ALSO

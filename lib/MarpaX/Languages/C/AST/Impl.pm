@@ -41,7 +41,7 @@ The constants DOT_PREDICTION (0), DOT_COMPLETION (-1) and LATEST_EARLEY_SET_ID (
 
 =head1 SUBROUTINES/METHODS
 
-Please note that except for the new, findInProgress, inspectG1 methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, findInProgress and inspectG1 are documented. Please see Marpa documentation for the other methods whenever needed.
+Please note that except for the new, findInProgress, findInProgressShort, g1Describe and inspectG1 methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, findInProgress and inspectG1 are documented. Please see Marpa documentation for the other methods whenever needed.
 
 =head2 new($class, $grammarOptionsHashp, $recceOptionsHashp)
 
@@ -67,18 +67,27 @@ sub new {
   return $self;
 }
 
-=head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode)
+=head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $indicesp, $matchesp) = @_;
 
-Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match. The eventual parameter $matchesp, if defined, has to be a reference to an array that will be filled with an array of [$ruleId, $dotPosition, $origin, $lhs, [@rhs]] that matched.
+Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $fatalMode, if defined and true, will mean the module will croak if there is a match. $indicesp, if defined, must be a reference to an array giving the indices from Marpa's output we are interested in. $matchesp, if defined, has to be a reference to an array that will be filled with an array of [$ruleId, $dotPosition, $origin, $lhs, [@rhs]] that matched. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
 
 =cut
 
 sub findInProgress {
-    my ($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $matchesp) = @_;
+    my ($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $indicesp, $matchesp) = @_;
+
+    $log->debugf('findInProgress(%d, %s, %s, %s, %s, %s, %s, %s)',
+                 $earleySetId,
+                 defined($wantedRuleId) ? $wantedRuleId : 'undef',
+                 defined($wantedDotPosition) ? $wantedDotPosition : 'undef',
+                 defined($wantedOrigin) ? $wantedOrigin : 'undef',
+                 defined($wantedLhs) ? "\"$wantedLhs\"" : 'undef',
+                 defined($wantedRhsp) ? $wantedRhsp :  'undef',
+                 defined($fatalMode) ? $fatalMode : 'undef',
+                 defined($indicesp) ? $indicesp : 'undef',
+                 defined($matchesp) ? $matchesp : 'undef');
 
     $fatalMode ||= 0;
-
-    $log->debugf('findInProgress(%d, %s, "%s", %s, %d)', $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp, $fatalMode);
 
     my $rc = 0;
 
@@ -144,6 +153,31 @@ sub findInProgress {
 
     return($rc);
 }
+
+=head2 findInProgressShort($self, $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp)
+
+This method is shortcut to findInProgress(), that will force findInProgress()'s parameters $wantedRuleId, $wantedOrigin, $fatalMode, $indicesp and $matchesp to an undef value. This method exist because, in practice, only Earley Set Id, dot position, lhs or rhs are of interest.
+
+=cut
+
+sub findInProgressShort {
+  my ($self, $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp) = @_;
+
+  return $self->findInProgress($earleySetId, undef, $wantedDotPosition, undef, $wantedLhs, $wantedRhsp, undef, undef, undef);
+}
+
+=head2 g1Describe($self, $earleySetId, $indicesp, $matchesp)
+
+Given a $g1, search for the $ruleId, $dotPosition, $origin, $lhs and [@rhs] that correspond to the lines returned by Marpa's progress() output. If $indicesp is defined it must be a reference to an array of wanted indices. If $matchesp is defined, it must be a reference to an array. For instance $self->g1Describe($earleySetId, undef, $matchesp) returns all lines, while $self->g1Describe($earleySetId, [0], $matchesp) returns the first line. This method is in reality just a shortcut to findInProgress().
+
+=cut
+
+sub g1Describe {
+  my ($self, $earleySetId, $indicesp, $matchesp) = @_;
+
+  return $self->findInProgress($earleySetId, undef, undef, undef, undef, undef, undef, $indicesp, $matchesp);
+}
+
 
 =head2 inspectG1($self, $lexeme, $g1_location, $start_g1_locationp, $end_g1_locationp, $candidateRulesp, $matchesInG1p, $endConditionp)
 
