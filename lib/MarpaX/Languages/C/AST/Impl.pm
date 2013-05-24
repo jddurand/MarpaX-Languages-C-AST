@@ -69,7 +69,7 @@ sub new {
 
 =head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $indicesp, $matchesp) = @_;
 
-Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $fatalMode, if defined and true, will mean the module will croak if there is a match. $indicesp, if defined, must be a reference to an array giving the indices from Marpa's output we are interested in. $matchesp, if defined, has to be a reference to an array that will be filled with an array of [$ruleId, $dotPosition, $origin, $lhs, [@rhs]] that matched. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
+Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $fatalMode, if defined and true, will mean the module will croak if there is a match. $indicesp, if defined, must be a reference to an array giving the indices from Marpa's output we are interested in. $matchesp, if defined, has to be a reference to an array that will be filled with an array of [$ruleId, $dotPosition, $origin] that matched. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
 
 =cut
 
@@ -138,7 +138,7 @@ sub findInProgress {
 	    croak($msg);
 	} else {
 	    $log->tracef('Match on: %s', $self->_sprintfDotPosition($earleySetId, $i, $dotPosition, $lhs, @rhs));
-            push(@{$matchesp}, [$ruleId, $dotPosition, $origin, $lhs, [@rhs]]) if (defined($matchesp));
+            push(@{$matchesp}, [$ruleId, $dotPosition, $origin]) if (defined($matchesp));
 	}
 	if (defined($wantedRuleId) ||
             defined($wantedDotPosition) ||
@@ -168,7 +168,7 @@ sub findInProgressShort {
 
 =head2 g1Describe($self, $earleySetId, $indicesp, $matchesp)
 
-Given a $g1, search for the $ruleId, $dotPosition, $origin, $lhs and [@rhs] that correspond to the lines returned by Marpa's progress() output. If $indicesp is defined it must be a reference to an array of wanted indices. If $matchesp is defined, it must be a reference to an array. For instance $self->g1Describe($earleySetId, undef, $matchesp) returns all lines, while $self->g1Describe($earleySetId, [0], $matchesp) returns the first line. This method is in reality just a shortcut to findInProgress().
+Given a $g1, search for the $ruleId, $dotPosition, $origin that correspond to the lines returned by Marpa's progress() output. If $indicesp is defined it must be a reference to an array of wanted indices. If $matchesp is defined, it must be a reference to an array. For instance $self->g1Describe($earleySetId, undef, $matchesp) returns all lines, while $self->g1Describe($earleySetId, [0], $matchesp) returns the first line. This method is in reality just a shortcut to findInProgress().
 
 =cut
 
