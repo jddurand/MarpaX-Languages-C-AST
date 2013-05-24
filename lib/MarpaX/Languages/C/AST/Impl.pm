@@ -69,12 +69,12 @@ sub new {
 
 =head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode)
 
-Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match.
+Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is a match. The eventual parameter $matchesp, if defined, has to be a reference to an array that will be filled with an array of [$ruleId, $dotPosition, $origin, $lhs, [@rhs]] that matched.
 
 =cut
 
 sub findInProgress {
-    my ($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode) = @_;
+    my ($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $matchesp) = @_;
 
     $fatalMode ||= 0;
 
@@ -129,6 +129,7 @@ sub findInProgress {
 	    croak($msg);
 	} else {
 	    $log->tracef('Match on: %s', $self->_sprintfDotPosition($earleySetId, $i, $dotPosition, $lhs, @rhs));
+            push(@{$matchesp}, [$ruleId, $dotPosition, $origin, $lhs, [@rhs]]) if (defined($matchesp));
 	}
 	if (defined($wantedRuleId) ||
             defined($wantedDotPosition) ||
@@ -178,7 +179,7 @@ sub inspectG1 {
 	    my $i = 0;
 	    foreach (@{$candidateRulesp}) {
 		my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, undef, $dotPredictionEnd, undef, $lhs, $rhsp, 0)) {
+		if ($self->findInProgress($g1_location, undef, $dotPredictionEnd, undef, $lhs, $rhsp, 0, undef)) {
 		    $end_g1_location = $g1_location;
 		    $indexInCandidates = $i;
 		    last;
@@ -188,7 +189,7 @@ sub inspectG1 {
 	}
 	if (defined($end_g1_location) && ! defined($start_g1_location) && defined($candidateRulesp)) {
 	    my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$candidateRulesp->[$indexInCandidates]};
-	    if ($self->findInProgress($g1_location, undef, $dotPredictionStart, undef, $lhs, $rhsp, 0)) {
+	    if ($self->findInProgress($g1_location, undef, $dotPredictionStart, undef, $lhs, $rhsp, 0, undef)) {
 		$start_g1_location = $g1_location;
 	    }
 	}
@@ -221,7 +222,7 @@ sub inspectG1 {
 	if (defined($endConditionp)) {
 	    foreach (@{$endConditionp}) {
 		my ($dotPrediction, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, 0)) {
+		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, 0, undef)) {
 		    $end_condition = 1;
 		    last;
 		}
