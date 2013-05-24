@@ -203,7 +203,7 @@ sub inspectG1 {
 
     my ($start_g1_location, $end_g1_location) = (undef, undef);
     my $indexInCandidates = 0;
-    my $end_condition = 0;
+    my $endCondition = 0;
     my $rc = undef;
     while (1) {
 	#
@@ -257,12 +257,12 @@ sub inspectG1 {
 	    foreach (@{$endConditionp}) {
 		my ($dotPrediction, $lhs, $rhsp) = @{$_};
 		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, undef, undef, undef)) {
-		    $end_condition = 1;
+		    $endCondition = 1;
 		    last;
 		}
 	    }
 	}
-	if ($end_condition) {
+	if ($endCondition) {
 	    last;
 	}
 	#
