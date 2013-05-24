@@ -213,7 +213,7 @@ sub inspectG1 {
 	    my $i = 0;
 	    foreach (@{$candidateRulesp}) {
 		my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, undef, $dotPredictionEnd, undef, $lhs, $rhsp, 0, undef)) {
+		if ($self->findInProgress($g1_location, undef, $dotPredictionEnd, undef, $lhs, $rhsp, undef, undef, undef)) {
 		    $end_g1_location = $g1_location;
 		    $indexInCandidates = $i;
 		    last;
@@ -223,7 +223,7 @@ sub inspectG1 {
 	}
 	if (defined($end_g1_location) && ! defined($start_g1_location) && defined($candidateRulesp)) {
 	    my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$candidateRulesp->[$indexInCandidates]};
-	    if ($self->findInProgress($g1_location, undef, $dotPredictionStart, undef, $lhs, $rhsp, 0, undef)) {
+	    if ($self->findInProgress($g1_location, undef, $dotPredictionStart, undef, $lhs, $rhsp, undef, undef, undef)) {
 		$start_g1_location = $g1_location;
 	    }
 	}
@@ -256,7 +256,7 @@ sub inspectG1 {
 	if (defined($endConditionp)) {
 	    foreach (@{$endConditionp}) {
 		my ($dotPrediction, $lhs, $rhsp) = @{$_};
-		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, 0, undef)) {
+		if ($self->findInProgress($g1_location, undef, $dotPrediction, undef, $lhs, $rhsp, undef, undef, undef)) {
 		    $end_condition = 1;
 		    last;
 		}
