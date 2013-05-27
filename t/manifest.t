@@ -23,22 +23,15 @@ if (-r $ignore_file && -s $ignore_file) {
     open(my $exclude_fh, '<', $ignore_file) || die "couldn't open ignore.txt: $!";
     @exclude_files = map {
         s/\s*$//;
-        /\*/ ? glob(File::Spec->catfile($dist_dir, $_ )) : File::Spec->catfile($dist_dir, $_)
+	/\*/ ?
+	    glob( File::Spec->catfile( $dist_dir, $_ ) ) :
+	    File::Spec->catfile( $dist_dir, $_ )
     } ( <$exclude_fh> );
 }
 
-my @absolute_exclude_files = map {my $rel = File::Spec->abs2rel($_, $dist_dir);
-                                  my ($volume, $directories, $file) = File::Spec->splitpath($rel);
-                                  my @dirs = grep {defined($_) && $_} File::Spec->splitdir($directories);
-                                  '/' . join('/', @dirs, $file);
-} @exclude_files;
-
-ok_manifest(
-    {
-        exclude => [ @absolute_exclude_files ],
-        filter => [qr/\.svn/, qr/\.git/, qr/^.*~$/ ],
-        bool => 'or'
-    }
-);
+ok_manifest({ exclude => [ @exclude_files ],
+	      filter  => [qr/\.svn/, qr/\.git/, qr/^.*~$/ ],
+	      bool    => 'or',
+	    });
 
 done_testing();
