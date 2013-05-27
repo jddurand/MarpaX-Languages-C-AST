@@ -129,7 +129,7 @@ sub parseEnterTypedef {
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 1;
 
-  $log->debugf('"%s" at scope %d', $token, $scope);
+  $log->debugf('"%s" typedef entered at scope %d', $token, $scope);
 }
 
 =head2 parseEnterEnum($token)
@@ -145,7 +145,7 @@ sub parseEnterEnum {
 
   $self->{enumAnyScope}->{$token} = 1;
 
-  $log->debugf('"%s"', $token);
+  $log->debugf('"%s" enum entered', $token);
 }
 
 =head2 parseObscureTypedef($token)
@@ -162,7 +162,7 @@ sub parseObscureTypedef {
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 0;
 
-  $log->debugf('"%s obscured at scope %d', $token, $scope);
+  $log->debugf('"%s eventual typedef obscured obscured at scope %d', $token, $scope);
 }
 
 =head2 parseIsTypedef($token)
@@ -179,7 +179,7 @@ sub parseIsTypedef {
   my $scope = $#{$self->{typedefPerScope}};
   my $rc = (exists($self->{typedefPerScope}->[$scope]->{$token}) && $self->{typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
 
-  $log->debugf('"%s" at scope %d ? %s', $token, $scope, $rc ? 'yes' : 'no');
+  $log->debugf('"%s" at scope %d is a typedef? %s', $token, $scope, $rc ? 'yes' : 'no');
 
   return($rc);
 }
@@ -197,7 +197,7 @@ sub parseIsEnum {
 
   my $rc = (exists($self->{enumAnyScope}->{$token}) && $self->{enumAnyScope}->{$token}) ? 1 : 0;
 
-  $log->debugf('"%s" ? %s', $token, $rc ? 'yes' : 'no');
+  $log->debugf('"%s" is an enum? %s', $token, $rc ? 'yes' : 'no');
 
   return($rc);
 }
