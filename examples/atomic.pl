@@ -1,4 +1,4 @@
-#!env perl
+#!perl
 use strict;
 use warnings FATAL => 'all';
 use MarpaX::Languages::C::AST;
@@ -25,6 +25,12 @@ my $cSourceCode = do { local $/; <DATA> };
 my $cAstObject = MarpaX::Languages::C::AST->new();
 print Dumper($cAstObject->parse(\$cSourceCode));
 __DATA__
-typedef struct s1_ {int i1;} x1, y1;
-struct x1 {x1 i2;};
-x1 x;
+typedef int AA;
+int int;
+int AA;
+typedef int toto;
+
+int main(void) {
+  int _Atomic (toto)(void);
+  return toto();
+}

@@ -6,6 +6,7 @@ use Log::Log4perl qw/:easy/;
 use Log::Any::Adapter;
 use Log::Any qw/$log/;
 use Data::Dumper;
+
 #
 # Init log
 #
@@ -21,10 +22,15 @@ Log::Any::Adapter->set('Log4perl');
 #
 # Parse C
 #
-my $cSourceCode = do { local $/; <DATA> };
+my $cSourceCode = <<C_SOURCE_CODE;
+typedef struct s1_ {int i;} s_s1_, *s_s1p;
+void myFunction(x1)
+    int x1;
+{
+    s_s1_ s1;
+    s1.i = 1; 
+    return;
+}
+C_SOURCE_CODE
 my $cAstObject = MarpaX::Languages::C::AST->new();
 print Dumper($cAstObject->parse(\$cSourceCode));
-__DATA__
-typedef struct s1_ {int i1;} x1, y1;
-struct x1 {x1 i2;};
-x1 x;

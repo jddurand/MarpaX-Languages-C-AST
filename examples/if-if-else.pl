@@ -25,6 +25,15 @@ my $cSourceCode = do { local $/; <DATA> };
 my $cAstObject = MarpaX::Languages::C::AST->new();
 print Dumper($cAstObject->parse(\$cSourceCode));
 __DATA__
-typedef struct s1_ {int i1;} x1, y1;
-struct x1 {x1 i2;};
-x1 x;
+void function() {
+	if (1)
+		if (2)
+			if (3)
+				something3();
+			else
+				somethingElse3();
+		else
+			somethingElse2();
+	else
+		somethingElse1();
+}

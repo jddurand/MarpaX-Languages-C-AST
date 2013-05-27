@@ -1,11 +1,16 @@
+examples/atomic.pl
+examples/if-if-else.pl
+examples/synopsis.pl
+examples/test001.pl
 ignore.txt
 Changes
 lib/MarpaX/Languages/C/AST.pm
 lib/MarpaX/Languages/C/AST/Grammar.pm
-lib/MarpaX/Languages/C/AST/Scope.pm
 lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011.pm
+lib/MarpaX/Languages/C/AST/Scope.pm
 lib/MarpaX/Languages/C/AST/Impl.pm
 lib/MarpaX/Languages/C/AST/Impl/Logger.pm
+lib/MarpaX/Languages/C/AST/Util.pm
 Makefile.PL
 MANIFEST			This list of files
 README

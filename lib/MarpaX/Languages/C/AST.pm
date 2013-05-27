@@ -29,35 +29,36 @@ Please note that this module just I<translates> a C source, it does I<not> check
 
 Example:
 
-    use MarpaX::Languages::C::AST;
-    use Log::Log4perl qw/:easy/;
-    use Log::Any::Adapter;
-    use Log::Any qw/$log/;
-    use Data::Dumper;
-
-    #
-    # Init log
-    #
-    our $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
+#!env perl
+use strict;
+use warnings FATAL => 'all';
+use MarpaX::Languages::C::AST;
+use Log::Log4perl qw/:easy/;
+use Log::Any::Adapter;
+use Log::Any qw/$log/;
+use Data::Dumper;
+#
+# Init log
+#
+our $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = WARN, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
 log4perl.appender.Screen.stderr  = 0
 log4perl.appender.Screen.layout  = PatternLayout
 log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
 DEFAULT_LOG4PERL_CONF
-    Log::Log4perl::init(\$defaultLog4perlConf);
-    Log::Any::Adapter->set('Log4perl');
-
-    #
-    # Parse C
-    #
-    my $cSourceCode = <<C_SOURCE_CODE;
+Log::Log4perl::init(\$defaultLog4perlConf);
+Log::Any::Adapter->set('Log4perl');
+#
+# Parse C
+#
+my $cSourceCode = <<C_SOURCE_CODE;
 typedef struct s1_ {int i1;} x1, y1;
 struct x1 {x1 i2;};
 x1 x;
 C_SOURCE_CODE
-    my $cAstObject = MarpaX::Languages::C::AST->new();
-    print Dumper($cAstObject->parse(\$cSourceCode));
+my $cAstObject = MarpaX::Languages::C::AST->new();
+print Dumper($cAstObject->parse(\$cSourceCode));
 
 =head1 SUBROUTINES/METHODS
 
@@ -238,8 +239,8 @@ sub _doEvent {
 			} else {
 			    $self->{_scope}->parseObscureTypedef($directDeclarator);
 			}
-		    }
-		}
+		    }	
+	}
 	    } elsif ($event eq 'enumerationConstant') {
 		#
 		# Enum is not scope dependend - from now on it obscures any use of its
@@ -296,8 +297,11 @@ sub _doLexeme {
 	    croak $msg;
 	}
 	if ($lexeme eq 'TYPEDEF_NAME') {
-	    $log->infof('%s detected at G1 location %d', $lexeme, $g1);
-	    $self->{_G1LocationToTypedefName}->{$g1} = 1;
+	    if (! defined($self->{_G1LocationToTypedefName}->{$g1})) {
+		$self->{_G1LocationToTypedefName}->{$g1} = [];
+	    }
+	    $self->{_impl}->g1Describe($g1, [0], $self->{_G1LocationToTypedefName}->{$g1});
+	    $log->infof('%s detected at G1 location %d, description %s', $lexeme, $g1, $self->{_G1LocationToTypedefName}->{$g1}->[-1]);
 	}
 	#
 	# A lexeme_read() can generate an event
@@ -342,8 +346,11 @@ sub _doLexeme {
     #
     elsif ($lexeme eq 'TYPEDEF') {
 	$g1 ||= $self->{_impl}->latest_g1_location;
-	$log->infof('%s detected at G1 location %d', $lexeme, $g1);
-	$self->{_G1LocationToTypedef}->{$g1} = 1;
+	if (! defined($self->{_G1LocationToTypedef}->{$g1})) {
+	    $self->{_G1LocationToTypedef}->{$g1} = [];
+	}
+	$self->{_impl}->g1Describe($g1, [0], $self->{_G1LocationToTypedef}->{$g1});
+        $log->infof('%s detected at G1 location %d, description %s', $lexeme, $g1, $self->{_G1LocationToTypedef}->{$g1}->[-1]);
     }
 }
 
@@ -355,7 +362,7 @@ sub _doGrammarConstraint {
 
     $fatal_mode ||= 0;
     my ($start_g1_location, $end_g1_location);
-    my $rc = $self->{_impl}->inspectG1($what, $g1, \$start_g1_location, \$end_g1_location, [ $candidateRulep ], $matchesInG1p, [ $endConditionp ]);
+    my $rc = $self->{_impl}->inspectG1($what, $g1, \$start_g1_location, \$end_g1_location, $candidateRulep, $matchesInG1p, $endConditionp, undef, undef);
     if (defined($rc) && $rc) {
 	#
 	# Match
