@@ -40,12 +40,23 @@ my @version = ();
 foreach (@pm) {
     my $pm = $_;
 
-    my $useok = eval "use $pm; 1" || 0;
-    fail("$pm, $@") if (! $useok);
+    #
+    ## Untaint the eval
+    #
+    my $toeval;
+    if ("use $pm; 1" =~ /^(.*)$/) {
+	$toeval = $1;
+    }
+
+    my $useok = eval $toeval;
+    fail("$pm, $@") if (! defined($useok) || ! $useok);
     my $version = undef;
     {
         no strict "subs";
-        $version = eval "\$${pm}::VERSION";
+	if ("\$${pm}::VERSION" =~ /^(.*)$/) {
+	    $toeval = $1;
+	}
+        $version = eval $toeval;
         if (! defined($version)) {
             fail("$pm, cannot get VERSION");
         } else {
