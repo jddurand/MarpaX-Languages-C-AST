@@ -16,10 +16,11 @@ README
 TODO
 inc/Expected.pm
 ignore.txt
+t/00-load.t
 t/atomic.t
 t/atomic.data
-t/00-load.t
 t/boilerplate.t
+t/changes.t
 t/if-if-else.t
 t/if-if-else.data
 t/manifest.t
