@@ -65,8 +65,6 @@ The constants DOT_PREDICTION (0), DOT_COMPLETION (-1) and LATEST_EARLEY_SET_ID (
 
 =head1 SUBROUTINES/METHODS
 
-Please note that except for the new, findInProgress, findInProgressShort, g1Describe and inspectG1 methods, all other methods maps directy to Marpa, passing all arguments as is. Therefore only the eventual arguments to new, findInProgress and inspectG1 are documented. Please see Marpa documentation for the other methods whenever needed.
-
 =head2 new($class, $grammarOptionsHashp, $recceOptionsHashp)
 
 Instanciate a new object. Takes as parameter two references to hashes: the grammar options, the recognizer options. In the recognizer, there is a grammar internal option that will be forced to the grammar object. If the environment variable MARPA_TRACE_TERMINALS is setted to a true value, then internal Marpa trace on terminals is activated. If the environment MARPA_TRACE_VALUES is setted to a true value, then internal Marpa trace on values is actived. If the environment variable MARPA_TRACE is setted to a true value, then both terminals et values internal Marpa traces are activated.
@@ -160,7 +158,7 @@ sub findInProgress {
 	    fatalf($msg);
 	    croak($msg);
 	} else {
-	    $log->debugf('Match on [ruleId=%d, dotPosition=%d, origin=%d] : %s', $ruleId, $dotPosition, $origin, $self->_sprintfDotPosition($args->{earleySetId}, $i, $dotPosition, $lhs, @rhs));
+	    $log->tracef('Match on [ruleId=%d, dotPosition=%d, origin=%d] : %s', $ruleId, $dotPosition, $origin, $self->_sprintfDotPosition($args->{earleySetId}, $i, $dotPosition, $lhs, @rhs));
             push(@{$args->{matchesp}}, {ruleId => $ruleId, dotPosition => $dotPosition, origin => $origin}) if (defined($args->{matchesp}));
 	}
 	if (defined($args->{wantedRuleId}) ||
@@ -177,216 +175,18 @@ sub findInProgress {
     return($rc);
 }
 
-=head2 findInProgressShort($self, $earleySetId, $wantedDotPosition, $wantedLhs, $wantedRhsp)
+=head2 findInProgressShort($self, $wantedDotPosition, $wantedLhs, $wantedRhsp)
 
-This method is shortcut to findInProgress(), that will force findInProgress()'s parameters $wantedRuleId, $wantedOrigin, $fatalMode, $indicesp and $matchesp to an undef value. This method exist because, in practice, only Earley Set Id, dot position, lhs or rhs are of interest.
+This method is shortcut to findInProgress(), that will force findInProgress()'s parameter $earleySetId to -1 (i.e. current G1 location), and $wantedRuleId, $wantedOrigin, $fatalMode, $indicesp, $matchesp to undef. This method exist because, in practice, only dot position, lhs or rhs are of interest within the current G1 location.
 
 =cut
 
 sub findInProgressShort {
   my $self = shift;
 
-  my $args = traceAndUnpack(['earleySetId', 'wantedDotPosition', 'wantedLhs', 'wantedRhsp'], @_);
+  my $args = traceAndUnpack(['wantedDotPosition', 'wantedLhs', 'wantedRhsp'], @_);
 
-  return $self->findInProgress($args->{earleySetId}, undef, $args->{wantedDotPosition}, undef, $args->{wantedLhs}, $args->{wantedRhsp}, undef, undef, undef, undef);
-}
-
-=head2 g1Describe($self, $earleySetId, $indicesp, $matchesp)
-
-Given a $g1, search for the $ruleId, $dotPosition, $origin that correspond to the lines returned by Marpa's progress() output. If $indicesp is defined it must be a reference to an array of wanted indices. If $matchesp is defined, it must be a reference to an array. For instance $self->g1Describe($earleySetId, undef, $matchesp) returns all lines, while $self->g1Describe($earleySetId, [0], $matchesp) returns the first line. This method is in reality just a shortcut to findInProgress(). Typically the $matchesp can be reinjected into the method inspectG1(). See method findInProgress() for the description of what will be put in $matchesp.
-
-=cut
-
-sub g1Describe {
-  my $self = shift;
-
-  my $args = traceAndUnpack(['earleySetId', 'indicesp', 'matchesp'], @_);
-
-  return $self->findInProgress($args->{earleySetId}, undef, undef, undef, undef, undef, undef, $args->{indicesp}, $args->{matchesp}, undef);
-}
-
-
-=head2 inspectG1($self, $lexeme, $g1, $startG1p, $endG1p, $candidateRulep, $matchesInG1p, $endConditionp, $startG1Origins, $endG1Origins)
-
-Inspects G1. Searched for a rule $candidateRulep, corresponding to lexeme $lexeme (send only for tracing purpose), using $matchesInG1p as a match condition from G1 Earley Set Id $g1 and downwards. Downwards means that the origins are scanned until there is a match. The order in which origins are looked at is unspecified. $matchesInG1p is a reference to a hash, where the key is a G1 location, and the value is a reference to an array of references to hash like {ruleId=>$ruleId, dotPosition=>$dotPosition, origin=>$origin}. The match is successful only when $matchesInG1p->{$g1} exist and any the array in it matches as well within the found G1 range. The search will end if $endConditionp is reached. $candidateRulep is a reference to: [dotLocationStart, dotLocationEnd, $lhs, [ @rhs ]]. Content of $candidateRulep is send as is to the method findProgress() using [dotLocation, $lhs, [ @rhs ]] and [dotLocationEnd, $lhs, [@rhs]]. The $endConditionp is reference to: [dotLocation, $lhs, [@rhs]], send as-is to the findProgress() method. If no G1 range is found, this method returns undef. Otherwise it returns the number of matches using $matchesInG1p. $startG1Origins and $endG1Origins are workspaces to avoid deep recursion. They can be setted to undef at the very first call to inspectG1().
-
-=cut
-
-##################################################################
-# inspectG1
-# rc undef: no candidate rule found
-# rc 0    : candidate rule found, no match on $lexeme
-# rc 1    : candidate rule found, match on $lexeme
-#
-# ${$startG1p} would contain the prediction G1 location
-# ${$endG1p}   would contain its completion
-#
-# Take care they can be equal
-##################################################################
-sub inspectG1 {
-    my $self = shift;
-
-    my $args = traceAndUnpack(['lexeme', 'g1', 'startG1p', 'endG1p', 'candidateRulep', 'matchesInG1p', 'endConditionp', 'startG1Originsp', 'endG1Originsp'], @_);
-
-    $args->{g1} = $self->latest_g1_location() if (! defined($args->{g1}));
-    $args->{endG1Originsp} = {} if (! defined($args->{endG1Originsp}));
-    $args->{startG1Originsp} = {} if (! defined($args->{startG1Originsp}));
-
-    if (! defined($args->{matchesInG1p})) {
-	$log->warnf('[G1 %d] Undefined $args->{matchesInG1p}', $args->{g1});
-	return(undef);
-    }
-    if (! defined($args->{candidateRulep})) {
-	$log->warnf('[G1 %d] Undefined $args->{candidateRulep}', $args->{g1});
-	return(undef);
-    }
-    if (! defined($args->{endConditionp})) {
-	$log->warnf('[G1 %d] Undefined $args->{endConditionp}', $args->{g1});
-	return(undef);
-    }
-
-    #
-    # We flag current G1 to no loop indefinitely in case of recursivity
-    #
-    $args->{endG1Originsp}->{$args->{g1}} = 1;
-    $args->{startG1Originsp}->{$args->{g1}} = 1;
-
-    my ($startG1, $endG1) = (undef, undef);
-    my ($startG1Match, $endG1Match) = ([], []);
-
-    my $rc = undef;
-    #
-    # Search
-    #
-    my ($dotPredictionStart, $dotPredictionEnd, $lhs, $rhsp) = @{$args->{candidateRulep}};
-    $log->debugf('[G1 %d] Searching the end G1', $args->{g1});
-    if ($self->findInProgress($args->{g1}, undef, $dotPredictionEnd, undef, $lhs, $rhsp, undef, undef, $endG1Match, $args->{endG1Originsp})) {
-      $endG1 = $args->{g1};
-      $log->debugf('[G1 %d] End G1 found: %d', $args->{g1}, $endG1);
-    } else {
-      my @endG1OriginsNotDone = grep {! $args->{endG1Originsp}->{$_}} keys %{$args->{endG1Originsp}};
-      my @endG1OriginsDone = grep {$args->{endG1Originsp}->{$_}} keys %{$args->{endG1Originsp}};
-      $log->debugf('[G1 %d] endG1Match phase failed', $args->{g1});
-      $log->debugf('[G1 %d] Origins already done: %s (endG1Match phase)', $args->{g1}, \@endG1OriginsDone);
-      $log->debugf('[G1 %d] Origins not done: %s (endG1Match phase)', $args->{g1}, \@endG1OriginsNotDone);
-      my $bestRc = undef;
-      foreach (@endG1OriginsNotDone) {
-        #
-        # The recursive call to inspectG1 could very well have done one of our origin
-        #
-        if ($args->{endG1Originsp}->{$_}) {
-          $log->debugf('[G1 %d] Origin %d skipped (endG1Match phase, already done by a recursive call)', $args->{g1}, $_);
-          next;
-        }
-        if ($self->_endCondition($_, $args->{endConditionp})) {
-          $log->debugf('[G1 %d] Origin %d skipped (endG1Match phase, end of condition)', $args->{g1}, $_);
-          $args->{endG1Originsp}->{$_} = 1;
-          next;
-        }
-        $log->debugf('[G1 %d] Origin %d try (endG1Match phase)', $args->{g1}, $_);
-        my $thisrc = $self->inspectG1($args->{lexeme}, $_, \$startG1, \$endG1, $args->{candidateRulep}, $args->{matchesInG1p}, $args->{endConditionp}, $args->{startG1Originsp}, $args->{endG1Originsp});
-        #
-        # We give precedence to defined($thisrc)
-        #
-        if (defined($thisrc)) {
-          $rc = $thisrc;
-          #
-          ## Then to $thisrc
-          #
-          if ($rc) {
-            last;
-          }
-        }
-      }
-    }
-    if (defined($endG1) && ! defined($startG1)) {
-      $log->debugf('[G1 %d] Searching the start G1', $args->{g1});
-      if ($self->findInProgress($args->{g1}, undef, $dotPredictionStart, undef, $lhs, $rhsp, undef, undef, $startG1Match, $args->{startG1Originsp})) {
-        $startG1 = $args->{g1};
-        $log->debugf('[G1 %d] Start G1 found: %d', $args->{g1}, $startG1);
-      } else {
-        my @startG1OriginsNotDone = grep {! $args->{startG1Originsp}->{$_}} keys %{$args->{startG1Originsp}};
-        my @startG1OriginsDone = grep {$args->{startG1Originsp}->{$_}} keys %{$args->{startG1Originsp}};
-        $log->debugf('[G1 %d] startG1Match phase failed', $args->{g1});
-        $log->debugf('[G1 %d] Origins already done: %s (startG1Match phase)', $args->{g1}, \@startG1OriginsDone);
-        $log->debugf('[G1 %d] Origins not done: %s (startG1Match phase)', $args->{g1}, \@startG1OriginsNotDone);
-        my $bestRc = undef;
-        foreach (@startG1OriginsNotDone) {
-          #
-          # The recursive call to inspectG1 could very well have done one of our origin
-          #
-          if ($args->{startG1Originsp}->{$_}) {
-            $log->debugf('[G1 %d] Origin %d skipped (startG1Match phase, already done by a recursive call)', $args->{g1}, $_);
-            next;
-          }
-          if ($self->_endCondition($_, $args->{endConditionp})) {
-            $log->debugf('[G1 %d] Origin %d skipped (startG1Match phase, end of condition)', $args->{g1}, $_);
-            $args->{startG1Originsp}->{$_} = 1;
-            next;
-          }
-          $log->debugf('[G1 %d] Origin %d try (startG1Match phase)', $args->{g1}, $_);
-          my $thisrc = $self->inspectG1($args->{lexeme}, $_, \$startG1, undef, $args->{candidateRulep}, $args->{matchesInG1p}, $args->{endConditionp}, $args->{startG1Originsp}, $args->{endG1Originsp});
-          #
-          # We give precedence to defined($thisrc)
-          #
-          if (defined($thisrc)) {
-            $rc = $thisrc;
-            #
-            ## Then to $thisrc
-            #
-            if ($rc) {
-              last;
-            }
-          }
-        }
-      }
-    }
-    if (defined($startG1) && defined($endG1) && ! defined($rc)) {
-      $rc = 0;
-      $log->debugf('[G1 %d] Found G1 range [%d, %d]', $args->{g1}, $startG1, $endG1);
-      if ($startG1 > $endG1) {
-        my $msg = sprintf('[G1 %d] $startG1 %d > $endG1 %d !?', $args->{g1}, $startG1, $endG1);
-        $log->fatalf($msg);
-        croak $msg;
-      }
-      $log->debugf('[G1 %d] Checking matches within range [%d, %d]', $args->{g1}, $startG1, $endG1);
-      foreach ($startG1..$endG1) {
-        my $g1 = $_;
-        if (! exists($args->{matchesInG1p}->{$g1})) {
-          $log->debugf('[G1 %d -> range [%d, %d]] No match available at %d', $args->{g1}, $startG1, $endG1, $g1);
-          next;
-        }
-        if (ref($args->{matchesInG1p}->{$g1}) ne 'ARRAY') {
-          $log->warnf('[G1 %d -> range [%d, %d]] $args->{matchesInG1p}->{%d} is a reference to \'%s\', should be a reference to \'ARRAY\'', $args->{g1}, $startG1, $endG1, $g1, ref($args->{matchesInG1p}->{$g1}) || '');
-          next;
-        }
-        foreach (@{$args->{matchesInG1p}->{$g1}}) {
-          my $description = $_;
-          if (ref($description) ne 'HASH') {
-            $log->warnf('[G1 %d -> range [%d, %d]] $args->{matchesInG1p}->{%d} contain an item that is a reference to \'%s\', should be a reference to \'HASH\'', $args->{g1}, $startG1, $endG1, $g1, ref($description) || '');
-            next;
-          }
-          if ($self->findInProgress($g1, $description->{ruleId}, $description->{dotPosition}, $description->{origin}, undef, undef, undef, undef, undef, undef)) {
-            $log->debugf('[G1 %d -> range [%d, %d]] Successful match %s at level %d', $args->{g1}, $startG1, $endG1, $description, $g1);
-            ++$rc;
-            last;
-          } else {
-            $log->debugf('[G1 %d -> range [%d, %d]] Unsuccessful match %s at level %d', $args->{g1}, $startG1, $endG1, $description, $g1);
-          }
-        }
-      }
-    }
-    if (defined($rc)) {
-      if (defined($args->{startG1p})) {
-        ${$args->{startG1p}} = $startG1;
-      }
-      if (defined($args->{endG1p})) {
-        ${$args->{endG1p}} = $endG1;
-      }
-    }
-
-    $log->debugf('[G1 %d] return %s, range [%s, %s]', $args->{g1}, $rc, $startG1, $endG1);
-    return($rc);
+  return $self->findInProgress(-1, undef, $args->{wantedDotPosition}, undef, $args->{wantedLhs}, $args->{wantedRhsp}, undef, undef, undef, undef);
 }
 
 =head2 rule($self, $ruleId)
@@ -551,6 +351,20 @@ sub pause_span {
   my $args = traceAndUnpack([''], @_);
 
   return $self->{recce}->pause_span();
+}
+
+=head2 literal($self, $start, $length)
+
+Returns Marpa's recognizer's literal.
+
+=cut
+
+sub literal {
+  my $self = shift;
+
+  my $args = traceAndUnpack(['start', 'length'], @_);
+
+  return $self->{recce}->literal($args->{start}, $args->{length});
 }
 
 =head2 line_column($self, $start)

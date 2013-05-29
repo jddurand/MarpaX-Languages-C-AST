@@ -341,6 +341,7 @@ expression
 constantExpression
 	::= conditionalExpression # with constraints
 
+event declaration = completed <declaration>
 declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationSpecifiers initDeclaratorList SEMICOLON
@@ -358,6 +359,7 @@ declarationSpecifiers
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
 
+event initDeclaratorList = completed <initDeclaratorList>
 initDeclaratorList
 	::= initDeclarator
 	| initDeclaratorList COMMA initDeclarator
@@ -393,8 +395,8 @@ typeSpecifier
 	| TYPEDEF_NAME		# after it has been defined as such
 
 structOrUnionSpecifier
-	::= structOrUnion LCURLY structDeclarationList RCURLY
-	| structOrUnion IDENTIFIER LCURLY structDeclarationList RCURLY
+	::= structOrUnion LCURLY_STRUCTDECLARATIONLIST structDeclarationList RCURLY_STRUCTDECLARATIONLIST
+	| structOrUnion IDENTIFIER LCURLY_STRUCTDECLARATIONLIST structDeclarationList RCURLY_STRUCTDECLARATIONLIST
 	| structOrUnion IDENTIFIER
 
 structOrUnion
@@ -461,7 +463,6 @@ declarator
 	::= pointer directDeclarator
 	| directDeclarator
 
-event directDeclarator = completed <directDeclarator>
 directDeclarator
 	::= IDENTIFIER
 	| LPAREN declarator RPAREN
@@ -474,9 +475,9 @@ directDeclarator
 	| directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
 	| directDeclarator LBRACKET typeQualifierList RBRACKET
 	| directDeclarator LBRACKET assignmentExpression RBRACKET
-	| directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directDeclarator LPAREN_PARAMETER parameterTypeList RPAREN_PARAMETER
 	| directDeclarator LPAREN RPAREN
-	| directDeclarator LPAREN identifierList RPAREN
+	| directDeclarator LPAREN_IDENTIFIERLIST identifierList RPAREN_IDENTIFIERLIST
 
 pointer
 	::= STAR typeQualifierList pointer
@@ -534,9 +535,9 @@ directAbstractDeclarator
 	| directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
 	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
 	| LPAREN RPAREN
-	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| LPAREN_PARAMETER parameterTypeList RPAREN_PARAMETER
 	| directAbstractDeclarator LPAREN RPAREN
-	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN_PARAMETER parameterTypeList RPAREN_PARAMETER
 
 initializer
 	::= LCURLY initializerList RCURLY
@@ -577,8 +578,8 @@ labeledStatement
 	| DEFAULT COLON statement
 
 compoundStatement
-	::= LCURLY_SCOPE RCURLY_SCOPE
-	| LCURLY_SCOPE blockItemList RCURLY_SCOPE
+	::= LCURLY_COMPOUNDSTATEMENT RCURLY_COMPOUNDSTATEMENT
+	| LCURLY_COMPOUNDSTATEMENT blockItemList RCURLY_COMPOUNDSTATEMENT
 
 blockItemList
 	::= blockItem
@@ -620,11 +621,11 @@ externalDeclaration
 	::= functionDefinition
 	| declaration
 
+event functionDefinition = completed <functionDefinition>
 functionDefinition
 	::= declarationSpecifiers declarator declarationList compoundStatement
 	| declarationSpecifiers declarator compoundStatement
 
-event declarationList = completed <declarationList>
 declarationList
 	::= declaration
 	| declarationList declaration
@@ -845,30 +846,45 @@ EQ_OP        ~ '=='
 :lexeme ~ <NE_OP>         priority => -125
 NE_OP        ~ '!='					
 
-:lexeme ~ <SEMICOLON>    priority => -126
-SEMICOLON   ~ ';'
-:lexeme ~ <LCURLY>        priority => -127
-LCURLY       ~ '{' | '<%'
-:lexeme ~ <LCURLY_SCOPE>  priority => -127 pause => after
-LCURLY_SCOPE ~ '{' | '<%'
-:lexeme ~ <RCURLY>        priority => -128
-RCURLY       ~ '}' | '%>'
-:lexeme ~ <RCURLY_SCOPE>  priority => -128 pause => after
-RCURLY_SCOPE ~ '}' | '%>'
-:lexeme ~ <COMMA>        priority => -129
-COMMA       ~ ','
-:lexeme ~ <COLON>        priority => -130
-COLON       ~ ':'
-:lexeme ~ <EQUAL>        priority => -131
+:lexeme ~ <SEMICOLON>     priority => -126
+SEMICOLON                     ~ ';'
+
+:lexeme ~ <LCURLY>                       priority => -127
+:lexeme ~ <LCURLY_COMPOUNDSTATEMENT>     priority => -127 pause => after
+:lexeme ~ <LCURLY_STRUCTDECLARATIONLIST> priority => -127 pause => after
+LCURLY                       ~ '{' | '<%'
+LCURLY_COMPOUNDSTATEMENT     ~ '{' | '<%'
+LCURLY_STRUCTDECLARATIONLIST ~ '{' | '<%'
+
+:lexeme ~ <RCURLY>                       priority => -128
+:lexeme ~ <RCURLY_COMPOUNDSTATEMENT>     priority => -128 pause => after
+:lexeme ~ <RCURLY_STRUCTDECLARATIONLIST> priority => -128 pause => after
+RCURLY                       ~ '}' | '%>'
+RCURLY_COMPOUNDSTATEMENT     ~ '}' | '%>'
+RCURLY_STRUCTDECLARATIONLIST ~ '}' | '%>'
+
+:lexeme ~ <COMMA>                      priority => -129
+COMMA                     ~ ','
+
+:lexeme ~ <COLON>                      priority => -130
+COLON                      ~ ':'
+:lexeme ~ <EQUAL>                      priority => -131
 EQUAL       ~ '='
-:lexeme ~ <LPAREN>       priority => -132
-LPAREN      ~ '('
-:lexeme ~ <LPAREN_SCOPE> priority => -132 pause => after
-LPAREN_SCOPE      ~ '('
-:lexeme ~ <RPAREN>       priority => -133
-RPAREN      ~ ')'
-:lexeme ~ <RPAREN_SCOPE> priority => -133 pause => after
-RPAREN_SCOPE ~ ')'
+
+:lexeme ~ <LPAREN>                priority => -132
+:lexeme ~ <LPAREN_PARAMETER>      priority => -132 pause => after
+:lexeme ~ <LPAREN_IDENTIFIERLIST> priority => -132 pause => after
+LPAREN                ~ '('
+LPAREN_PARAMETER      ~ '('
+LPAREN_IDENTIFIERLIST ~ '('
+
+:lexeme ~ <RPAREN>                      priority => -133
+:lexeme ~ <RPAREN_PARAMETER>            priority => -133 pause => after
+:lexeme ~ <RPAREN_IDENTIFIERLIST>       priority => -133 pause => after
+RPAREN                      ~ ')'
+RPAREN_PARAMETER            ~ ')'
+RPAREN_IDENTIFIERLIST       ~ ')'
+
 :lexeme ~ <LBRACKET>     priority => -134
 LBRACKET      ~ '[' | '<:'
 :lexeme ~ <RBRACKET>     priority => -135

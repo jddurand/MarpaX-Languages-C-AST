@@ -162,7 +162,7 @@ sub parseObscureTypedef {
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 0;
 
-  $log->debugf('"%s eventual typedef obscured obscured at scope %d', $token, $scope);
+  $log->debugf('"%s" eventual typedef obscured at scope %d', $token, $scope);
 }
 
 =head2 parseIsTypedef($token)

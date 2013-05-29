@@ -75,14 +75,19 @@ sub new {
 
   my $self  = {};
   $self->{_scope} = MarpaX::Languages::C::AST::Scope->new(),
-  $self->{_grammar} = MarpaX::Languages::C::AST::Grammar->new($grammarName);
+    $self->{_grammar} = MarpaX::Languages::C::AST::Grammar->new($grammarName);
+
   my $grammar_option = $self->{_grammar}->grammar_option();
-  my $recce_option = $self->{_grammar}->recce_option();
   $grammar_option->{bless_package} = 'C::AST';
   $grammar_option->{source} = \$self->{_grammar}->content();
+
+  my $recce_option = $self->{_grammar}->recce_option();
+
   $self->{_impl} = MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option);
-  $self->{_G1LocationToTypedef} = {};
-  $self->{_G1LocationToTypedefName} = {};
+  $self->{_nbTypedef} = 0;               # Number of TYPEDEF
+  $self->{_nbParameterTypeList} = 0;     # Number of parameterTypeList
+  $self->{_nbStructDeclarationList} = 0; # Number of structDeclarationList
+  $self->{_identifier} = '';             # Last lexeme action if it pushed an identifier - could have been done via an event on a new rule like e.g. directDeclaratorIdentifier ::= IDENTIFIER
 
   bless($self, $class);
 
@@ -96,17 +101,17 @@ Do the parsing and return the blessed value. Takes as first parameter the refere
 =cut
 
 sub parse {
-    my ($self, $referenceToSourceCodep, $optionalArrayOfValuesb) = @_;
+  my ($self, $referenceToSourceCodep, $optionalArrayOfValuesb) = @_;
 
-    my $max = length(${$referenceToSourceCodep});
-    my $pos = $self->{_impl}->read($referenceToSourceCodep);
-    do {
-	$self->_doEvent($referenceToSourceCodep);
-	$self->_doLexeme($referenceToSourceCodep);
-    } while (($pos = $self->{_impl}->resume()) < $max);
-    
-    $optionalArrayOfValuesb ||= 0;
-    return($self->_value($optionalArrayOfValuesb));
+  my $max = length(${$referenceToSourceCodep});
+  my $pos = $self->{_impl}->read($referenceToSourceCodep);
+  do {
+    $self->_doEvent();
+    $self->_doLexeme();
+  } while (($pos = $self->{_impl}->resume()) < $max);
+
+  $optionalArrayOfValuesb ||= 0;
+  return($self->_value($optionalArrayOfValuesb));
 }
 
 #
@@ -116,314 +121,281 @@ sub parse {
 # _show_last_expression
 #######################
 sub _show_last_expression {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($start, $end) = $self->{_impl}->last_completed_range('translationUnit');
-    return 'No expression was successfully parsed' if (! defined($start));
-    my $lastExpression = $self->{_impl}->range_to_string($start, $end);
-    return "Last expression successfully parsed was: $lastExpression";
+  my ($start, $end) = $self->{_impl}->last_completed_range('translationUnit');
+  return 'No expression was successfully parsed' if (! defined($start));
+  my $lastExpression = $self->{_impl}->range_to_string($start, $end);
+  return "Last expression successfully parsed was: $lastExpression";
 }
 
 ########
 # _value
 ########
 sub _value {
-    my ($self, $arrayOfValuesb) = @_;
+  my ($self, $arrayOfValuesb) = @_;
 
-    my @rc = ();
-    my $nvalue = 0;
-    my $valuep = $self->{_impl}->value() || croak $self->_show_last_expression();
+  my @rc = ();
+  my $nvalue = 0;
+  my $valuep = $self->{_impl}->value() || croak $self->_show_last_expression();
+  if (defined($valuep)) {
+    push(@rc, $valuep);
+  }
+  do {
+    ++$nvalue;
+    $valuep = $self->{_impl}->value();
     if (defined($valuep)) {
-	push(@rc, $valuep);
+      push(@rc, $valuep);
     }
-    do {
-	++$nvalue;
-	$valuep = $self->{_impl}->value();
-	if (defined($valuep)) {
-	    push(@rc, $valuep);
-	}
-    } while (defined($valuep));
-    if ($#rc != 0 && ! $arrayOfValuesb) {
-	croak 'Number of parse tree value should be 1';
-    }
-    if ($arrayOfValuesb) {
-	return [ @rc ];
-    } else {
-	return $rc[0];
-    }
+  } while (defined($valuep));
+  if ($#rc != 0 && ! $arrayOfValuesb) {
+    croak 'Number of parse tree value should be 1';
+  }
+  if ($arrayOfValuesb) {
+    return [ @rc ];
+  } else {
+    return $rc[0];
+  }
 }
 
 ##########
 # _doEvent
 ##########
 sub _doEvent {
-    my ($self, $referenceToSourceCodep) = @_;
+  my ($self) = @_;
 
-    my $iEvent = 0;
-    my $g1 = undef;
+  #
+  ## List of events of interest
+  #
+  my %event = (
+               initDeclaratorList => 0,
+               parameterDeclaration => 0,
+               declaration => 0,
+               functionDefinition => 0,
+               enumerationConstant => 0,
+               primaryExpression => 0
+              );
 
-    while (defined($_ = $self->{_impl}->event($iEvent++))) {
-	foreach my $event (@{$_}) {
-	    $log->debugf('> Event %s', $event);
-	    if ($event eq 'parameterDeclaration') {
-		#
-		# In parameterDeclaration typedef is syntactically allowed but never valid.
-		# [ANSI C 3.5.4.3, 3.7.1]
-		#
-		$g1 ||= $self->{_impl}->latest_g1_location;
-		$self->_doGrammarConstraint($g1,
-					    'TYPEDEF',
-					    $referenceToSourceCodep,
-					    [DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
-					    $self->{_G1LocationToTypedef},
-					    [DOT_PREDICTION, $event, undef ],
-					    1);
-		#
-		# A typedef-name cannot be entered neither, so it would be too late in the event
-		# mechanism: this is enforced in the lexeme pause 'before'.
-		#
-		#$self->_doGrammarConstraint($g1,
-		#                            'TYPEDEF_NAME',
-		#				 $referenceToSourceCodep,
-		#				 [DOT_PREDICTION, DOT_COMPLETION, 'typeSpecifier' , undef ],
-		#				 $self->{_G1LocationToTypedefName},
-		#				 [DOT_PREDICTION, $event, undef ],
-		#				 1);
-	    }
-	    elsif ($event eq 'declarationList') {
-		#
-		# In functionDefinition only:
-		# In declarationList typedef is syntactically allowed but never valid    
-		# [ANSI C 3.7.1]
-		#
-		# No need to check the context because declarationList exist only in on place in all the grammar:
-		# functionDefinition ::= declarationSpecifiers declarator declarationList . compoundStatement
-		#
-		$g1 ||= $self->{_impl}->latest_g1_location;
-		$self->_doGrammarConstraint($g1,
-					    'TYPEDEF',
-					    $referenceToSourceCodep,
-					    [DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
-					    $self->{_G1LocationToTypedef},
-					    [DOT_PREDICTION, $event, undef],
-					    1);
-	    }
-	    elsif ($event eq 'directDeclarator') {
-		#
-		# directDeclarator ::= IDENTIFIER .
-		# can introduce names into ordinaty name space when it eventually participates
-		# in the grammar rule:
-		# declaration: declarationSpecifiers initDeclaratorList . SEMICOLON
-		#
-		$g1 ||= $self->{_impl}->latest_g1_location;
-		if ($self->{_impl}->findInProgressShort($g1, DOT_COMPLETION, 'directDeclarator', ['IDENTIFIER']) &&
-		    $self->{_impl}->findInProgressShort($g1,              2, 'declaration',      ['declarationSpecifiers', 'initDeclaratorList', 'SEMICOLON'])) {
-		    #
-		    ## In structDeclarator ordinaty name space names cannot be defined
-		    #
-		    my $directDeclarator = $self->{_impl}->substring($self->{_impl}->last_completed('directDeclarator'));
-		    if ($self->{_impl}->findInProgressShort($g1, 1, 'structDeclarator', [ 'declarator', 'COLON', 'constantExpression' ]) ||
-			$self->{_impl}->findInProgressShort($g1, 1, 'structDeclarator', [ 'declarator' ])) {
-			$log->debugf('> Declaration of IDENTIFIER "%s" in structDeclarator context: parse symbol inactive', $directDeclarator);
-		    } else {
-			my $directDeclarator = $self->{_impl}->substring($self->{_impl}->last_completed('directDeclarator'));
-			$log->debugf('> Declaration of IDENTIFIER "%s" that can introduce name in name-space', $directDeclarator);
-			if ($self->_doGrammarConstraint($g1,
-							'TYPEDEF',
-							$referenceToSourceCodep,
-							[DOT_PREDICTION, DOT_COMPLETION, 'storageClassSpecifier' , undef ],
-							$self->{_G1LocationToTypedef},
-							[DOT_PREDICTION, 'functionDefinition', undef ],
-							0)) {
-			    $self->{_scope}->parseEnterTypedef($directDeclarator);
-			} else {
-			    $self->{_scope}->parseObscureTypedef($directDeclarator);
-			}
-		    }	
-	}
-	    } elsif ($event eq 'enumerationConstant') {
-		#
-		# Enum is not scope dependend - from now on it obscures any use of its
-		# identifier in any scope
-		#
-		my $enumerationConstant = $self->{_impl}->substring($self->{_impl}->last_completed('enumerationConstant'));
-		$self->{_scope}->parseEnterEnum($enumerationConstant);
-	    } elsif ($event eq 'primaryExpression') {
-		#
-		## Anything special to do ?
-		#
-	    }
-	}
+  my $iEvent = 0;
+  my $hasEvent = 0;
+  while (defined($_ = $self->{_impl}->event($iEvent++))) {
+    ++$hasEvent;
+    ++$event{$_->[0]} if (exists($event{$_->[0]}));
+  }
+  return if (! $hasEvent);
+
+  $log->debugf('[Events %s]', join(',', sort grep {$event{$_}} keys %event));
+
+  # ---------------------------------------
+  # Enter/Obscure typedef-name in namespace
+  # ---------------------------------------
+  if ($event{initDeclaratorList} && $self->{_identifier}) {
+    my $event = 'initDeclaratorList';
+    if ($self->_canEnterTypedef($event)) {
+      if ($self->{_nbTypedef} > 0) {
+        $self->{_scope}->parseEnterTypedef($self->{_identifier});
+      } else {
+        $self->{_scope}->parseObscureTypedef($self->{_identifier});
+      }
     }
+  }
+
+  # ----------
+  # Enter enum
+  # ----------
+  if ($event{enumerationConstant}) {
+    #
+    # Enum is not scope dependend - from now on it obscures any use of its
+    # identifier in any scope
+    #
+    my $enumerationConstant = $self->{_impl}->substring($self->{_impl}->last_completed('enumerationConstant'));
+    $self->{_scope}->parseEnterEnum($enumerationConstant);
+  }
+
+  # ----------------------------------------------------------------------------------
+  # parameterDeclaration, declaration, functionDefinition: reset the number of TYPEDEF
+  # ----------------------------------------------------------------------------------
+  if ($event{parameterDeclaration} || $event{declaration} || $event{functionDefinition}) {
+    my $event = join(',', sort grep {$event{$_}} qw/parameterDeclaration declaration functionDefinition/);
+    $self->{_nbTypedef} = 0;
+    $log->debugf('[Event %s] _nbTypedef is now %d', $event, $self->{_nbTypedef});
+  }
+
+  # -----------------------------------
+  # primaryExpression: anything to do ?
+  # -----------------------------------
+  if ($event{primaryExpression}) {
+  }
+}
+
+####################
+# _expectTypedefName
+####################
+sub _expectTypedefName {
+  my ($self, $lexeme, $lexeme_value) = @_;
+  my $rc = $self->{_impl}->findInProgressShort(DOT_PREDICTION, 'typeSpecifier', [ 'TYPEDEF_NAME' ]);
+  $log->debugf('[Lexeme %s "%s"?] Expecting TYPEDEF_NAME? %s', $lexeme, $lexeme_value, $rc ? 'yes' : 'no');
+  return $rc;
+}
+
+#############
+# _expectEnum
+#############
+sub _expectEnum {
+  my ($self, $lexeme, $lexeme_value) = @_;
+  my $rc = $self->{_impl}->findInProgressShort(DOT_PREDICTION, 'constant', [ 'ENUMERATION_CONSTANT' ]);
+  $log->debugf('[Lexeme %s "%s"?] Expecting ENUMERATION_CONSTANT? %s', $lexeme, $lexeme_value, $rc ? 'yes' : 'no');
+  return $rc;
 }
 
 ###########
 # _doLexeme
 ###########
 sub _doLexeme {
-    my ($self, $referenceToSourceCodep) = @_;
+  my ($self) = @_;
 
-    my $lexeme = $self->{_impl}->pause_lexeme();
+  $self->{_identifier} = '';
 
-    if (! defined($lexeme)) {
-	return;
-    }
+  my $lexeme = $self->{_impl}->pause_lexeme();
+  if (! defined($lexeme)) {
+    return;
+  }
 
-    my $g1 = undef;
-
-    $log->debugf('> Lexeme %s', $lexeme);
-
+  # -----------------------------------------------------------------------
+  # Ambiguity managenent: IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT
+  # -----------------------------------------------------------------------
+  if (grep {$lexeme eq $_} qw/IDENTIFIER TYPEDEF_NAME ENUMERATION_CONSTANT/) {
     #
-    # Ambiguity managenent: 'before' paused lexemes
+    # Determine the correct lexeme
     #
-    if (grep {$lexeme eq $_} qw/IDENTIFIER TYPEDEF_NAME ENUMERATION_CONSTANT/) {
-	my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
-	my $lexeme_value = substr(${$referenceToSourceCodep}, $lexeme_start, $lexeme_length);
-	$g1 ||= $self->{_impl}->latest_g1_location;
-	if ($self->{_impl}->findInProgressShort($g1, DOT_PREDICTION, 'typeSpecifier', [ 'TYPEDEF_NAME' ]) && $self->{_scope}->parseIsTypedef($lexeme_value) && $self->_canEnterTypedefName($g1)) {
-	    $lexeme = 'TYPEDEF_NAME';
-	} elsif ($self->{_impl}->findInProgressShort($g1, DOT_PREDICTION, 'constant', [ 'ENUMERATION_CONSTANT' ]) && $self->{_scope}->parseIsEnum($lexeme_value) && $self->_canEnterEnumerationConstant($g1)) {
-	    $lexeme = 'ENUMERATION_CONSTANT';
-	} else {
-	    $lexeme = 'IDENTIFIER';
-	}
-	#
-	# Push the unambiguated lexeme
-	#
-	if (! defined($self->{_impl}->lexeme_read($lexeme, $lexeme_start, $lexeme_length, $lexeme_value))) {
-	    my ($line, $column) = $self->{_impl}->line_column($lexeme_start);
-	    my $msg = sprintf('Error at line %d, column %d: "%s" cannot be associated to lexeme %s', $line, $column, $lexeme_value, $lexeme);
-	    $log->fatalf($msg);
-	    croak $msg;
-	}
-	if ($lexeme eq 'TYPEDEF_NAME') {
-	    if (! defined($self->{_G1LocationToTypedefName}->{$g1})) {
-		$self->{_G1LocationToTypedefName}->{$g1} = [];
-	    }
-	    $self->{_impl}->g1Describe($g1, [0], $self->{_G1LocationToTypedefName}->{$g1});
-	    $log->infof('%s detected at G1 location %d, description %s', $lexeme, $g1, $self->{_G1LocationToTypedefName}->{$g1}->[-1]);
-	}
-	#
-	# A lexeme_read() can generate an event
-	#
-	$self->_doEvent($referenceToSourceCodep);
-    }
+    my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
+    my $lexeme_value = $self->{_impl}->literal($lexeme_start, $lexeme_length);
     #
-    # Scope management: Associated with file-scope, function body, compound statement, or prototype
-    # - function body matches compound statement
-    # - file-scope is implicit here, we treat one file at a time
+    # All parse symbol activity must be suspended when in the context of a structDeclarator
     #
-    elsif ($lexeme eq 'LPAREN_SCOPE') {
-	$self->{_scope}->parseEnterScope();
-    } elsif ($lexeme eq 'LCURLY_SCOPE') {
-	$g1 ||= $self->{_impl}->latest_g1_location;
-	if ($self->_canReenterScope($g1)) {
-	    #
-	    # We know now that we are in the functionDefinition beginning of body
-	    # so this is a place where we can put this check unambiguously:
-	    #
-	    # In functionDefinion typedef is syntactically allowed but never valid in declarationSpecifiers
-	    # [ANSI C 3.7.1]
-	    #
-	    $self->_doGrammarConstraint($g1,
-					'TYPEDEF',
-					$referenceToSourceCodep,
-					[DOT_PREDICTION, DOT_COMPLETION, 'initDeclarator' , undef ],
-					$self->{_G1LocationToTypedef},
-					[DOT_PREDICTION, 'declarationSpecifiers', undef ],
-					1);
-	    $self->{_scope}->parseReenterScope();
-	} else {
-	    $self->{_scope}->parseEnterScope();
-	}
-    } elsif ($lexeme eq 'RPAREN_SCOPE') {
-	$self->{_scope}->parseExitScope();
-    } elsif ($lexeme eq 'RCURLY_SCOPE') {
-	$self->{_scope}->parseExitScope();
-    }
-    #
-    # Track of TYPEDEF lexeme per G1 location
-    #
-    elsif ($lexeme eq 'TYPEDEF') {
-	$g1 ||= $self->{_impl}->latest_g1_location;
-	if (! defined($self->{_G1LocationToTypedef}->{$g1})) {
-	    $self->{_G1LocationToTypedef}->{$g1} = [];
-	}
-	$self->{_impl}->g1Describe($g1, [0], $self->{_G1LocationToTypedef}->{$g1});
-        $log->infof('%s detected at G1 location %d, description %s', $lexeme, $g1, $self->{_G1LocationToTypedef}->{$g1}->[-1]);
-    }
-}
-
-######################
-# _doGrammarConstraint
-######################
-sub _doGrammarConstraint {
-    my ($self, $g1, $what, $referenceToSourceCodep, $candidateRulep, $matchesInG1p, $endConditionp, $fatal_mode) = @_;
-
-    $fatal_mode ||= 0;
-    my ($start_g1_location, $end_g1_location);
-    my $rc = $self->{_impl}->inspectG1($what, $g1, \$start_g1_location, \$end_g1_location, $candidateRulep, $matchesInG1p, $endConditionp, undef, undef);
-    if (defined($rc) && $rc) {
-	#
-	# Match
-	#
-	my @args = ( $what );
-	my ($start_g1_location_g0_start, $start_g1_location_g1_g0_length) = $self->{_impl}->g1_location_to_span($start_g1_location);
-	if ($start_g1_location < $end_g1_location) {
-	    my ($end_g1_location_g0_start, $end_g1_location_g1_g0_length) = $self->{_impl}->g1_location_to_span($end_g1_location);
-	    push(@args, substr(${$referenceToSourceCodep}, $start_g1_location_g0_start, ($end_g1_location_g0_start - $start_g1_location_g0_start) + $end_g1_location_g1_g0_length));
-	} else {
-	    push(@args, substr(${$referenceToSourceCodep}, $start_g1_location_g0_start, $start_g1_location_g1_g0_length));
-	}
-	if ($fatal_mode) {
-	    my $msg = sprintf('%s is not allowed in "%s"', @args);
-	    $log->fatalf($msg);
-	    croak $msg;
-	} else {
-	    $log->debugf('%s found in "%s"', @args);
-	}
-	$rc = 1;
+    my $newlexeme;
+    if ($self->_expectTypedefName($lexeme, $lexeme_value) && $self->_canEnterTypedefName($lexeme, $lexeme_value) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
+      $newlexeme = 'TYPEDEF_NAME';
+    } elsif ($self->_expectEnum($lexeme, $lexeme_value) && $self->_canEnterEnumerationConstant($lexeme, $lexeme_value) && $self->{_scope}->parseIsEnum($lexeme_value)) {
+      $newlexeme = 'ENUMERATION_CONSTANT';
     } else {
-	$rc = 0
+      $newlexeme = 'IDENTIFIER';
+      $self->{_identifier} = $lexeme_value;
     }
-    return($rc);
+    #
+    # Push the unambiguated lexeme
+    #
+    $log->debugf('[Lexeme %s "%s"?] Pushing lexeme %s', $lexeme, $lexeme_value, $newlexeme);
+    if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexeme_start, $lexeme_length, $lexeme_value))) {
+      my ($line, $column) = $self->{_impl}->line_column($lexeme_start);
+      my $msg = sprintf('[Lexeme %s "%s"?] Error at line %d, column %d: "%s" cannot be associated to lexeme %s', $lexeme, $line, $column, $lexeme_value, $newlexeme);
+      $log->fatalf($msg);
+      croak $msg;
+    }
+    #
+    # A lexeme_read() can generate an event
+    #
+    $self->_doEvent();
+  }
+  # --------------------------------------------------------------------------------------
+  # Scope management:   LPAREN_PARAMETER, RPAREN_PARAMETER
+  #                     LPAREN_IDENTIFIERLIST, RPAREN_IDENTIFIERLIST
+  #                     LCURLY_COMPOUNDSTATEMENT, RCURLY_COMPOUNDSTATEMENT
+  # --------------------------------------------------------------------------------------
+  elsif ($lexeme eq 'LPAREN_PARAMETER') {
+    ++$self->{_nbParameterTypeList};
+    $log->debugf('[Lexeme %s] _nbParameterTypeList is now %d', $lexeme, $self->{_nbParameterTypeList});
+    $self->{_scope}->parseEnterScope();
+  } elsif ($lexeme eq 'RPAREN_PARAMETER') {
+    --$self->{_nbParameterTypeList};
+    $log->debugf('[Lexeme %s] _nbParameterTypeList is now %d', $lexeme, $self->{_nbParameterTypeList});
+    $self->{_scope}->parseExitScope();
+  } elsif ($lexeme eq 'LPAREN_IDENTIFIERLIST') {
+    $self->{_scope}->parseEnterScope();
+  } elsif ($lexeme eq 'RPAREN_IDENTIFIERLIST') {
+    $self->{_scope}->parseExitScope();
+  } elsif ($lexeme eq 'LCURLY_COMPOUNDSTATEMENT') {
+    if ($self->_canReenterScope()) {
+      $self->{_scope}->parseReenterScope();
+    } else {
+      $self->{_scope}->parseEnterScope();
+    }
+  } elsif ($lexeme eq 'RCURLY_COMPOUNDSTATEMENT') {
+    $self->{_scope}->parseExitScope();
+  }
+  # --------------------------------------------------------------------------------------
+  # Context management: LCURLY_STRUCTDECLARATIONLIST, RCURLY_STRUCTDECLARATIONLIST
+  #                     TYPEDEF
+  # --------------------------------------------------------------------------------------
+  elsif ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') {
+    ++$self->{_nbStructDeclarationList};
+    $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
+  } elsif ($lexeme eq 'RCURLY_STRUCTDECLARATIONLIST') {
+    --$self->{_nbStructDeclarationList};
+    $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
+  } elsif ($lexeme eq 'TYPEDEF') {
+    ++$self->{_nbTypedef};
+    $log->debugf('[Lexeme %s] _nbTypedef is now %d', $lexeme, $self->{_nbTypedef});
+  }
+
 }
 
 ######################
 # _canEnterTypedefName
 ######################
 sub _canEnterTypedefName {
-    my ($self, $g1) = @_;
+  my ($self, $lexeme, $lexeme_value) = @_;
 
-    my $rc = 1;
-    if ($self->{_impl}->findInProgressShort($g1, 1, 'parameterDeclaration', ['declarationSpecifiers', 'declarator'])) {
-	#
-	# In parameterDeclaration a typedef-name cannot be entered.
-	#
-	$log->debugf('A parameterDeclaration cannot enter a TYPEDEF_NAME');
-	$rc = 0;
-    }
-    return($rc);
+  my $rc = 1;
+  if ($self->{_nbParameterTypeList} > 0) {
+    #
+    # In parameterDeclaration a typedef-name cannot be entered.
+    #
+    $log->debugf('[Lexeme %s "%s"?] parameterDeclaration context: a typedef-name cannot be entered', $lexeme, $lexeme_value);
+    $rc = 0;
+  }
+
+  return($rc);
+}
+
+##################
+# _canEnterTypedef
+##################
+sub _canEnterTypedef {
+  my ($self, $event) = @_;
+
+  my $rc = 1;
+  if ($self->{_nbStructDeclarationList} > 0) {
+    #
+    # In structDeclaratorparameterDeclaration a typedef-name cannot be entered.
+    #
+    $log->debugf('[Event %s] structDeclarationList context: parse symbol activity is suspended', $event);
+    $rc = 0;
+  }
+
+  return($rc);
 }
 
 ##############################
 # _canEnterEnumerationConstant
 ##############################
 sub _canEnterEnumerationConstant {
-    my ($self, $g1) = @_;
+  my ($self, $lexeme, $lexeme_value) = @_;
 
-    my $rc = 1;
-    return($rc);
+  my $rc = 1;
+  $log->debugf('[Lexeme %s "%s"?] enumeration constant can be entered', $lexeme, $lexeme_value);
+
+  return($rc);
 }
 
 ##################
 # _canReenterScope
 ##################
 sub _canReenterScope {
-    my ($self, $g1) = @_;
+  my ($self) = @_;
 
-    return ($self->{_impl}->findInProgressShort($g1 - 1, 3, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'declarationList', 'compoundStatement' ]) ||
-	    $self->{_impl}->findInProgressShort($g1 - 1, 2, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'compoundStatement' ]));
+  return ($self->{_impl}->findInProgressShort(-2, 3, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'declarationList', 'compoundStatement' ]) ||
+          $self->{_impl}->findInProgressShort(-2, 2, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'compoundStatement' ]));
 }
 
 =head1 SEE ALSO
