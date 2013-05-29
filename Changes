@@ -1,5 +1,8 @@
 Revision history for MarpaX-Languages-C-AST
 
+?.??    29.05.2013
+        Revisited lexeme and event routines, logging of implementation
+
 0.02    21.05.2013
         Fixed main synopsis, move from Clone to Storable
 
