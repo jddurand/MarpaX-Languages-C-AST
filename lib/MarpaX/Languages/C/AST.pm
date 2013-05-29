@@ -297,11 +297,12 @@ sub _doLexeme {
     #
     $self->_doEvent();
   }
-  # --------------------------------------------------------------------------------------
+  # ----------------------------------------------------------------------
   # Scope management:   LPAREN_PARAMETER, RPAREN_PARAMETER
   #                     LPAREN_IDENTIFIERLIST, RPAREN_IDENTIFIERLIST
   #                     LCURLY_COMPOUNDSTATEMENT, RCURLY_COMPOUNDSTATEMENT
-  # --------------------------------------------------------------------------------------
+  # Context management: LPAREN_PARAMETER, RPAREN_PARAMETER
+  # ----------------------------------------------------------------------
   elsif ($lexeme eq 'LPAREN_PARAMETER') {
     ++$self->{_nbParameterTypeList};
     $log->debugf('[Lexeme %s] _nbParameterTypeList is now %d', $lexeme, $self->{_nbParameterTypeList});
@@ -323,17 +324,21 @@ sub _doLexeme {
   } elsif ($lexeme eq 'RCURLY_COMPOUNDSTATEMENT') {
     $self->{_scope}->parseExitScope();
   }
-  # --------------------------------------------------------------------------------------
+  # ------------------------------------------------------------------------------
   # Context management: LCURLY_STRUCTDECLARATIONLIST, RCURLY_STRUCTDECLARATIONLIST
   #                     TYPEDEF
-  # --------------------------------------------------------------------------------------
+  # ------------------------------------------------------------------------------
   elsif ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') {
     ++$self->{_nbStructDeclarationList};
     $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
   } elsif ($lexeme eq 'RCURLY_STRUCTDECLARATIONLIST') {
     --$self->{_nbStructDeclarationList};
     $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
-  } elsif ($lexeme eq 'TYPEDEF') {
+  }
+  # ---------------------------
+  # Context management: TYPEDEF
+  # ---------------------------
+  elsif ($lexeme eq 'TYPEDEF') {
     ++$self->{_nbTypedef};
     $log->debugf('[Lexeme %s] _nbTypedef is now %d', $lexeme, $self->{_nbTypedef});
   }
