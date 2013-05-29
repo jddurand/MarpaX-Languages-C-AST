@@ -10,6 +10,7 @@ find({wanted => \&wanted}, 't');
 sub wanted { /\.t$/i && push(@tests, File::Spec->catfile($File::Find::dir, $_)); }
 
 my %args = (
+    MIN_PERL_VERSION => '5.10.0',                       # Marpa itself, given/when for us
     NAME             => 'MarpaX::Languages::C::AST',
     AUTHOR           => q{Jean-Damien Durand <jeandamiendurand@free.fr>},
     VERSION_FROM     => 'lib/MarpaX/Languages/C/AST.pm',
