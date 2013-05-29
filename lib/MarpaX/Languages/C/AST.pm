@@ -7,6 +7,7 @@ use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Grammar;
 use MarpaX::Languages::C::AST::Impl qw/DOT_COMPLETION DOT_PREDICTION/;
 use MarpaX::Languages::C::AST::Scope;
+use feature "switch";
 
 =head1 NAME
 
@@ -117,6 +118,49 @@ sub parse {
 #
 # INTERNAL METHODS
 #
+
+######################
+# _nbParameterTypeList
+######################
+sub _nbParameterTypeList {
+    my ($self, $context, $inc) = @_;
+
+    if (defined($inc)) {
+	$self->{_nbParameterTypeList} += $inc;
+    } else {
+	$self->{_nbParameterTypeList} = 0;
+    }
+    $log->debugf('[%s] _nbParameterTypeList is now %d', $context, $self->{_nbParameterTypeList});
+}
+
+##########################
+# _nbStructDeclarationList
+##########################
+sub _nbStructDeclarationList {
+    my ($self, $context, $inc) = @_;
+
+    if (defined($inc)) {
+	$self->{_nbStructDeclarationList} += $inc;
+    } else {
+	$self->{_nbStructDeclarationList} = 0;
+    }
+    $log->debugf('[%s] _nbStructDeclarationList is now %d', $context, $self->{_nbStructDeclarationList});
+}
+
+############
+# _nbTypedef
+############
+sub _nbTypedef {
+    my ($self, $context, $inc) = @_;
+
+    if (defined($inc)) {
+	$self->{_nbTypedef} += $inc;
+    } else {
+	$self->{_nbTypedef} = 0;
+    }
+    $log->debugf('[%s] _nbTypedef is now %d', $context, $self->{_nbTypedef});
+}
+
 #######################
 # _show_last_expression
 #######################
@@ -184,7 +228,7 @@ sub _doEvent {
   }
   return if (! $hasEvent);
 
-  $log->debugf('[Events %s]', join(',', sort grep {$event{$_}} keys %event));
+  $log->tracef('[Events %s]', join(',', sort grep {$event{$_}} keys %event));
 
   # ---------------------------------------
   # Enter/Obscure typedef-name in namespace
@@ -193,9 +237,9 @@ sub _doEvent {
     my $event = 'initDeclaratorList';
     if ($self->_canEnterTypedef($event)) {
       if ($self->{_nbTypedef} > 0) {
-        $self->{_scope}->parseEnterTypedef($self->{_identifier});
+        $self->{_scope}->parseEnterTypedef($event, $self->{_identifier});
       } else {
-        $self->{_scope}->parseObscureTypedef($self->{_identifier});
+        $self->{_scope}->parseObscureTypedef($event, $self->{_identifier});
       }
     }
   }
@@ -204,12 +248,13 @@ sub _doEvent {
   # Enter enum
   # ----------
   if ($event{enumerationConstant}) {
+      my $event = 'enumerationConstant';
     #
     # Enum is not scope dependend - from now on it obscures any use of its
     # identifier in any scope
     #
     my $enumerationConstant = $self->{_impl}->substring($self->{_impl}->last_completed('enumerationConstant'));
-    $self->{_scope}->parseEnterEnum($enumerationConstant);
+    $self->{_scope}->parseEnterEnum($event, $enumerationConstant);
   }
 
   # ----------------------------------------------------------------------------------
@@ -217,8 +262,7 @@ sub _doEvent {
   # ----------------------------------------------------------------------------------
   if ($event{parameterDeclaration} || $event{declaration} || $event{functionDefinition}) {
     my $event = join(',', sort grep {$event{$_}} qw/parameterDeclaration declaration functionDefinition/);
-    $self->{_nbTypedef} = 0;
-    $log->debugf('[Event %s] _nbTypedef is now %d', $event, $self->{_nbTypedef});
+    $self->_nbTypedef($event, undef);
   }
 
   # -----------------------------------
@@ -232,9 +276,9 @@ sub _doEvent {
 # _expectTypedefName
 ####################
 sub _expectTypedefName {
-  my ($self, $lexeme, $lexeme_value) = @_;
+  my ($self, $context) = @_;
   my $rc = $self->{_impl}->findInProgressShort(DOT_PREDICTION, 'typeSpecifier', [ 'TYPEDEF_NAME' ]);
-  $log->debugf('[Lexeme %s "%s"?] Expecting TYPEDEF_NAME? %s', $lexeme, $lexeme_value, $rc ? 'yes' : 'no');
+  $log->debugf('[%s] Expecting TYPEDEF_NAME? %s', $context, $rc ? 'yes' : 'no');
   return $rc;
 }
 
@@ -242,9 +286,9 @@ sub _expectTypedefName {
 # _expectEnum
 #############
 sub _expectEnum {
-  my ($self, $lexeme, $lexeme_value) = @_;
+  my ($self, $context) = @_;
   my $rc = $self->{_impl}->findInProgressShort(DOT_PREDICTION, 'constant', [ 'ENUMERATION_CONSTANT' ]);
-  $log->debugf('[Lexeme %s "%s"?] Expecting ENUMERATION_CONSTANT? %s', $lexeme, $lexeme_value, $rc ? 'yes' : 'no');
+  $log->debugf('[%s] Expecting ENUMERATION_CONSTANT? %s', $context, $rc ? 'yes' : 'no');
   return $rc;
 }
 
@@ -261,102 +305,98 @@ sub _doLexeme {
     return;
   }
 
-  # -----------------------------------------------------------------------
-  # Ambiguity managenent: IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT
-  # -----------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  # Lexemes "before" pause: IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT
+  # -------------------------------------------------------------------------
   if (grep {$lexeme eq $_} qw/IDENTIFIER TYPEDEF_NAME ENUMERATION_CONSTANT/) {
-    #
-    # Determine the correct lexeme
-    #
-    my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
-    my $lexeme_value = $self->{_impl}->literal($lexeme_start, $lexeme_length);
-    #
-    # All parse symbol activity must be suspended when in the context of a structDeclarator
-    #
-    my $newlexeme;
-    if ($self->_expectTypedefName($lexeme, $lexeme_value) && $self->_canEnterTypedefName($lexeme, $lexeme_value) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
-      $newlexeme = 'TYPEDEF_NAME';
-    } elsif ($self->_expectEnum($lexeme, $lexeme_value) && $self->_canEnterEnumerationConstant($lexeme, $lexeme_value) && $self->{_scope}->parseIsEnum($lexeme_value)) {
-      $newlexeme = 'ENUMERATION_CONSTANT';
-    } else {
-      $newlexeme = 'IDENTIFIER';
-      $self->{_identifier} = $lexeme_value;
-    }
-    #
-    # Push the unambiguated lexeme
-    #
-    $log->debugf('[Lexeme %s "%s"?] Pushing lexeme %s', $lexeme, $lexeme_value, $newlexeme);
-    if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexeme_start, $lexeme_length, $lexeme_value))) {
-      my ($line, $column) = $self->{_impl}->line_column($lexeme_start);
-      my $msg = sprintf('[Lexeme %s "%s"?] Error at line %d, column %d: "%s" cannot be associated to lexeme %s', $lexeme, $line, $column, $lexeme_value, $newlexeme);
-      $log->fatalf($msg);
-      croak $msg;
-    }
-    #
-    # A lexeme_read() can generate an event
-    #
-    $self->_doEvent();
+      #
+      # Determine the correct lexeme
+      #
+      my ($lexeme_start, $lexeme_length) = $self->{_impl}->pause_span();
+      my $lexeme_value = $self->{_impl}->literal($lexeme_start, $lexeme_length);
+      my $context = sprintf('%s "%s"?', $lexeme, $lexeme_value);
+      #
+      # All parse symbol activity must be suspended when in the context of a structDeclarator
+      #
+      my $newlexeme;
+      if ($self->_expectTypedefName($context) && $self->_canEnterTypedefName($context) && $self->{_scope}->parseIsTypedef($context, $lexeme_value)) {
+	  $newlexeme = 'TYPEDEF_NAME';
+      } elsif ($self->_expectEnum($context) && $self->_canEnterEnumerationConstant($context) && $self->{_scope}->parseIsEnum($context, $lexeme_value)) {
+	  $newlexeme = 'ENUMERATION_CONSTANT';
+      } else {
+	  $newlexeme = 'IDENTIFIER';
+	  $self->{_identifier} = $lexeme_value;
+      }
+      #
+      # Push the unambiguated lexeme
+      #
+      $log->debugf('[%s] Pushing lexeme %s', $context, $newlexeme);
+      if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexeme_start, $lexeme_length, $lexeme_value))) {
+	  my ($line, $column) = $self->{_impl}->line_column($lexeme_start);
+	  my $msg = sprintf('[%s] Error at line %d, column %d: "%s" cannot be associated to lexeme %s', $context, $line, $column, $lexeme_value, $newlexeme);
+	  $log->fatalf($msg);
+	  croak $msg;
+      }
+      #
+      # A lexeme_read() can generate an event
+      #
+      $self->_doEvent();
   }
-  # ----------------------------------------------------------------------
-  # Scope management:   LPAREN_PARAMETER, RPAREN_PARAMETER
-  #                     LPAREN_IDENTIFIERLIST, RPAREN_IDENTIFIERLIST
-  #                     LCURLY_COMPOUNDSTATEMENT, RCURLY_COMPOUNDSTATEMENT
-  # Context management: LPAREN_PARAMETER, RPAREN_PARAMETER
-  # ----------------------------------------------------------------------
-  elsif ($lexeme eq 'LPAREN_PARAMETER') {
-    ++$self->{_nbParameterTypeList};
-    $log->debugf('[Lexeme %s] _nbParameterTypeList is now %d', $lexeme, $self->{_nbParameterTypeList});
-    $self->{_scope}->parseEnterScope();
-  } elsif ($lexeme eq 'RPAREN_PARAMETER') {
-    --$self->{_nbParameterTypeList};
-    $log->debugf('[Lexeme %s] _nbParameterTypeList is now %d', $lexeme, $self->{_nbParameterTypeList});
-    $self->{_scope}->parseExitScope();
-  } elsif ($lexeme eq 'LPAREN_IDENTIFIERLIST') {
-    $self->{_scope}->parseEnterScope();
-  } elsif ($lexeme eq 'RPAREN_IDENTIFIERLIST') {
-    $self->{_scope}->parseExitScope();
-  } elsif ($lexeme eq 'LCURLY_COMPOUNDSTATEMENT') {
-    if ($self->_canReenterScope()) {
-      $self->{_scope}->parseReenterScope();
-    } else {
-      $self->{_scope}->parseEnterScope();
-    }
-  } elsif ($lexeme eq 'RCURLY_COMPOUNDSTATEMENT') {
-    $self->{_scope}->parseExitScope();
+  # -----------------------------------------------------------
+  # Lexemes "after" pause: Scope management, Context management
+  # -----------------------------------------------------------
+  else {
+      my $context = $lexeme;
+      given ($lexeme) {
+	  when ('LPAREN_PARAMETER') {
+	      $self->_nbParameterTypeList($context, 1);
+	      $self->{_scope}->parseEnterScope($context);
+	  }
+	  when ('RPAREN_PARAMETER') {
+	      $self->_nbParameterTypeList($context, -1);
+	      $self->{_scope}->parseExitScope($context);
+	  }
+	  when ('LPAREN_IDENTIFIERLIST') {
+	      $self->{_scope}->parseEnterScope($context);
+	  }
+	  when ('RPAREN_IDENTIFIERLIST') {
+	      $self->{_scope}->parseExitScope($context);
+	  }
+	  when ('LCURLY_COMPOUNDSTATEMENT') {
+	      if ($self->_canReenterScope()) {
+		  $self->{_scope}->parseReenterScope($context);
+	      } else {
+		  $self->{_scope}->parseEnterScope($context);
+	      }
+	  }
+	  when ('RCURLY_COMPOUNDSTATEMENT') {
+	      $self->{_scope}->parseExitScope($context);
+	  }
+	  when ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') {
+	      $self->_nbStructDeclarationList($context, 1);
+	  }
+	  when ('RCURLY_STRUCTDECLARATIONLIST') {
+	      $self->_nbStructDeclarationList($context, -1);
+	  }
+	  when ('TYPEDEF') {
+	      $self->_nbTypedef($context, 1);
+	  }
+      }
   }
-  # ------------------------------------------------------------------------------
-  # Context management: LCURLY_STRUCTDECLARATIONLIST, RCURLY_STRUCTDECLARATIONLIST
-  #                     TYPEDEF
-  # ------------------------------------------------------------------------------
-  elsif ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') {
-    ++$self->{_nbStructDeclarationList};
-    $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
-  } elsif ($lexeme eq 'RCURLY_STRUCTDECLARATIONLIST') {
-    --$self->{_nbStructDeclarationList};
-    $log->debugf('[Lexeme %s] _nbStructDeclarationList is now %d', $lexeme, $self->{_nbStructDeclarationList});
-  }
-  # ---------------------------
-  # Context management: TYPEDEF
-  # ---------------------------
-  elsif ($lexeme eq 'TYPEDEF') {
-    ++$self->{_nbTypedef};
-    $log->debugf('[Lexeme %s] _nbTypedef is now %d', $lexeme, $self->{_nbTypedef});
-  }
-
 }
 
 ######################
 # _canEnterTypedefName
 ######################
 sub _canEnterTypedefName {
-  my ($self, $lexeme, $lexeme_value) = @_;
+  my ($self, $context) = @_;
 
   my $rc = 1;
   if ($self->{_nbParameterTypeList} > 0) {
     #
     # In parameterDeclaration a typedef-name cannot be entered.
     #
-    $log->debugf('[Lexeme %s "%s"?] parameterDeclaration context: a typedef-name cannot be entered', $lexeme, $lexeme_value);
+    $log->debugf('[%s] parameterDeclaration context: a typedef-name cannot be entered', $context);
     $rc = 0;
   }
 
@@ -367,14 +407,14 @@ sub _canEnterTypedefName {
 # _canEnterTypedef
 ##################
 sub _canEnterTypedef {
-  my ($self, $event) = @_;
+  my ($self, $context) = @_;
 
   my $rc = 1;
   if ($self->{_nbStructDeclarationList} > 0) {
     #
     # In structDeclaratorparameterDeclaration a typedef-name cannot be entered.
     #
-    $log->debugf('[Event %s] structDeclarationList context: parse symbol activity is suspended', $event);
+    $log->debugf('[%s] structDeclarationList context: parse symbol activity is suspended', $context);
     $rc = 0;
   }
 
@@ -385,10 +425,10 @@ sub _canEnterTypedef {
 # _canEnterEnumerationConstant
 ##############################
 sub _canEnterEnumerationConstant {
-  my ($self, $lexeme, $lexeme_value) = @_;
+  my ($self, $context) = @_;
 
   my $rc = 1;
-  $log->debugf('[Lexeme %s "%s"?] enumeration constant can be entered', $lexeme, $lexeme_value);
+  $log->debugf('[%s] enumeration constant can be entered', $context);
 
   return($rc);
 }

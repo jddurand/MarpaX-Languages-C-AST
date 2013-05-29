@@ -30,20 +30,21 @@ Example:
 
     use MarpaX::Languages::C::AST::Scope;
 
+    my $context = 'A string';
     my $cAstScopeObject = MarpaX::Languages::C::AST::Scope->new();
-    $cAstScopeObject->parseEnterScope();
-    $cAstScopeObject->parseReenterScope();
-    $cAstScopeObject->parseEnterTypedef("myTypedef");
-    $cAstScopeObject->parseEnterEnum("myEnum");
-    $cAstScopeObject->parseObscureTypedef("myVariable");
+    $cAstScopeObject->parseEnterScope($context);
+    $cAstScopeObject->parseReenterScope($context);
+    $cAstScopeObject->parseEnterTypedef($context, "myTypedef");
+    $cAstScopeObject->parseEnterEnum($context, "myEnum");
+    $cAstScopeObject->parseObscureTypedef($context, "myVariable");
     foreach (qw/myTypedef myEnum myVariable/) {
-      if ($cAstScopeObject->parseIsTypedef($_)) {
+      if ($cAstScopeObject->parseIsTypedef($context, $_)) {
         print "\"$_\" is a typedef\n";
-      } elsif ($cAstScopeObject->parseIsEnum($_)) {
+      } elsif ($cAstScopeObject->parseIsEnum($context, $_)) {
         print "\"$_\" is an enum\n";
       }
     }
-    $cAstScopeObject->parseExitScope();
+    $cAstScopeObject->parseExitScope($context);
 
 Please note that this module is logging via Log::Any.
 
@@ -68,136 +69,136 @@ sub new {
   return $self;
 }
 
-=head2 parseEnterScope
+=head2 parseEnterScope($self, $context)
 
-Say we enter a new scope. Takes no parameter.
+Say we enter a new scope. $context is a free string used for logging.
 
 =cut
 
 sub parseEnterScope {
-  my ($self) = @_;
+  my ($self, $context) = @_;
 
   $self->_doDelayedExitScope();
 
   my $scope = $#{$self->{typedefPerScope}};
   push(@{$self->{typedefPerScope}}, dclone($self->{typedefPerScope}->[$scope]));
 
-  $log->debugf('Duplicated scope %d to %d', $scope, $scope + 1);
+  $log->debugf('[%s] Duplicated scope %d to %d', $context, $scope, $scope + 1);
 }
 
-=head2 parseExitScope
+=head2 parseExitScope($self, $context)
 
-Say we leave current scope. Takes no parameter.
+Say we leave current scope. $context is a free string used for logging.
 
 =cut
 
 sub parseExitScope {
-  my ($self) = @_;
+  my ($self, $context) = @_;
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{delayedExitScope} = 1;
 
-  $log->debugf('Setting delay flag on scope %d', $scope);
+  $log->debugf('[%s] Setting delay flag on scope %d', $context, $scope);
 }
 
-=head2 parseReenterScope
+=head2 parseReenterScope($self, $context)
 
-Say we re-enter last scope. Takes no parameter.
+Say we re-enter last scope. $context is a free string used for logging.
 
 =cut
 
 sub parseReenterScope {
-  my ($self) = @_;
+  my ($self, $context) = @_;
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{delayedExitScope} = 0;
 
-  $log->debugf('Resetting delay flag on scope %d', $scope);
+  $log->debugf('[%s] Resetting delay flag on scope %d', $context, $scope);
 }
 
-=head2 parseEnterTypedef($token)
+=head2 parseEnterTypedef($self, $context, $token)
 
-Declare a new typedef, that will be visible until current scope is left. Takes the corresponding token value in input.
+Declare a new typedef with name $token, that will be visible until current scope is left. $context is a free string used for logging.
 
 =cut
 
 sub parseEnterTypedef {
-  my ($self, $token) = @_;
+  my ($self, $context, $token) = @_;
 
   $self->_doDelayedExitScope();
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 1;
 
-  $log->debugf('"%s" typedef entered at scope %d', $token, $scope);
+  $log->debugf('[%s] "%s" typedef entered at scope %d', $context, $token, $scope);
 }
 
-=head2 parseEnterEnum($token)
+=head2 parseEnterEnum($self, $context, $token)
 
-Declare a new enum, that will be visible at any scope from now on. Takes the corresponding token value in input.
+Declare a new enum with name $token, that will be visible at any scope from now on. $context is a free string used for logging.
 
 =cut
 
 sub parseEnterEnum {
-  my ($self, $token) = @_;
+  my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   $self->{enumAnyScope}->{$token} = 1;
 
-  $log->debugf('"%s" enum entered', $token);
+  $log->debugf('[%s] "%s" enum entered', $context, $token);
 }
 
-=head2 parseObscureTypedef($token)
+=head2 parseObscureTypedef($self, $context, $token)
 
-Obscured a typedef. Takes the corresponding token value in input.
+Obscures a typedef named $token. $context is a free string used for logging.
 
 =cut
 
 sub parseObscureTypedef {
-  my ($self, $token) = @_;
+  my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 0;
 
-  $log->debugf('"%s" eventual typedef obscured at scope %d', $token, $scope);
+  $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', $context, $token, $scope);
 }
 
-=head2 parseIsTypedef($token)
+=head2 parseIsTypedef($self, $context, $token)
 
-Return a true value if the corresponding token value in input is a typedef. Returns false otherwise.
+Return a true value if $token is a typedef. $context is a free string used for logging.
 
 =cut
 
 sub parseIsTypedef {
-  my ($self, $token) = @_;
+  my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   my $rc = (exists($self->{typedefPerScope}->[$scope]->{$token}) && $self->{typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
 
-  $log->debugf('"%s" at scope %d is a typedef? %s', $token, $scope, $rc ? 'yes' : 'no');
+  $log->debugf('[%s] "%s" at scope %d is a typedef? %s', $context, $token, $scope, $rc ? 'yes' : 'no');
 
   return($rc);
 }
 
-=head2 parseIsEnum($token)
+=head2 parseIsEnum($self, $context, $token)
 
-Return a true value if the corresponding token value in input is an enum. Returns false otherwise.
+Return a true value if $token is an enum. $context is a free string used for logging.
 
 =cut
 
 sub parseIsEnum {
-  my ($self, $token) = @_;
+  my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   my $rc = (exists($self->{enumAnyScope}->{$token}) && $self->{enumAnyScope}->{$token}) ? 1 : 0;
 
-  $log->debugf('"%s" is an enum? %s', $token, $rc ? 'yes' : 'no');
+  $log->debugf('[%s] "%s" is an enum? %s', $context, $token, $rc ? 'yes' : 'no');
 
   return($rc);
 }
@@ -206,15 +207,15 @@ sub parseIsEnum {
 # INTERNAL METHODS
 #
 sub _doDelayedExitScope {
-  my ($self) = @_;
+  my ($self, $context) = @_;
 
   if ($self->{delayedExitScope}) {
     my $scope = $#{$self->{typedefPerScope}};
     pop(@{$self->{typedefPerScope}});
     $self->{delayedExitScope} = 0;
 
-    $log->debugf('Removed scope %d and resetted delay flag', $scope);
-    }
+    $log->debugf('[%s] Removed scope %d and resetted delay flag', $context, $scope);
+  }
 }
 
 
