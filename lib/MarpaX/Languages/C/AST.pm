@@ -111,7 +111,6 @@ sub parse {
     $self->_doLexeme();
   } while (($pos = $self->{_impl}->resume()) < $max);
 
-  $optionalArrayOfValuesb ||= 0;
   return($self->_value($optionalArrayOfValuesb));
 }
 
@@ -178,6 +177,8 @@ sub _show_last_expression {
 ########
 sub _value {
   my ($self, $arrayOfValuesb) = @_;
+
+  $arrayOfValuesb ||= 0;
 
   my @rc = ();
   my $nvalue = 0;
@@ -323,9 +324,11 @@ sub _doLexeme {
       my $newlexeme;
       if ($self->_expectTypedefName($context) && $self->_canEnterTypedefName($context) && $self->{_scope}->parseIsTypedef($context, $lexeme_value)) {
 	  $newlexeme = 'TYPEDEF_NAME';
-      } elsif ($self->_expectEnum($context) && $self->_canEnterEnumerationConstant($context) && $self->{_scope}->parseIsEnum($context, $lexeme_value)) {
+      }
+      elsif ($self->_expectEnum($context) && $self->_canEnterEnumerationConstant($context) && $self->{_scope}->parseIsEnum($context, $lexeme_value)) {
 	  $newlexeme = 'ENUMERATION_CONSTANT';
-      } else {
+      }
+      else {
 	  $newlexeme = 'IDENTIFIER';
 	  $self->{_identifier} = $lexeme_value;
       }
@@ -349,40 +352,34 @@ sub _doLexeme {
   # -----------------------------------------------------------
   else {
       my $context = $lexeme;
+      # ----------------
+      # Scope management
+      # ----------------
       given ($lexeme) {
-	  when ('LPAREN_PARAMETER') {
-	      $self->_nbParameterTypeList($context, 1);
-	      $self->{_scope}->parseEnterScope($context);
-	  }
-	  when ('RPAREN_PARAMETER') {
-	      $self->_nbParameterTypeList($context, -1);
-	      $self->{_scope}->parseExitScope($context);
-	  }
-	  when ('LPAREN_IDENTIFIERLIST') {
-	      $self->{_scope}->parseEnterScope($context);
-	  }
-	  when ('RPAREN_IDENTIFIERLIST') {
-	      $self->{_scope}->parseExitScope($context);
-	  }
-	  when ('LCURLY_COMPOUNDSTATEMENT') {
-	      if ($self->_canReenterScope()) {
-		  $self->{_scope}->parseReenterScope($context);
-	      } else {
-		  $self->{_scope}->parseEnterScope($context);
-	      }
-	  }
-	  when ('RCURLY_COMPOUNDSTATEMENT') {
-	      $self->{_scope}->parseExitScope($context);
-	  }
-	  when ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') {
-	      $self->_nbStructDeclarationList($context, 1);
-	  }
-	  when ('RCURLY_STRUCTDECLARATIONLIST') {
-	      $self->_nbStructDeclarationList($context, -1);
-	  }
-	  when ('TYPEDEF') {
-	      $self->_nbTypedef($context, 1);
-	  }
+	  #
+	  # Enter/Reenter
+	  #
+	  when ('LPAREN_PARAMETER')             { $self->{_scope}->parseEnterScope($context); }
+	  when ('LPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseEnterScope($context); }
+	  when ('LCURLY_COMPOUNDSTATEMENT')  {$self->_canReenterScope() ?
+						  $self->{_scope}->parseReenterScope($context) : 
+						  $self->{_scope}->parseEnterScope($context); }
+	  #
+	  # Exit
+	  #
+	  when ('RPAREN_PARAMETER')             { $self->{_scope}->parseExitScope($context); }
+	  when ('RPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseExitScope($context); }
+	  when ('RCURLY_COMPOUNDSTATEMENT')     { $self->{_scope}->parseExitScope($context); }
+      }
+      # ------------------
+      # Context management
+      # ------------------
+      given ($lexeme) {
+	  when ('LPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, 1);      }
+	  when ('RPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, -1);     }
+	  when ('LCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, 1);  }
+	  when ('RCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, -1); }
+	  when ('TYPEDEF')                      { $self->_nbTypedef($context, 1);                }
       }
   }
 }
