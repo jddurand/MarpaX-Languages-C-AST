@@ -15,11 +15,11 @@ MarpaX::Languages::C::AST - Translate a C source to an AST
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 =head1 SYNOPSIS
@@ -228,7 +228,7 @@ sub _doEvent {
   }
   return if (! $hasEvent);
 
-  $log->tracef('[Events %s]', join(',', sort grep {$event{$_}} keys %event));
+  $log->debugf('<Events %s>', join(',', sort grep {$event{$_}} keys %event));
 
   # ---------------------------------------
   # Enter/Obscure typedef-name in namespace
@@ -304,6 +304,8 @@ sub _doLexeme {
   if (! defined($lexeme)) {
     return;
   }
+
+  $log->debugf('<Lexeme %s>', $lexeme);
 
   # -------------------------------------------------------------------------
   # Lexemes "before" pause: IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT

@@ -9,11 +9,11 @@ MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011 - ISO ANSI C 2011 grammar wr
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
