@@ -7,7 +7,6 @@ use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Grammar;
 use MarpaX::Languages::C::AST::Impl qw/DOT_COMPLETION DOT_PREDICTION/;
 use MarpaX::Languages::C::AST::Scope;
-use feature "switch";
 
 =head1 NAME
 
@@ -355,32 +354,28 @@ sub _doLexeme {
       # ----------------
       # Scope management
       # ----------------
-      given ($lexeme) {
-	  #
-	  # Enter/Reenter
-	  #
-	  when ('LPAREN_PARAMETER')             { $self->{_scope}->parseEnterScope($context); }
-	  when ('LPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseEnterScope($context); }
-	  when ('LCURLY_COMPOUNDSTATEMENT')  {$self->_canReenterScope() ?
-						  $self->{_scope}->parseReenterScope($context) : 
-						  $self->{_scope}->parseEnterScope($context); }
-	  #
-	  # Exit
-	  #
-	  when ('RPAREN_PARAMETER')             { $self->{_scope}->parseExitScope($context); }
-	  when ('RPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseExitScope($context); }
-	  when ('RCURLY_COMPOUNDSTATEMENT')     { $self->{_scope}->parseExitScope($context); }
-      }
+      #
+      # Enter/Reenter
+      #
+      if    ($lexeme eq 'LPAREN_PARAMETER')             {  $self->{_scope}->parseEnterScope($context); }
+      elsif ($lexeme eq 'LPAREN_IDENTIFIERLIST')        {  $self->{_scope}->parseEnterScope($context); }
+      elsif ($lexeme eq 'LCURLY_COMPOUNDSTATEMENT')     {$self->_canReenterScope() ?
+                                                           $self->{_scope}->parseReenterScope($context) :
+                                                           $self->{_scope}->parseEnterScope($context); }
+      #
+      # Exit
+      #
+      if    ($lexeme eq 'RPAREN_PARAMETER')             { $self->{_scope}->parseExitScope($context); }
+      elsif ($lexeme eq 'RPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseExitScope($context); }
+      elsif ($lexeme eq 'RCURLY_COMPOUNDSTATEMENT')     { $self->{_scope}->parseExitScope($context); }
       # ------------------
       # Context management
       # ------------------
-      given ($lexeme) {
-	  when ('LPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, 1);      }
-	  when ('RPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, -1);     }
-	  when ('LCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, 1);  }
-	  when ('RCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, -1); }
-	  when ('TYPEDEF')                      { $self->_nbTypedef($context, 1);                }
-      }
+      if    ($lexeme eq 'LPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, 1);      }
+      elsif ($lexeme eq 'RPAREN_PARAMETER')             { $self->_nbParameterTypeList($context, -1);     }
+      elsif ($lexeme eq 'LCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, 1);  }
+      elsif ($lexeme eq 'RCURLY_STRUCTDECLARATIONLIST') { $self->_nbStructDeclarationList($context, -1); }
+      elsif ($lexeme eq 'TYPEDEF')                      { $self->_nbTypedef($context, 1);                }
   }
 }
 
