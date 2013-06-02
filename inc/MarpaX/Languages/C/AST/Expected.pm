@@ -1,6 +1,7 @@
-package Expected;
 use strict;
 use warnings FATAL => 'all';
+
+package MarpaX::Languages::C::AST::Expected;
 use Data::Dumper;
 use IO::File;
 use File::Basename;

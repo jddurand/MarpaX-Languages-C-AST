@@ -1,26 +1,20 @@
-package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
-
 use strict;
 use warnings FATAL => 'all';
 
-=head1 NAME
+package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 
-MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011 - ISO ANSI C 2011 grammar writen in Marpa BNF
+# ABSTRACT: ISO ANSI C 2011 grammar writen in Marpa BNF
 
-=head1 VERSION
+# VERSION
 
-Version 0.03
-
-=cut
-
-our $VERSION = '0.03';
-
-=head1 SYNOPSIS
+=head1 DESCRIPTION
 
 This modules returns describes the ISO ANSI C 2011 C grammar writen in Marpa BNF, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2011.html> and L<http://www.quut.com/c/ANSI-C-grammar-l.html>.
 
-Example:
+=head1 SYNOPSIS
 
+    use strict;
+    use warnings FATAL => 'all';
     use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 
     my $grammar = MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011->new();
@@ -83,100 +77,7 @@ sub recce_option {
     return $self->{_recce_option};
 }
 
-=head1 SEE ALSO
-
-L<Marpa::R2>
-
-=head1 AUTHOR
-
-Jean-Damien Durand, C<< <jeandamiendurand at free.fr> >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-marpax-language-c-ast at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MarpaX-Languages-C-AST>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc MarpaX::Languages::C::AST
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=MarpaX-Languages-C-AST>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/MarpaX-Languages-C-AST>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/MarpaX-Languages-C-AST>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/MarpaX-Languages-C-AST/>
-
-=back
-
-
-=head1 ACKNOWLEDGEMENTS
-
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2013 Jean-Damien Durand.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the the Artistic License (2.0). You may obtain a
-copy of the full license at:
-
-L<http://www.perlfoundation.org/artistic_license_2_0>
-
-Any use, modification, and distribution of the Standard or Modified
-Versions is governed by this Artistic License. By using, modifying or
-distributing the Package, you accept this license. Do not use, modify,
-or distribute the Package, if you do not accept this license.
-
-If your Modified Version has been derived from a Modified Version made
-by someone other than you, you are nevertheless required to ensure that
-your Modified Version complies with the requirements of this license.
-
-This license does not grant you the right to use any trademark, service
-mark, tradename, or logo of the Copyright Holder.
-
-This license includes the non-exclusive, worldwide, free-of-charge
-patent license to make, have made, use, offer to sell, sell, import and
-otherwise transfer the Package with respect to any patent claims
-licensable by the Copyright Holder that are necessarily infringed by the
-Package. If you institute patent litigation (including a cross-claim or
-counterclaim) against any party alleging that the Package constitutes
-direct or contributory patent infringement, then this Artistic License
-to you shall terminate on the date that such litigation is filed.
-
-Disclaimer of Warranty: THE PACKAGE IS PROVIDED BY THE COPYRIGHT HOLDER
-AND CONTRIBUTORS "AS IS' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES.
-THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, OR NON-INFRINGEMENT ARE DISCLAIMED TO THE EXTENT PERMITTED BY
-YOUR LOCAL LAW. UNLESS REQUIRED BY LAW, NO COPYRIGHT HOLDER OR
-CONTRIBUTOR WILL BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING IN ANY WAY OUT OF THE USE OF THE PACKAGE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-=cut
-
-1; # End of MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011
+1;
 __DATA__
 ################################################################################################################
 #                                                    grammar
@@ -686,71 +587,71 @@ WS_any     ~ WS*
 :lexeme ~ <AUTO> priority => -1
 AUTO          ~ 'auto'
 :lexeme ~ <BREAK> priority => -2
-BREAK         ~ 'break'					
+BREAK         ~ 'break'
 :lexeme ~ <CASE> priority => -3
-CASE          ~ 'case'					
+CASE          ~ 'case'
 :lexeme ~ <CHAR> priority => -4
-CHAR          ~ 'char'					
+CHAR          ~ 'char'
 :lexeme ~ <CONST> priority => -5
-CONST         ~ 'const'					
+CONST         ~ 'const'
 :lexeme ~ <CONTINUE> priority => -6
-CONTINUE      ~ 'continue'				
+CONTINUE      ~ 'continue'
 :lexeme ~ <DEFAULT> priority => -7
-DEFAULT       ~ 'default'				
+DEFAULT       ~ 'default'
 :lexeme ~ <DO> priority => -8
-DO            ~ 'do'					
+DO            ~ 'do'
 :lexeme ~ <DOUBLE> priority => -9
-DOUBLE        ~ 'double'				
+DOUBLE        ~ 'double'
 :lexeme ~ <ELSE> priority => -10
-ELSE          ~ 'else'					
+ELSE          ~ 'else'
 :lexeme ~ <ENUM> priority => -11
-ENUM          ~ 'enum'					
+ENUM          ~ 'enum'
 :lexeme ~ <EXTERN> priority => -12
-EXTERN        ~ 'extern'				
+EXTERN        ~ 'extern'
 :lexeme ~ <FLOAT> priority => -13
-FLOAT         ~ 'float'					
+FLOAT         ~ 'float'
 :lexeme ~ <FOR> priority => -14
-FOR           ~ 'for'					
+FOR           ~ 'for'
 :lexeme ~ <GOTO> priority => -15
-GOTO          ~ 'goto'					
+GOTO          ~ 'goto'
 :lexeme ~ <IF> priority => -16
-IF            ~ 'if'					
+IF            ~ 'if'
 :lexeme ~ <INLINE> priority => -17
-INLINE        ~ 'inline'				
+INLINE        ~ 'inline'
 :lexeme ~ <INT> priority => -18
-INT           ~ 'int'					
+INT           ~ 'int'
 :lexeme ~ <LONG> priority => -19
-LONG          ~ 'long'					
+LONG          ~ 'long'
 :lexeme ~ <REGISTER> priority => -20
-REGISTER      ~ 'register'				
+REGISTER      ~ 'register'
 :lexeme ~ <RESTRICT> priority => -21
-RESTRICT      ~ 'restrict'				
+RESTRICT      ~ 'restrict'
 :lexeme ~ <RETURN> priority => -22
-RETURN        ~ 'return'				
+RETURN        ~ 'return'
 :lexeme ~ <SHORT> priority => -23
-SHORT         ~ 'short'					
+SHORT         ~ 'short'
 :lexeme ~ <SIGNED> priority => -24
-SIGNED        ~ 'signed'				
+SIGNED        ~ 'signed'
 :lexeme ~ <SIZEOF> priority => -25
-SIZEOF        ~ 'sizeof'				
+SIZEOF        ~ 'sizeof'
 :lexeme ~ <STATIC> priority => -26
-STATIC        ~ 'static'				
+STATIC        ~ 'static'
 :lexeme ~ <STRUCT> priority => -27
-STRUCT        ~ 'struct'				
+STRUCT        ~ 'struct'
 :lexeme ~ <SWITCH> priority => -28
-SWITCH        ~ 'switch'				
+SWITCH        ~ 'switch'
 :lexeme ~ <TYPEDEF> priority => -29 pause => after
-TYPEDEF       ~ 'typedef'				
+TYPEDEF       ~ 'typedef'
 :lexeme ~ <UNION> priority => -30
-UNION         ~ 'union'					
+UNION         ~ 'union'
 :lexeme ~ <UNSIGNED> priority => -31
-UNSIGNED      ~ 'unsigned'				
+UNSIGNED      ~ 'unsigned'
 :lexeme ~ <VOID> priority => -32
-VOID          ~ 'void'					
+VOID          ~ 'void'
 :lexeme ~ <VOLATILE> priority => -33
-VOLATILE      ~ 'volatile'				
+VOLATILE      ~ 'volatile'
 :lexeme ~ <WHILE> priority => -34
-WHILE         ~ 'while'					
+WHILE         ~ 'while'
 :lexeme ~ <ALIGNAS> priority => -35
 ALIGNAS       ~ '_Alignas'
 :lexeme ~ <ALIGNOF> priority => -36
@@ -781,7 +682,7 @@ FUNC_NAME     ~ '__func__'
 :lexeme ~ <ENUMERATION_CONSTANT> priority => -100 pause => before
 :lexeme ~ <IDENTIFIER>           priority => -100 pause => before
 TYPEDEF_NAME         ~ L A_any
-ENUMERATION_CONSTANT ~ L A_any 
+ENUMERATION_CONSTANT ~ L A_any
 IDENTIFIER           ~ L A_any
 
 :lexeme ~ <I_CONSTANT>         priority => -101
@@ -802,49 +703,49 @@ F_CONSTANT ~ D_many E FS_maybe
 STRING_LITERAL ~ STRING_LITERAL_UNIT+
 
 :lexeme ~ <ELLIPSIS>         priority => -104
-ELLIPSIS     ~ '...'					
+ELLIPSIS     ~ '...'
 :lexeme ~ <RIGHT_ASSIGN>         priority => -105
-RIGHT_ASSIGN ~ '>>='					
+RIGHT_ASSIGN ~ '>>='
 :lexeme ~ <LEFT_ASSIGN>         priority => -106
-LEFT_ASSIGN  ~ '<<='					
+LEFT_ASSIGN  ~ '<<='
 :lexeme ~ <ADD_ASSIGN>         priority => -107
-ADD_ASSIGN   ~ '+='					
+ADD_ASSIGN   ~ '+='
 :lexeme ~ <SUB_ASSIGN>         priority => -108
-SUB_ASSIGN   ~ '-='					
+SUB_ASSIGN   ~ '-='
 :lexeme ~ <MUL_ASSIGN>         priority => -109
-MUL_ASSIGN   ~ '*='					
+MUL_ASSIGN   ~ '*='
 :lexeme ~ <DIV_ASSIGN>         priority => -110
-DIV_ASSIGN   ~ '/='					
+DIV_ASSIGN   ~ '/='
 :lexeme ~ <MOD_ASSIGN>         priority => -111
-MOD_ASSIGN   ~ '%='					
+MOD_ASSIGN   ~ '%='
 :lexeme ~ <AND_ASSIGN>         priority => -112
-AND_ASSIGN   ~ '&='					
+AND_ASSIGN   ~ '&='
 :lexeme ~ <XOR_ASSIGN>         priority => -113
-XOR_ASSIGN   ~ '^='					
+XOR_ASSIGN   ~ '^='
 :lexeme ~ <OR_ASSIGN>         priority => -114
-OR_ASSIGN    ~ '|='					
+OR_ASSIGN    ~ '|='
 :lexeme ~ <RIGHT_OP>         priority => -115
-RIGHT_OP     ~ '>>'					
+RIGHT_OP     ~ '>>'
 :lexeme ~ <LEFT_OP>         priority => -116
-LEFT_OP      ~ '<<'					
+LEFT_OP      ~ '<<'
 :lexeme ~ <INC_OP>         priority => -117
-INC_OP       ~ '++'					
+INC_OP       ~ '++'
 :lexeme ~ <DEC_OP>         priority => -118
-DEC_OP       ~ '--'					
+DEC_OP       ~ '--'
 :lexeme ~ <PTR_OP>         priority => -119
-PTR_OP       ~ '->'					
+PTR_OP       ~ '->'
 :lexeme ~ <AND_OP>         priority => -120
-AND_OP       ~ '&&'					
+AND_OP       ~ '&&'
 :lexeme ~ <OR_OP>         priority => -121
-OR_OP        ~ '||'					
+OR_OP        ~ '||'
 :lexeme ~ <LE_OP>         priority => -122
-LE_OP        ~ '<='					
+LE_OP        ~ '<='
 :lexeme ~ <GE_OP>         priority => -123
-GE_OP        ~ '>='					
+GE_OP        ~ '>='
 :lexeme ~ <EQ_OP>         priority => -124
-EQ_OP        ~ '=='					
+EQ_OP        ~ '=='
 :lexeme ~ <NE_OP>         priority => -125
-NE_OP        ~ '!='					
+NE_OP        ~ '!='
 
 :lexeme ~ <SEMICOLON>     priority => -126
 SEMICOLON                     ~ ';'
