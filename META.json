@@ -58,7 +58,6 @@
             "File::Spec::Functions" : "0",
             "File::Temp" : "0",
             "List::Util" : "0",
-            "MarpaX::Languages::C::AST::Expected" : "0",
             "Test::More" : "0",
             "tainting" : "0"
          }
