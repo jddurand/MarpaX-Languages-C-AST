@@ -18,7 +18,7 @@ our @EXPORT_OK = qw/whoami whowasi traceAndUnpack/;
 
 This modules implements some function utilities. This is inspired from L<https://kb.wisc.edu/middleware/page.php?id=4309>.
 
-=head1 SYNPOSIS
+=head1 SYNOPSIS
 
     use MarpaX::Languages::C::AST::Util qw/whoami whowasi traceAndUnpack/;
 

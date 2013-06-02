@@ -1,0 +1,212 @@
+Changelog for MarpaX-Languages-C-AST
+
+v0.07 2013-06-02T17:36:58
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - oups back
+
+
+v0.06 2013-06-02T17:33:00
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Closer to DAGOLDEN
+
+
+v0.05 2013-06-02T17:12:10
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Removed non needed dzil.sh, this also allow to have a clean tag, but
+   Dist::Zilla perturbed a bit the followup of tag v.s. official releases
+
+
+v0.04 2013-06-02T17:03:14
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Uncommentedd UploadToCPAN
+
+ - Remove dist.ini from allow_dirty, Added back commented [FakeRelease]
+
+ - New CPAN release of MarpaX-Languages-C-AST - v0.04
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - Added META.json and README.pod to .gitignore
+   
+    - Add .build to .gitignore
+   
+    - Dist:Zilla version
+   
+    - Removed
+   
+    - Removed README boilerplate
+   
+    - Remove given/when: warnings on perl5.18
+   
+    - Better readibility
+
+ - Added META.json and README.pod to .gitignore
+
+ - Add .build to .gitignore
+
+ - Dist:Zilla version
+
+ - Removed
+
+ - Removed README boilerplate
+
+ - Remove given/when: warnings on perl5.18
+
+ - Better readibility
+
+
+v0.03 2013-05-30T19:12:07
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.03
+
+ - Synopsis made readable
+
+ - Removed
+
+ - Move atomic stuff to example since the grammar does not have pb with it
+   (historically c2011 draft had an ambiguity between atomic as type
+   specifier and type qualifier)
+
+ - Updated test file to follow logging that now have a context free string
+
+ - Use given/when, log the context (lexeme, event)
+
+ - MIN_PERL_VERSION => '5.10.0'
+
+ - Fix under taint mode
+
+ - Preview of changes for 0.03
+
+ - My own version of changes.t
+
+ - Cosmetic reorder in _doLexeme()
+
+ - Revisited lexeme and events processing
+
+ - Again manifest.t
+   
+   Revisited any-OS (well, Windows) support
+
+ - Fixed MANIFEST
+
+ - Back to quasi-original manifest.t
+
+ - TODO list, currently contains only PERHAPS items
+
+ - Revisited log mechanism and inspectG1
+
+ - Better log
+
+ - examples/synopsis.pl
+
+ - Variable name convention fix
+
+ - Correct parameters to findInProgress()
+
+ - No (not-needed) $lhs nor [@rhs] in $matchesp
+
+ - findInProgressShort and g1Describe helper methods
+
+ - Return list of [$ruleId, $dotPosition, $origin, $lhs, [@rhs]] that
+   matched
+
+ - Force Marpa::R2 in addition to the test in Makefile.PL
+
+ - Fix rc=1 if anything was requested /and/ matched
+
+ - Typo in a comment
+
+ - Removed perl version dependency
+
+ - Removed duplicate BUILD_REQUIRES
+
+ - Do a PREREQ_PM
+
+ - Removed non-needed Module::Info requirement
+
+ - Removed use perl 5.006
+
+ - Added use warnings
+
+ - Updated methods docs
+
+ - Updated methods docs
+
+ - Fixed typos in the doc
+
+ - Marpa::R2 2.056000 official release dependency
+
+ - Add ruleid and origin in findinprogress
+
+ - Forgot 0.02 Changes update
+
+
+v0.02 2013-05-21T22:39:50
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Bumped to version 0.02
+
+ - Fixed synopsis
+
+ - Add repository to META_MERGE
+
+ - Say what this module is not
+
+ - Move to Storage (core module) instead of Clone
+
+
+v0.01 2013-05-21T12:19:33
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Add package tarballs to .gitignore
+
+ - test blessed structure result
+
+ - Oups, removed a Data::Dumper call
+
+ - No more untaint and if-if-else ambiguity solving
+
+ - Fix t/Grammar/synposis.t on Win32
+
+ - Precisions in the POD for read method
+
+ - Untaint the grammar when reading it, use core IO::File instead of
+   File::Slurp
+
+ - Simplified new()
+
+ - Fixed synopsis
+
+ - Renamed if-then-else.t to if-if-else.t
+
+ - use Marpa::R2 2.055_003
+
+ - Fix output v.s. arrayOfValuesb
+
+ - Possiblity to return all values
+
+ - Fix some POD sections
+
+ - Hmm, I messed up last commit logs - let's restart from here
+
+ - if-then-else test
+   Fixed some SEE ALSO sections
+
+ - Few fixes and global t/synopsis.t file for the whole package
+
+ - Log::Any wrapper on top of Marpa
+
+ - Added $grammar->list() method
+
+ - Grammar test files and implementation on top of Marpa
+
+ - Use $log
+   Remove __DATA__
+
+ - MarpaX::Languages::C::AST::Grammar package
+   Fixes for newest Test::More
+
+ - Scope synopsis test
+
+ - Scope module
+
+ - Initial commit
+
+

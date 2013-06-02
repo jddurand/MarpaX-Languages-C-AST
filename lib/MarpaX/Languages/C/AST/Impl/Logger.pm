@@ -14,7 +14,7 @@ use Class::Runtime;
 
 =head1 DESCRIPTION
 
-This module is a Log::Any wrapper on top of Marpa, instancied with a trace_file_handle tied to this package
+This module is a Log::Any wrapper on top of Marpa, instantiated with a trace_file_handle tied to this package
 
 =cut
 sub BEGIN {

@@ -14,7 +14,7 @@ use Log::Any qw/$log/;
 
 This modules manages the scopes when translation a C source into an AST tree. This module is an implementation of the article:
 
-I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Translation>, Volume 2, Number 4, writen by W.M. McKeeman. A online version may be accessed at L<http://www.cs.dartmouth.edu/~mckeeman/references/JCLT/ResolvingTypedefsInAMultipassCCompiler.pdf>. Please note that this module is logging via Log::Any.
+I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Translation>, Volume 2, Number 4, written by W.M. McKeeman. A online version may be accessed at L<http://www.cs.dartmouth.edu/~mckeeman/references/JCLT/ResolvingTypedefsInAMultipassCCompiler.pdf>. Please note that this module is logging via Log::Any.
 
 =head1 SYNOPSIS
 

@@ -3,13 +3,13 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 
-# ABSTRACT: ISO ANSI C 2011 grammar writen in Marpa BNF
+# ABSTRACT: ISO ANSI C 2011 grammar written in Marpa BNF
 
 # VERSION
 
 =head1 DESCRIPTION
 
-This modules returns describes the ISO ANSI C 2011 C grammar writen in Marpa BNF, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2011.html> and L<http://www.quut.com/c/ANSI-C-grammar-l.html>.
+This modules returns describes the ISO ANSI C 2011 C grammar written in Marpa BNF, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2011.html> and L<http://www.quut.com/c/ANSI-C-grammar-l.html>.
 
 =head1 SYNOPSIS
 

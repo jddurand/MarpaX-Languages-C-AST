@@ -3,7 +3,7 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar;
 
-# ABSTRACT: C grammar writen in Marpa BNF
+# ABSTRACT: C grammar written in Marpa BNF
 
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 use Carp qw/croak/;
@@ -12,7 +12,7 @@ use Carp qw/croak/;
 
 =head1 DESCRIPTION
 
-This modules returns C grammar(s) writen in Marpa BNF.
+This modules returns C grammar(s) written in Marpa BNF.
 Current grammars are:
 =over
 =item *
