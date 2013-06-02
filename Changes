@@ -1,5 +1,12 @@
 Changelog for MarpaX-Languages-C-AST
 
+0.08 2013-06-02T21:14:28
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Enable UploadToCPAN
+
+ - Back to 95% of DAGOLDEN great dist.ini
+
+
 v0.07 2013-06-02T17:36:58
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - oups back
