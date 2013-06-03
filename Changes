@@ -1,7 +1,34 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.08 2013-06-02T21:16:53
+0.09 2013-06-03T18:19:00
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Back to eval Log::Log4perl because of Win32 warn
+   
+   On Win32, Class::Runtime on Log::Log4perl exhibits awful messages about
+   redefinitions, despite any eventual no warnings 'redefine'. Therefore,
+   back to good old eval of use Log::Log4perl, amended with a ## no critic
+
+ - v0.08
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - Ignore my MarpaX::Languages::C::AST::Expected in AutoPrereqs
+   
+    - Enable UploadToCPAN
+   
+    - Back to 95% of DAGOLDEN great dist.ini
+
+
+v0.08 2013-06-02T21:18:03
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.08
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - Ignore my MarpaX::Languages::C::AST::Expected in AutoPrereqs
+   
+    - Enable UploadToCPAN
+   
+    - Back to 95% of DAGOLDEN great dist.ini
+
  - Ignore my MarpaX::Languages::C::AST::Expected in AutoPrereqs
 
  - Enable UploadToCPAN
