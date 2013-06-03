@@ -1,7 +1,6 @@
 #!perl -T
 use strict;
 use warnings FATAL => 'all';
-use tainting;
 use Test::More tests => 3;
 
 BEGIN {
