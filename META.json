@@ -38,7 +38,6 @@
       "runtime" : {
          "requires" : {
             "Carp" : "0",
-            "Class::Runtime" : "0",
             "Data::Dumper" : "0",
             "Exporter" : "0",
             "Log::Any" : "0",
@@ -58,39 +57,38 @@
             "File::Spec::Functions" : "0",
             "File::Temp" : "0",
             "List::Util" : "0",
-            "Test::More" : "0",
-            "tainting" : "0"
+            "Test::More" : "0"
          }
       }
    },
    "provides" : {
       "MarpaX::Languages::C::AST" : {
          "file" : "lib/MarpaX/Languages/C/AST.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Grammar" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Impl" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Impl::Logger" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl/Logger.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Scope" : {
          "file" : "lib/MarpaX/Languages/C/AST/Scope.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       },
       "MarpaX::Languages::C::AST::Util" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util.pm",
-         "version" : "0.08"
+         "version" : "0.09"
       }
    },
    "release_status" : "stable",
@@ -106,6 +104,6 @@
          "web" : "https://github.com/jddurand/marpax-languages-c-ast"
       }
    },
-   "version" : "0.08"
+   "version" : "0.09"
 }
 
