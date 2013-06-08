@@ -68,7 +68,7 @@ Say we enter a new scope. $context is a free string used for logging.
 sub parseEnterScope {
   my ($self, $context) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   push(@{$self->{typedefPerScope}}, dclone($self->{typedefPerScope}->[$scope]));
@@ -115,7 +115,7 @@ Declare a new typedef with name $token, that will be visible until current scope
 sub parseEnterTypedef {
   my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope();
+  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 1;
