@@ -348,17 +348,14 @@ sub _doLexeme {
       #
       # Enter/Reenter
       #
-      if    ($lexeme eq 'LPAREN_PARAMETER')             {  $self->{_scope}->parseEnterScope($context); }
-      elsif ($lexeme eq 'LPAREN_IDENTIFIERLIST')        {  $self->{_scope}->parseEnterScope($context); }
-      elsif ($lexeme eq 'LCURLY_COMPOUNDSTATEMENT')     {$self->_canReenterScope() ?
-                                                           $self->{_scope}->parseReenterScope($context) :
-                                                           $self->{_scope}->parseEnterScope($context); }
+      if    ($lexeme eq 'LPAREN_SCOPE')             {  $self->{_scope}->parseEnterScope($context); }
+      elsif ($lexeme eq 'LCURLY_REENTERSCOPE')      {  $self->{_scope}->parseReenterScope($context); }
+      elsif ($lexeme eq 'LCURLY_SCOPE')             {  $self->{_scope}->parseEnterScope($context); }
       #
       # Exit
       #
-      if    ($lexeme eq 'RPAREN_PARAMETER')             { $self->{_scope}->parseExitScope($context); }
-      elsif ($lexeme eq 'RPAREN_IDENTIFIERLIST')        { $self->{_scope}->parseExitScope($context); }
-      elsif ($lexeme eq 'RCURLY_COMPOUNDSTATEMENT')     { $self->{_scope}->parseExitScope($context); }
+      if    ($lexeme eq 'RPAREN_SCOPE')             { $self->{_scope}->parseExitScope($context); }
+      elsif ($lexeme eq 'RCURLY_SCOPE')             { $self->{_scope}->parseExitScope($context); }
       # ------------------
       # Context management
       # ------------------
@@ -416,16 +413,6 @@ sub _canEnterEnumerationConstant {
   $log->debugf('[%s] enumeration constant can be entered', $context);
 
   return($rc);
-}
-
-##################
-# _canReenterScope
-##################
-sub _canReenterScope {
-  my ($self) = @_;
-
-  return ($self->{_impl}->findInProgressShort(-2, 3, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'declarationList', 'compoundStatement' ]) ||
-          $self->{_impl}->findInProgressShort(-2, 2, 'functionDefinition', [ 'declarationSpecifiers', 'declarator', 'compoundStatement' ]));
 }
 
 1;
