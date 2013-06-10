@@ -23,6 +23,15 @@ sub new {
     my ($class, $outerSelf) = @_;
     my $self = $class->SUPER();
 
+    $self->register({condition => sub {grep {$_ eq 'enterScope'} @_}},
+		     \&_enterScope, $outerSelf, 'enterScope');
+		    
+    $self->register({condition => sub {grep {$_ eq 'reenterScope'} @_}},
+		     \&_reenterScope, $outerSelf, 'reenterScope');
+		    
+    $self->register({condition => sub {grep {$_ eq 'exitScope'} @_}},
+		     \&_exitScope, $outerSelf, 'exitScope');
+		    
     $self->register({priority => 1,
 		     condition => sub {grep {$_ eq 'declarationSpecifiers$'} @_}},
 		     \&_isTypedef, $outerSelf, 'declarationSpecifiers$', 0);
@@ -58,6 +67,24 @@ sub new {
     return $self;
 }
 
+sub _enterScope {
+    my $self = shift;
+    my $event = shift;
+    $self->{_scope}->parseEnterScope("  $event");
+}
+
+sub _reenterScope {
+    my $self = shift;
+    my $event = shift;
+    $self->{_scope}->parseReenterScope("  $event");
+}
+
+sub _exitScope {
+    my $self = shift;
+    my $event = shift;
+    $self->{_scope}->parseExitScope("  $event");
+}
+
 sub _isTypedef {
     my $self = shift;
     my $event = shift;
@@ -91,7 +118,8 @@ sub _functionDefinitionCheckpoint {
 
     $self->{_functionDefinitionCheckpoint} = {
 	_sumIsTypedef => $self->{_sumIsTypedef},
-	_declarationSpecifiers => $self->_last_completed('declarationSpecifiers')
+	_declarationSpecifiers => $self->_last_completed('declarationSpecifiers'),
+	_line_column => $self->_line_column
     };
 	
 }
@@ -101,7 +129,8 @@ sub _declarationList {
 
     $self->{_declarationList} = {
 	_sumIsTypedef => $self->{_sumIsTypedef},
-	_declaration => $self->_last_completed('declaration')
+	_declaration => $self->_last_completed('declaration'),
+	_line_column => $self->_line_column
     };
 	
 }
@@ -111,8 +140,9 @@ sub _parameterDeclaration {
 
     if ($self->{_sumIsTypedef}) {
 	$self->_croak(
-	    'typedef is not valid in the parameter declaration of a function definition: %s',
-	    $self->_last_completed('parameterDeclaration')
+	    'typedef is not valid in the parameter declaration of a function definition: %s, at position %d:%d',
+	    $self->_last_completed('parameterDeclaration'),
+	    @{$self->_line_column}
 	    );
     }
 }
@@ -122,14 +152,16 @@ sub _functionDefinition {
 
     if ($self->{_functionDefinitionCheckpoint}->{_sumIsTypedef}) {
 	$self->_croak(
-	    'typedef is not valid in the declaration specifiers of a function definition: %s',
-	    $self->{_functionDefinitionCheckpoint}->{_declarationSpecifiers}
+	    'typedef is not valid in the declaration specifiers of a function definition: %s, at position %d:%d',
+	    $self->{_functionDefinitionCheckpoint}->{_declarationSpecifiers},
+	    @{$self->{_functionDefinitionCheckpoint}->{_line_column}}
 	    );
     }
     if ($self->{_declarationList}->{_sumIsTypedef}) {
 	$self->_croak(
-	    'typedef is not valid in the declaration list of a function definition: %s',
-	    $self->{_declarationList}->{_declaration}
+	    'typedef is not valid in the declaration list of a function definition: %s, at position %d:%d',
+	    $self->{_declarationList}->{_declaration},
+	    @{$self->{_declarationList}->{_line_column}}
 	    );
     }
 	
