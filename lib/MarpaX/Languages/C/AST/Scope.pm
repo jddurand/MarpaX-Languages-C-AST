@@ -88,7 +88,7 @@ sub parseExitScope {
   my $scope = $#{$self->{typedefPerScope}};
   $self->{delayedExitScope} = 1;
 
-  $log->debugf('[%s] Setting delay flag on scope %d', $context, $scope);
+  $log->debugf('[%s] Setted delay flag on scope %d', $context, $scope);
 }
 
 =head2 parseReenterScope($self, $context)
@@ -103,7 +103,7 @@ sub parseReenterScope {
   my $scope = $#{$self->{typedefPerScope}};
   $self->{delayedExitScope} = 0;
 
-  $log->debugf('[%s] Resetting delay flag on scope %d', $context, $scope);
+  $log->debugf('[%s] Resetted delay flag on scope %d', $context, $scope);
 }
 
 =head2 parseEnterTypedef($self, $context, $token)
@@ -114,8 +114,6 @@ Declare a new typedef with name $token, that will be visible until current scope
 
 sub parseEnterTypedef {
   my ($self, $context, $token) = @_;
-
-  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 1;
@@ -132,8 +130,6 @@ Declare a new enum with name $token, that will be visible at any scope from now 
 sub parseEnterEnum {
   my ($self, $context, $token) = @_;
 
-  $self->_doDelayedExitScope($context);
-
   $self->{enumAnyScope}->{$token} = 1;
 
   $log->debugf('[%s] "%s" enum entered', $context, $token);
@@ -147,8 +143,6 @@ Obscures a typedef named $token. $context is a free string used for logging.
 
 sub parseObscureTypedef {
   my ($self, $context, $token) = @_;
-
-  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   $self->{typedefPerScope}->[$scope]->{$token} = 0;
@@ -164,8 +158,6 @@ Return a true value if $token is a typedef. $context is a free string used for l
 
 sub parseIsTypedef {
   my ($self, $context, $token) = @_;
-
-  $self->_doDelayedExitScope($context);
 
   my $scope = $#{$self->{typedefPerScope}};
   my $rc = (exists($self->{typedefPerScope}->[$scope]->{$token}) && $self->{typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
@@ -183,8 +175,6 @@ Return a true value if $token is an enum. $context is a free string used for log
 
 sub parseIsEnum {
   my ($self, $context, $token) = @_;
-
-  $self->_doDelayedExitScope($context);
 
   my $rc = (exists($self->{enumAnyScope}->{$token}) && $self->{enumAnyScope}->{$token}) ? 1 : 0;
 
