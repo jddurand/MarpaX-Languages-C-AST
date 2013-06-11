@@ -13,6 +13,6 @@ use MarpaX::Languages::C::AST::Expected;
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
 my @r = trap {$cAst->parse(\$cSourceCode)};
-like($trap->die, qr/typedef is not valid in a function declaration specifier/, $cSourceCode);
+like($trap->die || '', qr/typedef is not valid in a function declaration specifier/, $cSourceCode);
 __DATA__
-void typedef func() {};
+void typedef func() {}

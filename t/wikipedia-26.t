@@ -16,6 +16,6 @@ ok(defined($valuep), 'Output from parse() is ok');
 
 __DATA__
 void func() {
-  int x = (*p)/(*q);
+  int x = *p / *q;  /* this comment starts after the 'p' */
 }
 
