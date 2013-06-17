@@ -110,7 +110,8 @@ sub new {
   # typedef is syntactically allowed but never valid in either declarationSpecifiers or
   # declarationList. We use:
   #
-  # A general callback for functionDefinition that listens on the storageClassSpecifierTypedef$ topic
+  # A general callback for functionDefinition that listens on a NEW storageClassSpecifierTypedef$ topic
+  # that would have NO persistence.
   #
   # ^functionDefinition to enable the listening of the topic
   # functionDefinitionMark[] to pause
@@ -120,43 +121,52 @@ sub new {
   #
   # We rely on storageClassSpecifierTypedef$ has a priority of 1, so we put a priority of 2.
   # ###############################################################################################
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
+                   description => 'functionDefinition|storageClassSpecifierTypedef$',
+                   method =>  [ \&_storage_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+                    condition => [ sub { my $cb = shift; return grep {$_ eq 'storageClassSpecifierTypedef$'} @_; } ],
+                    topic => {'functionDefinition|storageClassSpecifierTypedef' => 1},
+                   )
+                  )
+                 );
+  my $functionDefinitionTypedefSurvey_cb;
+  $self->register($functionDefinitionTypedefSurvey_cb = MarpaX::Languages::C::AST::Callback::Method->new
+		  (
+		   description => 'functionDefinition typedef survey',
+		   method =>  [ \&_storage_functionDefinition_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
+		   option => MarpaX::Languages::C::AST::Callback::Option->new
+		   (
+		    subscription => { 'functionDefinition|storageClassSpecifierTypedef' => 0 },  # Default subscription is off
+		    topic => {'functionDefinitionTypedefSurvey' => 1},
+		    topic_persistence => 'level',
+		   )
+		  )
+      );
   {
-      my $functionDefinition;
-      $self->register($functionDefinition = MarpaX::Languages::C::AST::Callback::Method->new
-		      (
-		       description => 'functionDefinition typedef survey',
-		       method =>  [ \&_storage_functionDefinition_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
-		       option => MarpaX::Languages::C::AST::Callback::Option->new
-		       (
-			subscription => { 'storageClassSpecifierTypedef$' => 0 },  # Default subscription is off
-			topic => {'functionDefinitionTypedefSurvey' => 1},
-			topic_persistence => 'level',
-		       )
-		      )
-	  );
-      {
-	  my $i = 1;
-	  foreach (qw/^functionDefinition functionDefinitionMark[] ^declarationList declarationList$/) {
-	      $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-			      (
-			       description => $_,
-			       method => [ sub { my ($cb, @execArgs) = @_;
-						 my $topicValue = $i % 2;
-						 $log->debugf('[%s] Setting %s subscription on topic \'%s\' to %d', $cb->description, 'functionDefinition typedef survey', 'storageClassSpecifierTypedef$', $topicValue);
-						 $functionDefinition->option->subscription('storageClassSpecifierTypedef$', $topicValue);
-						 #
-						 # Redo an inventory of callbacks to fire
-						 #
-						 $self->inventory();
-					   } ],
-			       option => MarpaX::Languages::C::AST::Callback::Option->new
-			       (
-				condition => [qw/auto/],
-				priority => 2
-			       )
-			      )
-		  );
-	  }
+      my $i = 1;
+      foreach (qw/^functionDefinition functionDefinitionMark[] ^declarationList declarationList$/) {
+	  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			  (
+			   description => $_,
+			   method => [ sub { my ($cb, @execArgs) = @_;
+					     my $topicValue = $i % 2;
+					     $log->debugf('[%s] Setting %s subscription on topic \'%s\' to %d', $cb->description, 'functionDefinition typedef survey', 'storageClassSpecifierTypedef$', $topicValue);
+					     $functionDefinitionTypedefSurvey_cb->option->subscription('functionDefinition|storageClassSpecifierTypedef', $topicValue);
+					     #
+					     # Redo an inventory of callbacks to fire
+					     #
+					     $self->inventory();
+				       } ],
+			   option => MarpaX::Languages::C::AST::Callback::Option->new
+			   (
+			    condition => [qw/auto/],
+			    priority => 2
+			   )
+			  )
+	      );
       }
   }
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
@@ -210,7 +220,7 @@ sub _storage_functionDefinition_helper {
   $log->debugf('[%s] Setting %s subscription on topic \'%s\' to %d', whoami(__PACKAGE__), 'functionDefinition typedef survey', 'storageClassSpecifierTypedef$', $topicValue);
   $cb->option->subscription('storageClassSpecifierTypedef$', $topicValue);
 
-  return $self->_storage_helper($self, $outerSelf, $event);
+  return [ $outerSelf->_line_column(), $outerSelf->_last_completed('storageClassSpecifierTypedef') ];
 }
 
 sub _enterCallback {
@@ -272,13 +282,13 @@ sub _functionDefinition {
   #
   # Get the topics data we are interested in
   #
-  my $functionDefinitionTypedefSurvey = $self->topic_fired_data('functionDefinitionTypedefSurvey');
+  my $functionDefinitionTypedefSurvey = $self->topic_fired_data('functionDefinition|storageClassSpecifierTypedef');
   use Data::Dumper;
   print STDERR Dumper($functionDefinitionTypedefSurvey);
   #
   # Reset data
   #
-  $self->reset_topic_fired_data('functionDefinitionTypedefSurvey');
+  $self->reset_topic_fired_data('functionDefinition|storageClassSpecifierTypedef');
 }
 
 1;

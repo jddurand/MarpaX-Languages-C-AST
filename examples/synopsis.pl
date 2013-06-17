@@ -26,7 +26,7 @@ my $cAstObject = MarpaX::Languages::C::AST->new();
 print Dumper($cAstObject->parse(\$cSourceCode));
 __DATA__
 typedef struct test_ {int i;} s_test_, *sp_test_;
-int operation(int x1, int y1) {
+typedef int operation(int x1, int y1) {
     typedef struct test2_ {int i2;} s_test2_, *sp_test2_;
     typedef struct test3_ {int i3;} s_test3_, *sp_test3_;
 }
