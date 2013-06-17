@@ -403,18 +403,18 @@ sub lexeme_read {
   return $self->{recce}->lexeme_read($args->{lexeme}, $args->{start}, $args->{length}, $args->{value});
 }
 
-=head2 latest_g1_location($self)
+=head2 current_g1_location($self)
 
-Returns Marpa's recognizer's latest_g1_location.
+Returns Marpa's recognizer's current_g1_location.
 
 =cut
 
-sub latest_g1_location {
+sub current_g1_location {
   my $self = shift;
 
   my $args = traceAndUnpack([''], @_);
 
-  return $self->{recce}->latest_g1_location();
+  return $self->{recce}->current_g1_location();
 }
 
 =head2 g1_location_to_span($self, $g1)

@@ -1,6 +1,20 @@
 use strict;
 use warnings FATAL => 'all';
 
+package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions;
+
+sub new {
+    my $class = shift;
+    my $self = {};
+    bless($self, $class);
+    return $self;
+}
+
+sub deref {
+    my $self = shift;
+    return $_[0]->[0];
+}
+
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 
 # ABSTRACT: ISO ANSI C 2011 grammar written in Marpa BNF
@@ -36,7 +50,7 @@ sub new {
 
   my $self  = {
     _content => do { local $/; <DATA> },
-    _grammar_option => {},
+    _grammar_option => {action_object  => sprintf('%s::%s', __PACKAGE__, 'Actions')},
     _recce_option => {ranking_method => 'high_rule_only'},
   };
   bless($self, $class);
@@ -92,14 +106,24 @@ __DATA__
 #
 :default ::= action => [values] bless => ::lhs
 
+event 'enterScope[]' = nulled <enterScope>
+event 'reenterScope[]' = nulled <reenterScope>
+event 'exitScope[]' = nulled <exitScope>
+enterScope ::=
+reenterScope ::=
+exitScope ::=
+
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
 #
 :start ::= translationUnit
 
-event primaryExpression = completed <primaryExpression>
+event 'primaryExpressionIdentifier$' = completed <primaryExpressionIdentifier>
+primaryExpressionIdentifier
+	::= IDENTIFIER         action => deref
+
 primaryExpression
-	::= IDENTIFIER
+	::= primaryExpressionIdentifier
 	| constant
 	| string
 	| LPAREN expression RPAREN
@@ -110,9 +134,12 @@ constant
 	| F_CONSTANT
 	| ENUMERATION_CONSTANT # after it has been defined as such
 
-event enumerationConstant = completed <enumerationConstant>
+event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
+enumerationConstantIdentifier  # before it has been defined as such
+	::= IDENTIFIER        action => deref
+
 enumerationConstant            # before it has been defined as such
-	::= IDENTIFIER
+	::= enumerationConstantIdentifier
 
 string
 	::= STRING_LITERAL
@@ -242,10 +269,11 @@ expression
 constantExpression
 	::= conditionalExpression # with constraints
 
-event declaration = completed <declaration>
+declarationDeclarationSpecifiers ::= declarationSpecifiers initDeclaratorList SEMICOLON action => deref
+
 declaration
 	::= declarationSpecifiers SEMICOLON
-	| declarationSpecifiers initDeclaratorList SEMICOLON
+	| declarationDeclarationSpecifiers
 	| staticAssertDeclaration
 
 declarationSpecifiers
@@ -260,7 +288,7 @@ declarationSpecifiers
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
 
-event initDeclaratorList = completed <initDeclaratorList>
+event 'initDeclaratorList$' = completed <initDeclaratorList>
 initDeclaratorList
 	::= initDeclarator
 	| initDeclaratorList COMMA initDeclarator
@@ -269,8 +297,12 @@ initDeclarator
 	::= declarator EQUAL initializer
 	| declarator
 
+event 'storageClassSpecifierTypedef$' = completed <storageClassSpecifierTypedef>
+storageClassSpecifierTypedef
+	::= TYPEDEF            action => deref
+
 storageClassSpecifier
-	::= TYPEDEF # identifiers must be flagged as TYPEDEF_NAME
+	::= storageClassSpecifierTypedef # identifiers must be flagged as TYPEDEF_NAME
 	| EXTERN
 	| STATIC
 	| THREAD_LOCAL
@@ -296,8 +328,8 @@ typeSpecifier
 	| TYPEDEF_NAME		# after it has been defined as such
 
 structOrUnionSpecifier
-	::= structOrUnion LCURLY_SCOPE structDeclarationList RCURLY_SCOPE
-	| structOrUnion IDENTIFIER LCURLY_SCOPE structDeclarationList RCURLY_SCOPE
+	::= structOrUnion LCURLY (<enterScope>) structDeclarationList RCURLY (<exitScope>)
+	| structOrUnion IDENTIFIER LCURLY (<enterScope>) structDeclarationList RCURLY (<exitScope>)
 	| structOrUnion IDENTIFIER
 
 structOrUnion
@@ -364,8 +396,12 @@ declarator
 	::= pointer directDeclarator
 	| directDeclarator
 
+event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
+directDeclaratorIdentifier
+	::= IDENTIFIER          action => deref
+
 directDeclarator
-	::= IDENTIFIER
+	::= directDeclaratorIdentifier
 	| LPAREN declarator RPAREN
 	| directDeclarator LBRACKET RBRACKET
 	| directDeclarator LBRACKET STAR RBRACKET
@@ -376,9 +412,9 @@ directDeclarator
 	| directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
 	| directDeclarator LBRACKET typeQualifierList RBRACKET
 	| directDeclarator LBRACKET assignmentExpression RBRACKET
-	| directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directDeclarator LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
 	| directDeclarator LPAREN RPAREN
-	| directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
+	| directDeclarator LPAREN (<enterScope>) identifierList RPAREN (<exitScope>)
 
 pointer
 	::= STAR typeQualifierList pointer
@@ -398,7 +434,6 @@ parameterList
 	::= parameterDeclaration
 	| parameterList COMMA parameterDeclaration
 
-event parameterDeclaration = completed <parameterDeclaration>
 parameterDeclaration
 	::= declarationSpecifiers declarator
 	| declarationSpecifiers abstractDeclarator
@@ -436,9 +471,9 @@ directAbstractDeclarator
 	| directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
 	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
 	| LPAREN RPAREN
-	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
 	| directAbstractDeclarator LPAREN RPAREN
-	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
 
 initializer
 	::= LCURLY initializerList RCURLY
@@ -479,12 +514,8 @@ labeledStatement
 	| DEFAULT COLON statement
 
 compoundStatement
-	::= LCURLY_SCOPE RCURLY_SCOPE
-	| LCURLY_SCOPE blockItemList RCURLY_SCOPE
-
-compoundStatementReenterScope
-	::= LCURLY_REENTERSCOPE RCURLY_SCOPE                 bless => compoundStatement
-	| LCURLY_REENTERSCOPE blockItemList RCURLY_SCOPE     bless => compoundStatement
+	::= LCURLY (<reenterScope>) RCURLY(<exitScope>)
+	| LCURLY (<reenterScope>) blockItemList RCURLY (<exitScope>)
 
 blockItemList
 	::= blockItem
@@ -526,10 +557,10 @@ externalDeclaration
 	::= functionDefinition
 	| declaration
 
-event functionDefinition = completed <functionDefinition>
+
 functionDefinition
-	::= declarationSpecifiers declarator declarationList compoundStatementReenterScope
-	| declarationSpecifiers declarator compoundStatementReenterScope
+	::= declarationSpecifiers declarator declarationList compoundStatement
+	| declarationSpecifiers declarator compoundStatement
 
 declarationList
 	::= declaration
@@ -588,95 +619,95 @@ WS         ~ [ \t\v\n\f]
 WS_any     ~ WS*
 # Lexemes
 
-:lexeme ~ <AUTO> priority => -1
+:lexeme ~ <AUTO>          priority => -1
 AUTO          ~ 'auto'
-:lexeme ~ <BREAK> priority => -2
+:lexeme ~ <BREAK>         priority => -2
 BREAK         ~ 'break'
-:lexeme ~ <CASE> priority => -3
+:lexeme ~ <CASE>          priority => -3
 CASE          ~ 'case'
-:lexeme ~ <CHAR> priority => -4
+:lexeme ~ <CHAR>          priority => -4
 CHAR          ~ 'char'
-:lexeme ~ <CONST> priority => -5
+:lexeme ~ <CONST>         priority => -5
 CONST         ~ 'const'
-:lexeme ~ <CONTINUE> priority => -6
+:lexeme ~ <CONTINUE>      priority => -6
 CONTINUE      ~ 'continue'
-:lexeme ~ <DEFAULT> priority => -7
+:lexeme ~ <DEFAULT>       priority => -7
 DEFAULT       ~ 'default'
-:lexeme ~ <DO> priority => -8
+:lexeme ~ <DO>            priority => -8
 DO            ~ 'do'
-:lexeme ~ <DOUBLE> priority => -9
+:lexeme ~ <DOUBLE>        priority => -9
 DOUBLE        ~ 'double'
-:lexeme ~ <ELSE> priority => -10
+:lexeme ~ <ELSE>          priority => -10
 ELSE          ~ 'else'
-:lexeme ~ <ENUM> priority => -11
+:lexeme ~ <ENUM>          priority => -11
 ENUM          ~ 'enum'
-:lexeme ~ <EXTERN> priority => -12
+:lexeme ~ <EXTERN>        priority => -12
 EXTERN        ~ 'extern'
-:lexeme ~ <FLOAT> priority => -13
+:lexeme ~ <FLOAT>         priority => -13
 FLOAT         ~ 'float'
-:lexeme ~ <FOR> priority => -14
+:lexeme ~ <FOR>           priority => -14
 FOR           ~ 'for'
-:lexeme ~ <GOTO> priority => -15
+:lexeme ~ <GOTO>          priority => -15
 GOTO          ~ 'goto'
-:lexeme ~ <IF> priority => -16
+:lexeme ~ <IF>            priority => -16
 IF            ~ 'if'
-:lexeme ~ <INLINE> priority => -17
+:lexeme ~ <INLINE>        priority => -17
 INLINE        ~ 'inline'
-:lexeme ~ <INT> priority => -18
+:lexeme ~ <INT>           priority => -18
 INT           ~ 'int'
-:lexeme ~ <LONG> priority => -19
+:lexeme ~ <LONG>          priority => -19
 LONG          ~ 'long'
-:lexeme ~ <REGISTER> priority => -20
+:lexeme ~ <REGISTER>      priority => -20
 REGISTER      ~ 'register'
-:lexeme ~ <RESTRICT> priority => -21
+:lexeme ~ <RESTRICT>      priority => -21
 RESTRICT      ~ 'restrict'
-:lexeme ~ <RETURN> priority => -22
+:lexeme ~ <RETURN>        priority => -22
 RETURN        ~ 'return'
-:lexeme ~ <SHORT> priority => -23
+:lexeme ~ <SHORT>         priority => -23
 SHORT         ~ 'short'
-:lexeme ~ <SIGNED> priority => -24
+:lexeme ~ <SIGNED>        priority => -24
 SIGNED        ~ 'signed'
-:lexeme ~ <SIZEOF> priority => -25
+:lexeme ~ <SIZEOF>        priority => -25
 SIZEOF        ~ 'sizeof'
-:lexeme ~ <STATIC> priority => -26
+:lexeme ~ <STATIC>        priority => -26
 STATIC        ~ 'static'
-:lexeme ~ <STRUCT> priority => -27
+:lexeme ~ <STRUCT>        priority => -27
 STRUCT        ~ 'struct'
-:lexeme ~ <SWITCH> priority => -28
+:lexeme ~ <SWITCH>        priority => -28
 SWITCH        ~ 'switch'
-:lexeme ~ <TYPEDEF> priority => -29 pause => after
+:lexeme ~ <TYPEDEF>       priority => -29
 TYPEDEF       ~ 'typedef'
-:lexeme ~ <UNION> priority => -30
+:lexeme ~ <UNION>         priority => -30
 UNION         ~ 'union'
-:lexeme ~ <UNSIGNED> priority => -31
+:lexeme ~ <UNSIGNED>      priority => -31
 UNSIGNED      ~ 'unsigned'
-:lexeme ~ <VOID> priority => -32
+:lexeme ~ <VOID>          priority => -32
 VOID          ~ 'void'
-:lexeme ~ <VOLATILE> priority => -33
+:lexeme ~ <VOLATILE>      priority => -33
 VOLATILE      ~ 'volatile'
-:lexeme ~ <WHILE> priority => -34
+:lexeme ~ <WHILE>         priority => -34
 WHILE         ~ 'while'
-:lexeme ~ <ALIGNAS> priority => -35
+:lexeme ~ <ALIGNAS>       priority => -35
 ALIGNAS       ~ '_Alignas'
-:lexeme ~ <ALIGNOF> priority => -36
+:lexeme ~ <ALIGNOF>       priority => -36
 ALIGNOF       ~ '_Alignof'
-:lexeme ~ <ATOMIC> priority => -37
+:lexeme ~ <ATOMIC>        priority => -37
 ATOMIC        ~ '_Atomic'
-:lexeme ~ <BOOL> priority => -38
+:lexeme ~ <BOOL>          priority => -38
 BOOL          ~ '_Bool'
-:lexeme ~ <COMPLEX> priority => -39
+:lexeme ~ <COMPLEX>       priority => -39
 COMPLEX       ~ '_Complex'
-:lexeme ~ <GENERIC> priority => -40
+:lexeme ~ <GENERIC>       priority => -40
 GENERIC       ~ '_Generic'
-:lexeme ~ <IMAGINARY> priority => -41
+:lexeme ~ <IMAGINARY>     priority => -41
 IMAGINARY     ~ '_Imaginary'
-:lexeme ~ <NORETURN> priority => -42
+:lexeme ~ <NORETURN>      priority => -42
 NORETURN      ~ '_Noreturn'
 :lexeme ~ <STATIC_ASSERT> priority => -43
 STATIC_ASSERT ~ '_Static_assert'
-:lexeme ~ <THREAD_LOCAL> priority => -44
+:lexeme ~ <THREAD_LOCAL>  priority => -44
 THREAD_LOCAL  ~ '_Thread_local'
-:lexeme ~ <FUNC_NAME> priority => -45
+:lexeme ~ <FUNC_NAME>     priority => -45
 FUNC_NAME     ~ '__func__'
 
 #
@@ -706,39 +737,39 @@ F_CONSTANT ~ D_many E FS_maybe
 :lexeme ~ <STRING_LITERAL>         priority => -103
 STRING_LITERAL ~ STRING_LITERAL_UNIT+
 
-:lexeme ~ <ELLIPSIS>         priority => -104
+:lexeme ~ <ELLIPSIS>      priority => -104
 ELLIPSIS     ~ '...'
-:lexeme ~ <RIGHT_ASSIGN>         priority => -105
+:lexeme ~ <RIGHT_ASSIGN>  priority => -105
 RIGHT_ASSIGN ~ '>>='
-:lexeme ~ <LEFT_ASSIGN>         priority => -106
+:lexeme ~ <LEFT_ASSIGN>   priority => -106
 LEFT_ASSIGN  ~ '<<='
-:lexeme ~ <ADD_ASSIGN>         priority => -107
+:lexeme ~ <ADD_ASSIGN>    priority => -107
 ADD_ASSIGN   ~ '+='
-:lexeme ~ <SUB_ASSIGN>         priority => -108
+:lexeme ~ <SUB_ASSIGN>    priority => -108
 SUB_ASSIGN   ~ '-='
-:lexeme ~ <MUL_ASSIGN>         priority => -109
+:lexeme ~ <MUL_ASSIGN>    priority => -109
 MUL_ASSIGN   ~ '*='
-:lexeme ~ <DIV_ASSIGN>         priority => -110
+:lexeme ~ <DIV_ASSIGN>    priority => -110
 DIV_ASSIGN   ~ '/='
-:lexeme ~ <MOD_ASSIGN>         priority => -111
+:lexeme ~ <MOD_ASSIGN>    priority => -111
 MOD_ASSIGN   ~ '%='
-:lexeme ~ <AND_ASSIGN>         priority => -112
+:lexeme ~ <AND_ASSIGN>    priority => -112
 AND_ASSIGN   ~ '&='
-:lexeme ~ <XOR_ASSIGN>         priority => -113
+:lexeme ~ <XOR_ASSIGN>    priority => -113
 XOR_ASSIGN   ~ '^='
-:lexeme ~ <OR_ASSIGN>         priority => -114
+:lexeme ~ <OR_ASSIGN>     priority => -114
 OR_ASSIGN    ~ '|='
-:lexeme ~ <RIGHT_OP>         priority => -115
+:lexeme ~ <RIGHT_OP>      priority => -115
 RIGHT_OP     ~ '>>'
-:lexeme ~ <LEFT_OP>         priority => -116
+:lexeme ~ <LEFT_OP>       priority => -116
 LEFT_OP      ~ '<<'
-:lexeme ~ <INC_OP>         priority => -117
+:lexeme ~ <INC_OP>        priority => -117
 INC_OP       ~ '++'
-:lexeme ~ <DEC_OP>         priority => -118
+:lexeme ~ <DEC_OP>        priority => -118
 DEC_OP       ~ '--'
-:lexeme ~ <PTR_OP>         priority => -119
+:lexeme ~ <PTR_OP>        priority => -119
 PTR_OP       ~ '->'
-:lexeme ~ <AND_OP>         priority => -120
+:lexeme ~ <AND_OP>        priority => -120
 AND_OP       ~ '&&'
 :lexeme ~ <OR_OP>         priority => -121
 OR_OP        ~ '||'
@@ -750,69 +781,51 @@ GE_OP        ~ '>='
 EQ_OP        ~ '=='
 :lexeme ~ <NE_OP>         priority => -125
 NE_OP        ~ '!='
-
 :lexeme ~ <SEMICOLON>     priority => -126
 SEMICOLON                     ~ ';'
-
-:lexeme ~ <LCURLY>                       priority => -127
-:lexeme ~ <LCURLY_SCOPE>                 priority => -127 pause => after
-:lexeme ~ <LCURLY_REENTERSCOPE>          priority => -127 pause => after
+:lexeme ~ <LCURLY>        priority => -127
 LCURLY                       ~ '{' | '<%'
-LCURLY_SCOPE                 ~ '{' | '<%'
-LCURLY_REENTERSCOPE          ~ '{' | '<%'
-
-:lexeme ~ <RCURLY>                       priority => -128
-:lexeme ~ <RCURLY_SCOPE>                 priority => -128 pause => after
+:lexeme ~ <RCURLY>        priority => -128
 RCURLY                       ~ '}' | '%>'
-RCURLY_SCOPE                  ~ '}' | '%>'
-
-:lexeme ~ <COMMA>                      priority => -129
+:lexeme ~ <COMMA>         priority => -129
 COMMA                     ~ ','
-
-:lexeme ~ <COLON>                      priority => -130
+:lexeme ~ <COLON>         priority => -130
 COLON                      ~ ':'
-:lexeme ~ <EQUAL>                      priority => -131
+:lexeme ~ <EQUAL>         priority => -131
 EQUAL       ~ '='
-
-:lexeme ~ <LPAREN>                priority => -132
-:lexeme ~ <LPAREN_SCOPE>          priority => -132 pause => after
+:lexeme ~ <LPAREN>        priority => -132
 LPAREN                ~ '('
-LPAREN_SCOPE          ~ '('
-
-:lexeme ~ <RPAREN>                      priority => -133
-:lexeme ~ <RPAREN_SCOPE>                priority => -133 pause => after
+:lexeme ~ <RPAREN>        priority => -133
 RPAREN                      ~ ')'
-RPAREN_SCOPE                ~ ')'
-
-:lexeme ~ <LBRACKET>     priority => -134
+:lexeme ~ <LBRACKET>      priority => -134
 LBRACKET      ~ '[' | '<:'
-:lexeme ~ <RBRACKET>     priority => -135
+:lexeme ~ <RBRACKET>      priority => -135
 RBRACKET      ~ ']' | ':>'
-:lexeme ~ <DOT>          priority => -136
+:lexeme ~ <DOT>           priority => -136
 DOT           ~ '.'
-:lexeme ~ <AMPERSAND>    priority => -137
+:lexeme ~ <AMPERSAND>     priority => -137
 AMPERSAND     ~ '&'
-:lexeme ~ <EXCLAMATION>  priority => -138
+:lexeme ~ <EXCLAMATION>   priority => -138
 EXCLAMATION ~ '!'
-:lexeme ~ <TILDE>        priority => -139
+:lexeme ~ <TILDE>         priority => -139
 TILDE ~ '~'
-:lexeme ~ <HYPHEN>       priority => -140
+:lexeme ~ <HYPHEN>        priority => -140
 HYPHEN ~ '-'
-:lexeme ~ <PLUS>         priority => -141
+:lexeme ~ <PLUS>          priority => -141
 PLUS ~ '+'
-:lexeme ~ <STAR>         priority => -142
+:lexeme ~ <STAR>          priority => -142
 STAR ~ '*'
-:lexeme ~ <SLASH>        priority => -143
+:lexeme ~ <SLASH>         priority => -143
 SLASH ~ '/'
-:lexeme ~ <PERCENT>      priority => -144
+:lexeme ~ <PERCENT>       priority => -144
 PERCENT ~ '%'
-:lexeme ~ <LESS_THAN>    priority => -145
+:lexeme ~ <LESS_THAN>     priority => -145
 LESS_THAN ~ '<'
-:lexeme ~ <GREATER_THAN> priority => -146
+:lexeme ~ <GREATER_THAN>  priority => -146
 GREATER_THAN ~ '>'
-:lexeme ~ <CARET>        priority => -147
+:lexeme ~ <CARET>         priority => -147
 CARET ~ '^'
-:lexeme ~ <VERTICAL_BAR> priority => -148
+:lexeme ~ <VERTICAL_BAR>  priority => -148
 VERTICAL_BAR ~ '|'
 :lexeme ~ <QUESTION_MARK> priority => -149
 QUESTION_MARK ~ '?'

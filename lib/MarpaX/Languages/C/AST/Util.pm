@@ -42,8 +42,16 @@ Returns the name of the calling routine.
 
 =cut
 
+sub _cutbase {
+    my ($rc, $base) = @_;
+    if (defined($base) && "$base" && index($rc, "${base}::") == $[) {
+	substr($rc, $[, length($base) + 2, '');
+    }
+    return $rc;
+}
+
 sub whoami {
-    return (caller(1))[3];
+    return _cutbase((caller(1))[3], @_);
 }
 
 =head2 whowasi()
@@ -53,7 +61,7 @@ Returns the name of the parent's calling routine.
 =cut
 
 sub whowasi {
-    return (caller(2))[3];
+    return _cutbase((caller(2))[3], @_);
 }
 
 =head2 traceAndUnpack($nameOfArgumentsp, @arguments)

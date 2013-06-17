@@ -10,7 +10,7 @@ use Data::Dumper;
 # Init log
 #
 our $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
-log4perl.rootLogger              = DEBUG, Screen
+log4perl.rootLogger              = TRACE, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
 log4perl.appender.Screen.stderr  = 0
 log4perl.appender.Screen.layout  = PatternLayout
@@ -21,13 +21,14 @@ Log::Any::Adapter->set('Log4perl');
 #
 # Parse C
 #
-my $cSourceCode = do { local $/; <DATA> };
+my $file = shift || die "Usage: $^0 file\n";
+open(FILE, '<', $file) || die "Cannot open $file, $!\n";
+my $cSourceCode = do { local $/; <FILE> };
+close(FILE) || warn "Cannot close $file, $!\n";
+#
+# Skip CPP and extensions
+#
+$cSourceCode =~ s/^\#\s*\w+.*$//mg;
+$cSourceCode =~ s/^\[source_annotation_attribute.*$//mg;
 my $cAstObject = MarpaX::Languages::C::AST->new();
-$log->info($cAstObject->parse(\$cSourceCode));
-__DATA__
-typedef struct test_ {int i;} s_test_, *sp_test_;
-int operation(int x1, int y1) {
-    typedef struct test2_ {int i2;} s_test2_, *sp_test2_;
-    typedef struct test3_ {int i3;} s_test3_, *sp_test3_;
-}
-
+print Dumper($cAstObject->parse(\$cSourceCode));
