@@ -22,6 +22,7 @@ use Class::Struct
   topic_level             => '@', # Topic levels
   ncb                     => '$', # Number of methods.
   prioritized_cb          => '@', # Prioritized list of methods, for efficiency.
+  prioritized_cb_tofire   => '@', # Remember what cb are eligible.
   prioritized_cb_fired    => '@', # Remember what cb are eligible.
   arguments               => '@', # List of arguments to the exec method.
   ;
@@ -124,78 +125,87 @@ sub exec {
   #
   # Do an inventory of eligible callbacks and topics
   #
-  $self->_inventory_fire(@_);
+  $self->_inventory_fire();
   #
   # Fire everything that is eligible
   #
-  $self->_fire(@_);
+  $self->_fire();
 }
 
-  sub _inventory_condition {
+sub _inventory_condition {
     my $self = shift;
     my $found = 0;
+    my $alreadyOk = 0;
     foreach (my $i = 0; $i < $self->ncb; $i++) {
-      my $cb = $self->prioritized_cb($i);
-      my $option = $cb->option;
+	#
+	# Already selected ?
+	#
+	my $cb = $self->prioritized_cb($i);
+	my $option = $cb->option;
+	if ($self->prioritized_cb_tofire($i) == 1) {
+	    $log->debugf('[%s] Condition already OK for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
+	    ++$alreadyOk;
+	} else {
 
-      my @condition = ();
-      foreach my $condition (@{$option->condition}) {
-        if (ref($condition) eq 'CODE') {
-          push(@condition, &$condition($cb, @_) ? 1 :0);
-        } elsif (defined($cb->description)) {
-          push(@condition, (grep {$_ eq $cb->description} @_) ? 1 :0);
-        }
-      }
-      #
-      ## Apply conditionMethod. If none, then the callback will never be
-      ## executed. Only the subscription methods can make it eligible.
-      #
-      my $condition = 0;
-      if (@condition) {
-        $condition = shift(@condition);
-        if ($condition eq 'and') {
-          foreach (@condition) {
-            $condition &&= $_;
-          }
-        } elsif ($condition eq 'or') {
-          foreach (@condition) {
-            $condition ||= $_;
-          }
-        }
-      }
-      if (! $condition) {
-        if (@condition) {
-          #
-          # Remember we never have to fire it
-          #
-          $self->prioritized_cb_fired($i, -1);
-        }
-        next;
-      }
-      #
-      # Remember we (have to fire) it
-      #
-      $self->prioritized_cb_fired($i, 1);
-      #
-      # Remember the associated topics
-      #
-      $log->debugf('[%s] Condition OK for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
-      foreach my $topic (keys %{$option->topic}) {
-        next if (! defined($option->topic($topic)));
-        next if (! $option->topic($topic));
-        if (! defined($self->topic_fired($topic))) {
-          $self->topic_fired($topic, 1);
-          $self->topic_fired_persistence($topic, $option->topic_persistence);
-          $self->topic_fired_data($topic, []);
-          $log->debugf('[%s] Created topic \'%s\' with persistence \'%s\' and empty data', whoami(__PACKAGE__), $topic, $self->topic_fired_persistence($topic));
-        }
-      }
-      ++$found;
+	    my @condition = ();
+	    foreach my $condition (@{$option->condition}) {
+		if (ref($condition) eq 'CODE') {
+		    push(@condition, &$condition($cb, @{$self->arguments()}) ? 1 :0);
+		} elsif (defined($cb->description)) {
+		    push(@condition, (grep {$_ eq $cb->description} @{$self->arguments()}) ? 1 :0);
+		}
+	    }
+	    #
+	    ## Apply conditionMethod. If none, then the callback will never be
+	    ## executed. Only the subscription methods can make it eligible.
+	    #
+	    my $condition = 0;
+	    if (@condition) {
+		$condition = shift(@condition);
+		if ($condition eq 'and') {
+		    foreach (@condition) {
+			$condition &&= $_;
+		    }
+		} elsif ($condition eq 'or') {
+		    foreach (@condition) {
+			$condition ||= $_;
+		    }
+		}
+	    }
+	    if (! $condition) {
+		if (@condition) {
+		    #
+		    # Remember we never have to fire it
+		    #
+		    $self->prioritized_cb_tofire($i, -1);
+		}
+		next;
+	    }
+	    #
+	    # Remember we (have to fire) it
+	    #
+	    $self->prioritized_cb_tofire($i, 1);
+	    $log->debugf('[%s] Condition OK for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
+	}
+	#
+	# Initialize the associated topics if needed
+	#
+	foreach my $topic (keys %{$option->topic}) {
+	    next if (! defined($option->topic($topic)));
+	    next if (! $option->topic($topic));
+	    if (! defined($self->topic_fired($topic))) {
+		$self->topic_fired($topic, 1);
+		$self->topic_fired_persistence($topic, $option->topic_persistence);
+		$self->topic_fired_data($topic, []);
+		$log->debugf('[%s] Created topic \'%s\' with persistence \'%s\' and empty data', whoami(__PACKAGE__), $topic, $self->topic_fired_persistence($topic));
+	    }
+	}
+	++$found;
     }
-    if ($found ==0) {
-      $log->debugf('[%s] Condition KO', whoami(__PACKAGE__));
+    if (! $found && ! $alreadyOk) {
+	$log->debugf('[%s] Condition KO', whoami(__PACKAGE__));
     }
-  }
+}
 
 
 sub _fire {
@@ -204,21 +214,27 @@ sub _fire {
   # Make sure the raised topic data always exist
   #
   foreach (my $i = 0; $i < $self->ncb; $i++) {
-    if ($self->prioritized_cb_fired($i) <= 0) {
+    if ($self->prioritized_cb_tofire($i) <= 0) {
       #
       # -1: condition is false, will never be fired
       #  0: no condition and no subscription match
       #
       next;
     }
+    if ($self->prioritized_cb_fired($i)) {
+	#
+	# Already fired
+	#
+    }
     #
     # Fire the callback (if there is a method)
     #
+    $self->prioritized_cb_fired($i, 1);
     my $cb = $self->prioritized_cb($i);
     if (defined($cb->method)) {
       my ($method, @arguments) = @{$cb->method};
       $log->debugf('[%s] Calling method for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
-      my $rc = $cb->$method(@arguments, @_);
+      my $rc = $cb->$method(@arguments, @{$self->arguments()});
       #
       # Push result to data attached to every topic of this callback
       #
@@ -237,7 +253,7 @@ sub _fire {
 sub _inventory_initialize {
   my $self = shift;
   #
-  # For topics, we want to keep those that have a persistence 'level' or 'any'
+  # For topics, we want to keep those that have a persistence of 'level' or 'any'
   #
   my $new_topic_fired = {};
   my $new_topic_fired_persistence = {};
@@ -255,7 +271,8 @@ sub _inventory_initialize {
   $self->topic_fired_persistence($new_topic_fired_persistence);
   $self->topic_fired_data($new_topic_fired_data);
   foreach (my $i = 0; $i < $self->ncb; $i++) {
-    my $cb = $self->prioritized_cb_fired($i, 0);
+      $self->prioritized_cb_tofire($i, 0);
+      $self->prioritized_cb_fired($i, 0);
   }
 }
 
@@ -265,15 +282,22 @@ sub _inventory_fire {
   #
   # Inventory
   #
-  $self->_inventory_initialize(@_);
-  $self->_inventory_condition(@_);
-  $self->_inventory_subscription(@_);
+  $self->_inventory_initialize();
+  $self->inventory();
   #
   # Resume
   #
   $log->debugf('[%s] Topic level %d: Fired topics: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired);
   $log->debugf('[%s] Topic level %d: Fired topics persistence: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->debugf('[%s] Eligible callbacks: %s', whoami(__PACKAGE__), $self->prioritized_cb_fired);
+  $log->debugf('[%s] Eligible callbacks     : %s', whoami(__PACKAGE__), $self->prioritized_cb_tofire);
+  $log->debugf('[%s] Already fired callbacks: %s', whoami(__PACKAGE__), $self->prioritized_cb_fired);
+}
+
+sub inventory {
+    my $self = shift;
+
+    $self->_inventory_condition();
+    $self->_inventory_subscription();
 }
 
 sub _inventory_subscription {
@@ -286,22 +310,19 @@ sub _inventory_subscription {
     foreach (my $i = 0; $i < $self->ncb; $i++) {
       my $cb = $self->prioritized_cb($i);
       my $option = $cb->option;
-      if ($self->prioritized_cb_fired($i) != 0) {
-        #
-        # Already eligible (1), or to never fire (-1)
-        #
-        # If it is already eligible we nevertheless check
-        # the topics if the subscriptionMode is 'required'
-        #
-        if ($self->prioritized_cb_fired($i) != 1 || $option->subscriptionMode ne 'required') {
-        } else {
-          next;
-        }
+      if ($self->prioritized_cb_tofire($i) < 0) {
+	  #
+	  # Must not be fired
+	  #
+	  next;
       }
+
       %subscribed = ();
+      my $nbSubscription = 0;
       foreach my $subscription (keys %{$option->subscription}) {
         next if (! defined($option->subscription($subscription)));
         next if (! $option->subscription($subscription));
+	++$nbSubscription;
         if (ref($subscription) eq 'Regexp') {
           foreach (keys %{$self->topic_fired}) {
             if ($_ =~ $subscription) {
@@ -316,20 +337,31 @@ sub _inventory_subscription {
           }
         }
       }
-      if (%subscribed) {
-        $self->prioritized_cb_fired($i, 1);
-        $log->debugf('[%s] Subscription OK for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
-        foreach my $topic (keys %{$option->topic}) {
-          next if (! defined($option->topic($topic)));
-          next if (! $option->topic($topic));
-          if (! defined($self->topic_fired($topic))) {
-            $self->topic_fired($topic, 1);
-            $self->topic_fired_persistence($topic, $option->topic_persistence);
-            $log->debugf('[%s] Subscription OK for callback with description \'%s\', setted topic \'%s\' with persistence \'%s\'', whoami(__PACKAGE__), $cb->description, $topic, $self->topic_fired_persistence($topic));
-          }
-        }
-      } else {
-        $self->prioritized_cb_fired($i, 0);
+
+      if ($nbSubscription > 0 && $option->subscriptionMode eq 'required' && $nbSubscription != keys %subscribed) {
+	  #
+	  # There are active subscription not raised
+	  #
+	  next;
+      } elsif ($self->prioritized_cb_tofire($i) == 0 && ! keys %subscribed) {
+	  #
+	  # no condition was setted and no subscription to topic is fired
+	  next;
+      }
+
+      if (! $self->prioritized_cb_tofire($i)) {
+	  $log->debugf('[%s] Subscription OK for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
+	  $self->prioritized_cb_tofire($i, 1);
+      }
+      foreach my $topic (keys %{$option->topic}) {
+	  next if (! defined($option->topic($topic)));
+	  next if (! $option->topic($topic));
+	  if (! defined($self->topic_fired($topic))) {
+	      $self->topic_fired($topic, 1);
+	      $self->topic_fired_persistence($topic, $option->topic_persistence);
+	      $self->topic_fired_data($topic, []);
+	      $log->debugf('[%s] Created topic \'%s\' with persistence \'%s\' and empty data', whoami(__PACKAGE__), $topic, $self->topic_fired_persistence($topic));
+	  }
       }
     }
   } while (%subscribed);
@@ -338,7 +370,7 @@ sub _inventory_subscription {
 sub currentTopicLevel {
   my $self = shift;
 
-  return $#{$self->topic_level};
+  return scalar(@{$self->topic_level});
 }
 
 sub pushTopicLevel {

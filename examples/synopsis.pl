@@ -23,7 +23,7 @@ Log::Any::Adapter->set('Log4perl');
 #
 my $cSourceCode = do { local $/; <DATA> };
 my $cAstObject = MarpaX::Languages::C::AST->new();
-$log->info($cAstObject->parse(\$cSourceCode));
+print Dumper($cAstObject->parse(\$cSourceCode));
 __DATA__
 typedef struct test_ {int i;} s_test_, *sp_test_;
 int operation(int x1, int y1) {

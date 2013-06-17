@@ -558,9 +558,13 @@ externalDeclaration
 	| declaration
 
 
+event 'functionDefinitionMark[]' = nulled <functionDefinitionMark>
+functionDefinitionMark ::=
+
+event 'functionDefinition$' = completed <functionDefinition>
 functionDefinition
-	::= declarationSpecifiers declarator declarationList compoundStatement
-	| declarationSpecifiers declarator compoundStatement
+	::= declarationSpecifiers <functionDefinitionMark> declarator declarationList compoundStatement
+	| declarationSpecifiers <functionDefinitionMark> declarator compoundStatement
 
 declarationList
 	::= declaration
