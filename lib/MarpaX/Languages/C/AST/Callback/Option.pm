@@ -7,7 +7,7 @@ use Class::Struct
     topic_persistence => '$',        # Give topic persistence for this callback.
     subscription      => '%',        # Give subscription topics.
     subscriptionMode  => '$',        # 'required' or 'optional'
-    condition         => '@',        # Conditions. An array of CODE ref
+    condition         => '@',        # [ CODE ref, CODE ref arguments ]
     conditionMode     => '$',        # 'or' or 'and'
     priority          => '$',        # Priority.
     ;
@@ -42,7 +42,7 @@ It can be 'required' or 'optional'. Default is 'required'. When the value is 're
 
 =item condition
 
-An array of CODE refs, executed as condition requirements for the callback. Condition's arguments will be the reference to the callback object associated with these options followed by exec() arguments. If there is no condition, the callback can be eligible only via topic subscriptions. It is possible to specifiy the string "auto" instead of a CODE ref; then Callback will do a grep on the exec() arguments and compare it with the callback description. If there is something in the condition array, and if it returns false, callback will never be eligible, regardless if subscription to any topic would return true.
+An array of [ CODE ref, CODE ref arguments] executed as condition requirements for the callback. CODE ref first argument will be the reference to the callback object associated with these options followed by the eventual CODE ref arguemtns, and the eventual exec() arguments. If there is no condition, the callback can be eligible only via topic subscriptions. It is possible to specifiy the string "auto" instead of a CODE ref; then Callback will do a grep on the exec() arguments and compare it with the callback description. If there is something in the condition array, and if it returns false, callback will never be eligible, regardless if subscription to any topic would return true.
 
 =item conditionMode
 

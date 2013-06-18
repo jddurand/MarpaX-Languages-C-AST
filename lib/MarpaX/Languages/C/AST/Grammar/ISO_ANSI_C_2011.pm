@@ -269,7 +269,23 @@ expression
 constantExpression
 	::= conditionalExpression # with constraints
 
-declarationDeclarationSpecifiers ::= declarationSpecifiers initDeclaratorList SEMICOLON action => deref
+event '^declarationDeclarationSpecifiers' = predicted <declarationDeclarationSpecifiers>
+event 'declarationDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiers>
+event 'declarationDeclarationSpecifiersdeclarationSpecifiersOn'  = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOn>
+event 'declarationDeclarationSpecifiersdeclarationSpecifiersOff' = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOff>
+event 'declarationDeclarationSpecifiersinitDeclaratorListOn'     = nulled <declarationDeclarationSpecifiersinitDeclaratorListOn>
+event 'declarationDeclarationSpecifiersinitDeclaratorListOff'    = nulled <declarationDeclarationSpecifiersinitDeclaratorListOff>
+
+<declarationDeclarationSpecifiersdeclarationSpecifiersOn> ::=
+<declarationDeclarationSpecifiersdeclarationSpecifiersOff> ::=
+<declarationDeclarationSpecifiersinitDeclaratorListOn> ::=
+<declarationDeclarationSpecifiersinitDeclaratorListOff> ::=
+
+declarationDeclarationSpecifiers ::= <declarationDeclarationSpecifiersdeclarationSpecifiersOn>
+                                      declarationSpecifiers
+                                     <declarationDeclarationSpecifiersdeclarationSpecifiersOff>
+                                      initDeclaratorList
+                                     SEMICOLON action => deref
 
 declaration
 	::= declarationSpecifiers SEMICOLON
@@ -288,10 +304,9 @@ declarationSpecifiers
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
 
-event 'initDeclaratorList$' = completed <initDeclaratorList>
 initDeclaratorList
-	::= initDeclarator
-	| initDeclaratorList COMMA initDeclarator
+	::= <declarationDeclarationSpecifiersinitDeclaratorListOn> initDeclarator <declarationDeclarationSpecifiersinitDeclaratorListOff>
+	| initDeclaratorList COMMA <declarationDeclarationSpecifiersinitDeclaratorListOn> initDeclarator <declarationDeclarationSpecifiersinitDeclaratorListOff>
 
 initDeclarator
 	::= declarator EQUAL initializer
@@ -558,17 +573,10 @@ externalDeclaration
 	| declaration
 
 
-event 'functionDefinitionMark[]' = nulled <functionDefinitionMark>
-functionDefinitionMark ::=
-
-event '^functionDefinition' = predicted <functionDefinition>
-event 'functionDefinition$' = completed <functionDefinition>
 functionDefinition
-	::= declarationSpecifiers <functionDefinitionMark> declarator declarationList compoundStatement
-	| declarationSpecifiers <functionDefinitionMark> declarator compoundStatement
+	::= declarationSpecifiers declarator declarationList compoundStatement
+	| declarationSpecifiers declarator compoundStatement
 
-event '^declarationList' = predicted <declarationList>
-event 'declarationList$' = completed <declarationList>
 declarationList
 	::= declaration
 	| declarationList declaration
