@@ -29,9 +29,9 @@ sub new {
   # ################
   $self->hscratchpad('functionDefinitionFlag', 0);
 
-  # ######
-  # Scopes
-  # ######
+  # ###########################################################################
+  # Scopes: they have 'infitine' priorities, because they drive the topic level
+  # ###########################################################################
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => 'enterScope[]',
@@ -39,6 +39,7 @@ sub new {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [qw/auto/],
+                    priority => 999,
                    )
                   )
                  );
@@ -49,6 +50,7 @@ sub new {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [qw/auto/],
+                    priority => 999,
                    )
                   )
                  );
@@ -59,6 +61,7 @@ sub new {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [qw/auto/],
+                    priority => 999,
                    )
                   )
                  );
@@ -69,10 +72,10 @@ sub new {
   $outerSelf->{_scope}->enterCallback(\&_enterCallback, $self);
   $outerSelf->{_scope}->exitCallback(\&_exitCallback, $self);
 
-  # ################################################################################################
-  # Create topics based on "genome" rules with a priority of 1, so that they always triggered first.
+  # ####################################################################################################
+  # Create topics based on "genome" rules with a priority of 1, so that they are always triggered first.
   # The topic data will always be in an array reference of [ [$line, $column], $last_completion ]
-  # ################################################################################################
+  # ####################################################################################################
   foreach (qw/primaryExpressionIdentifier$
               enumerationConstantIdentifier$
               storageClassSpecifierTypedef$
@@ -128,11 +131,11 @@ sub new {
   # ###############################################################################################
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
-                   description => 'storageClassSpecifierTypedef$',
-                   method =>  [ \&_storage_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
+                   description => 'functionDefinitionMark|storageClassSpecifierTypedef$',
+                   method =>  [ \&_functionDefinition_storage_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
-                    condition => [ qw/auto/,
+                    condition => [ sub { my $cb = shift; return grep {$_ eq 'storageClassSpecifierTypedef$'} @_; },
 				   sub { my $cb = shift; return $self->hscratchpad('functionDefinitionFlag'); }
 		    ],
                     topic => {'functionDefinition|storageClassSpecifierTypedef$' => 1},
@@ -141,20 +144,16 @@ sub new {
                   )
                  );
   {
-      my $i = 1;
-      foreach (qw/^functionDefinition functionDefinitionMark[] ^declarationList declarationList$/) {
+      my $i = 0;
+      foreach (qw/functionDefinitionMark[] ^declarationList declarationList$/) {
 	  my $flag = $i % 2;
 	  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			  (
 			   description => $_,
-			   method => [ sub { my ($cb, $flag) = @_;
-					     $log->debugf('[%s] Setting %s flag to %d', $cb->description, 'functionDefinitionFlag', $flag);
-					     $self->hscratchpad('functionDefinitionFlag', $flag);
-				       }, $flag ],
+			   method => [ \&_functionDefinitionFlag, $self, $outerSelf, $flag ],
 			   option => MarpaX::Languages::C::AST::Callback::Option->new
 			   (
 			    condition => [qw/auto/],
-			    priority => 2
 			   )
 			  )
 	      );
@@ -162,20 +161,32 @@ sub new {
   }
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
+                   description => '^functionDefinition',
+                   method =>  [ \&_functionDefinitionStart, $self, $outerSelf ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+                    condition => [qw/auto/],
+                   )
+                  )
+                 );
+
+
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
                    description => 'functionDefinition$',
-                   method =>  [ \&_functionDefinition, $self, $outerSelf ],
+                   method =>  [ \&_functionDefinitionEnd, $self, $outerSelf ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [qw/auto/],
 		    #
 		    # Because of cycles, we can have both 'functionDefinition$' and '^functionDefinition'
 		    #
-		    priority => 3
+		    priority => 1
                    )
                   )
                  );
 
-    
+
   return $self;
 }
 
@@ -206,16 +217,6 @@ sub _storage_helper {
   my $symbol = $event;
   substr($symbol, -1, 1, '');
   return [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ]
-}
-
-sub _storage_functionDefinition_helper {
-  my ($cb, $self, $outerSelf, $event) = @_;
-
-  my $topicValue = 0;
-  $log->debugf('[%s] Setting %s subscription on topic \'%s\' to %d', whoami(__PACKAGE__), 'functionDefinition typedef survey', 'storageClassSpecifierTypedef$', $topicValue);
-  $cb->option->subscription('storageClassSpecifierTypedef$', $topicValue);
-
-  return [ $outerSelf->_line_column(), $outerSelf->_last_completed('storageClassSpecifierTypedef') ];
 }
 
 sub _enterCallback {
@@ -272,18 +273,50 @@ sub _introduceTypedefName {
   $self->reset_topic_fired_data('$directDeclaratorIdentifier');
 }
 
-sub _functionDefinition {
+sub _functionDefinitionEnd {
   my ($cb, $self, $outerSelf, @execArgs) = @_;
   #
   # Get the topics data we are interested in
   #
+  printf STDERR "Level %d, checking functionDefinition\n", $self->currentTopicLevel;
   my $functionDefinitionTypedefSurvey = $self->topic_fired_data('functionDefinition|storageClassSpecifierTypedef$');
   use Data::Dumper;
   print STDERR Dumper($functionDefinitionTypedefSurvey);
+}
+
+sub _functionDefinitionFlag {
+  my ($cb, $self, $outerSelf, $flag, @execArgs) = @_;
+
+  printf STDERR "Level %d, setting flag to %d\n", $self->currentTopicLevel, $flag;
+  $log->debugf('[%s] Setting %s flag to %d', whoami(__PACKAGE__), 'functionDefinitionFlag', $flag);
+  $self->hscratchpad('functionDefinitionFlag', $flag);
+}
+
+sub _functionDefinitionStart {
+  my ($cb, $self, $outerSelf, @execArgs) = @_;
   #
   # Reset data
   #
+  printf STDERR "Level %d, reset topic data\n", $self->currentTopicLevel;
   $self->reset_topic_fired_data('functionDefinition|storageClassSpecifierTypedef$');
+  #
+  # Set the flag to 1
+  #
+  my $flag = 1;
+  $log->debugf('[%s] Setting %s flag to %d', whoami(__PACKAGE__), 'functionDefinitionFlag', $flag);
+  $self->hscratchpad('functionDefinitionFlag', $flag);
 }
+
+sub _functionDefinition_storage_helper {
+  my ($cb, $self, $outerSelf, $event) = @_;
+
+  my $rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed('storageClassSpecifierTypedef') ];
+
+  use Data::Dumper;
+  printf STDERR "Level %d, adding to topic data: %s", $self->currentTopicLevel, Dumper($rc);
+
+  return $rc;
+}
+
 
 1;
