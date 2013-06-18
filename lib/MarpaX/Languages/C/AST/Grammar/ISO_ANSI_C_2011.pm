@@ -561,11 +561,14 @@ externalDeclaration
 event 'functionDefinitionMark[]' = nulled <functionDefinitionMark>
 functionDefinitionMark ::=
 
+event '^functionDefinition' = predicted <functionDefinition>
 event 'functionDefinition$' = completed <functionDefinition>
 functionDefinition
 	::= declarationSpecifiers <functionDefinitionMark> declarator declarationList compoundStatement
 	| declarationSpecifiers <functionDefinitionMark> declarator compoundStatement
 
+event '^declarationList' = predicted <declarationList>
+event 'declarationList$' = completed <declarationList>
 declarationList
 	::= declaration
 	| declarationList declaration

@@ -46,7 +46,7 @@ An array of CODE refs, executed as condition requirements for the callback. Cond
 
 =item conditionMode
 
-This is a string that can be 'xor', 'or' or 'and', driving all the conditions in the condition array. Default is 'or'.
+This is a string that can be 'or' or 'and', driving all the conditions in the condition array. Default is 'and'.
 
 =item priority
 

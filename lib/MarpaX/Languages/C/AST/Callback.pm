@@ -79,7 +79,7 @@ sub register {
   }
 
   if (! defined($option->conditionMode)) {
-    $option->conditionMode('or');
+    $option->conditionMode('and');
   }
   if (! grep {$option->conditionMode eq $_} qw/and or/) {
     croak 'condition mode must be "and" or "or"';
@@ -233,7 +233,7 @@ sub _fire {
     my $cb = $self->prioritized_cb($i);
     if (defined($cb->method)) {
       my ($method, @arguments) = @{$cb->method};
-      $log->debugf('[%s] Calling method for callback with description \'%s\'', whoami(__PACKAGE__), $cb->description);
+      $log->debugf('[%s] Calling method for callback No %d with description \'%s\'', whoami(__PACKAGE__), $i, $cb->description);
       my $rc = $cb->$method(@arguments, @{$self->arguments()});
       #
       # Push result to data attached to every topic of this callback

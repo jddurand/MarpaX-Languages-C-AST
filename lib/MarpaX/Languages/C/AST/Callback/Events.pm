@@ -24,6 +24,11 @@ sub new {
   my ($class, $outerSelf) = @_;
   my $self = $class->SUPER();
 
+  # ################
+  # Initialize flags
+  # ################
+  $self->hscratchpad('functionDefinitionFlag', 0);
+
   # ######
   # Scopes
   # ######
@@ -113,53 +118,39 @@ sub new {
   # A general callback for functionDefinition that listens on a NEW storageClassSpecifierTypedef$ topic
   # that would have NO persistence.
   #
-  # ^functionDefinition to enable the listening of the topic
+  # ^functionDefinition to enable the flag
   # functionDefinitionMark[] to pause
   # ^declarationList to enable again
   # declarationList$ to pause again
   # functionDefinition$ to process
   #
-  # We rely on storageClassSpecifierTypedef$ has a priority of 1, so we put a priority of 2.
+  # We rely on storageClassSpecifierTypedef$
   # ###############################################################################################
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
-                   description => 'functionDefinition|storageClassSpecifierTypedef$',
+                   description => 'storageClassSpecifierTypedef$',
                    method =>  [ \&_storage_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
-                    condition => [ sub { my $cb = shift; return grep {$_ eq 'storageClassSpecifierTypedef$'} @_; } ],
-                    topic => {'functionDefinition|storageClassSpecifierTypedef' => 1},
+                    condition => [ qw/auto/,
+				   sub { my $cb = shift; return $self->hscratchpad('functionDefinitionFlag'); }
+		    ],
+                    topic => {'functionDefinition|storageClassSpecifierTypedef$' => 1},
+                    topic_persistence => 'level',
                    )
                   )
                  );
-  my $functionDefinitionTypedefSurvey_cb;
-  $self->register($functionDefinitionTypedefSurvey_cb = MarpaX::Languages::C::AST::Callback::Method->new
-		  (
-		   description => 'functionDefinition typedef survey',
-		   method =>  [ \&_storage_functionDefinition_helper, $self, $outerSelf, 'storageClassSpecifierTypedef$' ],
-		   option => MarpaX::Languages::C::AST::Callback::Option->new
-		   (
-		    subscription => { 'functionDefinition|storageClassSpecifierTypedef' => 0 },  # Default subscription is off
-		    topic => {'functionDefinitionTypedefSurvey' => 1},
-		    topic_persistence => 'level',
-		   )
-		  )
-      );
   {
       my $i = 1;
       foreach (qw/^functionDefinition functionDefinitionMark[] ^declarationList declarationList$/) {
+	  my $flag = $i % 2;
 	  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			  (
 			   description => $_,
-			   method => [ sub { my ($cb, @execArgs) = @_;
-					     my $topicValue = $i % 2;
-					     $log->debugf('[%s] Setting %s subscription on topic \'%s\' to %d', $cb->description, 'functionDefinition typedef survey', 'storageClassSpecifierTypedef$', $topicValue);
-					     $functionDefinitionTypedefSurvey_cb->option->subscription('functionDefinition|storageClassSpecifierTypedef', $topicValue);
-					     #
-					     # Redo an inventory of callbacks to fire
-					     #
-					     $self->inventory();
-				       } ],
+			   method => [ sub { my ($cb, $flag) = @_;
+					     $log->debugf('[%s] Setting %s flag to %d', $cb->description, 'functionDefinitionFlag', $flag);
+					     $self->hscratchpad('functionDefinitionFlag', $flag);
+				       }, $flag ],
 			   option => MarpaX::Languages::C::AST::Callback::Option->new
 			   (
 			    condition => [qw/auto/],
@@ -176,6 +167,10 @@ sub new {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [qw/auto/],
+		    #
+		    # Because of cycles, we can have both 'functionDefinition$' and '^functionDefinition'
+		    #
+		    priority => 3
                    )
                   )
                  );
@@ -282,13 +277,13 @@ sub _functionDefinition {
   #
   # Get the topics data we are interested in
   #
-  my $functionDefinitionTypedefSurvey = $self->topic_fired_data('functionDefinition|storageClassSpecifierTypedef');
+  my $functionDefinitionTypedefSurvey = $self->topic_fired_data('functionDefinition|storageClassSpecifierTypedef$');
   use Data::Dumper;
   print STDERR Dumper($functionDefinitionTypedefSurvey);
   #
   # Reset data
   #
-  $self->reset_topic_fired_data('functionDefinition|storageClassSpecifierTypedef');
+  $self->reset_topic_fired_data('functionDefinition|storageClassSpecifierTypedef$');
 }
 
 1;
