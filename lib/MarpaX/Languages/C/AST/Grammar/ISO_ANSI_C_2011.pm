@@ -12,7 +12,7 @@ sub new {
 
 sub deref {
     my $self = shift;
-    return $_[0]->[0];
+    return [ @{$_[0]} ];
 }
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
@@ -281,9 +281,9 @@ event 'declarationDeclarationSpecifiersinitDeclaratorListOff'    = nulled <decla
 <declarationDeclarationSpecifiersinitDeclaratorListOn> ::=
 <declarationDeclarationSpecifiersinitDeclaratorListOff> ::=
 
-declarationDeclarationSpecifiers ::= <declarationDeclarationSpecifiersdeclarationSpecifiersOn>
+declarationDeclarationSpecifiers ::= (<declarationDeclarationSpecifiersdeclarationSpecifiersOn>)
                                       declarationSpecifiers
-                                     <declarationDeclarationSpecifiersdeclarationSpecifiersOff>
+                                     (<declarationDeclarationSpecifiersdeclarationSpecifiersOff>)
                                       initDeclaratorList
                                      SEMICOLON action => deref
 
@@ -305,8 +305,8 @@ declarationSpecifiers
 	| alignmentSpecifier
 
 initDeclaratorList
-	::= <declarationDeclarationSpecifiersinitDeclaratorListOn> initDeclarator <declarationDeclarationSpecifiersinitDeclaratorListOff>
-	| initDeclaratorList COMMA <declarationDeclarationSpecifiersinitDeclaratorListOn> initDeclarator <declarationDeclarationSpecifiersinitDeclaratorListOff>
+	::= (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
+	| initDeclaratorList COMMA (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
 
 initDeclarator
 	::= declarator EQUAL initializer
