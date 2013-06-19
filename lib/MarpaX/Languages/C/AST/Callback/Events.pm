@@ -369,8 +369,8 @@ sub _declarationDeclarationSpecifiers {
 	$log->debugf('[%s] %s = %s', whoami(__PACKAGE__), $_, $self->topic_data($_));
     }
 
-    my $declarationDeclarationSpecifiersdeclarationSpecifiers = $self->topic_data('declarationDeclarationSpecifiersdeclarationSpecifiers');
-    my $declarationDeclarationSpecifiersinitDeclaratorList = $self->topic_data('declarationDeclarationSpecifiersinitDeclaratorList');
+    my $declarationDeclarationSpecifiersdeclarationSpecifiers = $self->topic_data('declarationDeclarationSpecifiersdeclarationSpecifiers') || [];
+    my $declarationDeclarationSpecifiersinitDeclaratorList = $self->topic_data('declarationDeclarationSpecifiersinitDeclaratorList') || [];
 
     #
     # Count the number of typedef - Note that we are NOT here doing a grammar check on the number of storageSpecifier
