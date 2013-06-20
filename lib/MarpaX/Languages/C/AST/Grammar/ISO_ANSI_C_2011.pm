@@ -15,6 +15,16 @@ sub deref {
     return [ @{$_[0]} ];
 }
 
+sub deref_and_bless_declaration {
+    my $self = shift;
+    return bless $self->deref(@_), 'C::AST::declaration';
+}
+
+sub deref_and_bless_compoundStatement {
+    my $self = shift;
+    return bless $self->deref(@_), 'C::AST::compoundStatement';
+}
+
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 
 # ABSTRACT: ISO ANSI C 2011 grammar written in Marpa BNF
@@ -269,8 +279,6 @@ expression
 constantExpression
 	::= conditionalExpression # with constraints
 
-event '^declarationDeclarationSpecifiers' = predicted <declarationDeclarationSpecifiers>
-event 'declarationDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiers>
 event 'declarationDeclarationSpecifiersdeclarationSpecifiersOn'  = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOn>
 event 'declarationDeclarationSpecifiersdeclarationSpecifiersOff' = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOff>
 event 'declarationDeclarationSpecifiersinitDeclaratorListOn'     = nulled <declarationDeclarationSpecifiersinitDeclaratorListOn>
@@ -281,17 +289,25 @@ event 'declarationDeclarationSpecifiersinitDeclaratorListOff'    = nulled <decla
 <declarationDeclarationSpecifiersinitDeclaratorListOn> ::=
 <declarationDeclarationSpecifiersinitDeclaratorListOff> ::=
 
+event 'declarationDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiers>
 declarationDeclarationSpecifiers ::= (<declarationDeclarationSpecifiersdeclarationSpecifiersOn>)
                                       declarationSpecifiers
                                      (<declarationDeclarationSpecifiersdeclarationSpecifiersOff>)
                                       initDeclaratorList
                                      SEMICOLON action => deref
 
+functionDeclaration
+	::= declarationSpecifiers <reenterScope> SEMICOLON action => deref_and_bless_declaration
+	| declarationDeclarationSpecifiers                 action => deref_and_bless_declaration
+	| functionDefinitionStaticAssertDeclaration        action => deref_and_bless_declaration
+
 declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationDeclarationSpecifiers
 	| staticAssertDeclaration
 
+event '^declarationSpecifiers' = predicted <declarationSpecifiers>
+event 'declarationSpecifiers$' = completed <declarationSpecifiers>
 declarationSpecifiers
 	::= storageClassSpecifier declarationSpecifiers
 	| storageClassSpecifier
@@ -304,6 +320,8 @@ declarationSpecifiers
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
 
+event '^initDeclaratorList' = predicted <initDeclaratorList>
+event 'initDeclaratorList$' = completed <initDeclaratorList>
 initDeclaratorList
 	::= (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
 	| initDeclaratorList COMMA (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
@@ -515,6 +533,9 @@ designator
 staticAssertDeclaration
 	::= STATIC_ASSERT LPAREN constantExpression COMMA STRING_LITERAL RPAREN SEMICOLON
 
+functionDefinitionStaticAssertDeclaration
+	::= STATIC_ASSERT <reenterScope> LPAREN constantExpression COMMA STRING_LITERAL RPAREN SEMICOLON
+
 statement
 	::= labeledStatement
 	| compoundStatement
@@ -529,8 +550,12 @@ labeledStatement
 	| DEFAULT COLON statement
 
 compoundStatement
-	::= LCURLY (<reenterScope>) RCURLY(<exitScope>)
-	| LCURLY (<reenterScope>) blockItemList RCURLY (<exitScope>)
+	::= LCURLY (<enterScope>) RCURLY(<exitScope>)
+	| LCURLY (<enterScope>) blockItemList RCURLY (<exitScope>)
+
+functionDefinitionCompoundStatement
+	::= LCURLY RCURLY(<exitScope>)                      action => deref_and_bless_compoundStatement
+	| LCURLY blockItemList RCURLY (<exitScope>)         action => deref_and_bless_compoundStatement
 
 blockItemList
 	::= blockItem
@@ -572,14 +597,34 @@ externalDeclaration
 	::= functionDefinition
 	| declaration
 
+event 'functionDefinitiondeclarationSpecifiersOn'  = nulled <functionDefinitiondeclarationSpecifiersOn>
+event 'functionDefinitiondeclarationSpecifiersOff' = nulled <functionDefinitiondeclarationSpecifiersOff>
+event 'functionDefinitiondeclarationListOn'        = nulled <functionDefinitiondeclarationListOn>
+event 'functionDefinitiondeclarationListOff'       = nulled <functionDefinitiondeclarationListOff>
+functionDefinitiondeclarationSpecifiersOn ::=
+functionDefinitiondeclarationSpecifiersOff ::=
+functionDefinitiondeclarationListOn ::=
+functionDefinitiondeclarationListOff ::=
 
+event '^functionDefinition' = predicted <functionDefinition>
+event 'functionDefinition$' = completed <functionDefinition>
 functionDefinition
-	::= declarationSpecifiers declarator declarationList compoundStatement
-	| declarationSpecifiers declarator compoundStatement
+	::= (<functionDefinitiondeclarationSpecifiersOn>)
+             declarationSpecifiers
+            (<functionDefinitiondeclarationSpecifiersOff>)
+            (<functionDefinitiondeclarationSpecifiersOff>)
+             declarator
+             declarationList
+             functionDefinitionCompoundStatement
+	| (<functionDefinitiondeclarationSpecifiersOn>)
+            declarationSpecifiers
+            (<functionDefinitiondeclarationSpecifiersOff>)
+            declarator
+            functionDefinitionCompoundStatement
 
 declarationList
-	::= declaration
-	| declarationList declaration
+	::= (<functionDefinitiondeclarationListOn>) functionDeclaration (<functionDefinitiondeclarationListOff>)
+	| (<functionDefinitiondeclarationListOn>) declarationList (<functionDefinitiondeclarationListOff>) functionDeclaration
 
 #
 # G0 (tokens), c.f. http://www.quut.com/c/ANSI-C-grammar-l.html
