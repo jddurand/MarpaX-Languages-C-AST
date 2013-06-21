@@ -221,7 +221,8 @@ sub _doLexeme {
   #
   # Determine the correct lexeme
   #
-  my $lexeme_value = $self->{_impl}->literal($self->{_impl}->pause_span());
+  my ($start, $length) = $self->{_impl}->pause_span();
+  my $lexeme_value = $self->{_impl}->literal($start, $length);
   my $newlexeme =
     $self->{_scope}->parseIsTypedef($lexeme_value) ? 'TYPEDEF_NAME' :
       $self->{_scope}->parseIsEnum($lexeme_value)  ? 'ENUMERATION_CONSTANT' :
@@ -230,8 +231,8 @@ sub _doLexeme {
   # Push the unambiguated lexeme
   #
   $log->debugf('[%s] Pushing lexeme %s \'%s\'', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
-  if (! defined($self->{_impl}->lexeme_read($newlexeme, $self->{_impl}->pause_span(), $lexeme_value))) {
-      $self->_croak("[%s] Lexeme value '%s' cannot be associated to lexeme name %s\n%s", whoami(__PACKAGE__), $lexeme_value, $newlexeme, $self->_show_line_and_col(\$self->{_impl}->pause_span()));
+  if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
+      $self->_croak("[%s] Lexeme value '%s' cannot be associated to lexeme name %s at position %d and length %d", whoami(__PACKAGE__), $lexeme_value, $newlexeme, $start, $length);
   }
   #
   # A lexeme_read() can generate an event
