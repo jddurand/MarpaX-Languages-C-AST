@@ -31,96 +31,140 @@ sub new {
     $self->_register_genome_callbacks($outerSelf, {priority => 998, topic_persistence => 'none' });
 
     # #######################################################################################################################
-    # From now on, the technique is always the same for RIGHT recursive symbols.
+    # From now on, the technique is always the same:
     #
     # For a rule that will be isolated for convenience (the grammar uses the action => deref if needed) like:
     # LHS ::= RHS1 RHS2 ... RHSn
     #
-    # - We isolate the RHSx that are of interest
-    # - We register topics 'LHSRHSx' with persistence_level 'level' that depend on genome topic(x) <Gx> and get <Gx> data
-    # - We use internal flags 'LHSRHSxFlag' for each of these new topics
-    # - We use <LHS|RHSxOn> and <LHSRHSxOff> to switch on/off the internal flags 'LHSRHSxFlag'
-    # - We process the topic data using an <LHS$>, then reset it
+    # Suppose we want, at <LHS$> to inspect genome data <Gx,y,...> aggregation associated with rule <RHSn>.
     #
-    # Please note that we cannot use <^LHS> to initialize or reset the data, because grammar cycles. Only
-    # the end of a rule can be trusted.
-    #
-    # One subtility remains: the topic levels must be in perfect sync with the C source code scopes.
-    # But the exitScope is delayed until:
-    # - another scope enter
-    # - a definition of a new typedef or enum
-    # - a obscure/introduce of typedef
-    # - a check if an identifier is a typedef or an enum
-    # Basically, one have to look carefully to LHS dependencies. IF the end of the rule matches an end of scope
-    # lexeme, that one will have to use $self->topic_data(-1) instead of $self->topic_data())
+    # - We make sure <LHS$> completion event exist
+    # - We replace all RHS of interest by LHSRHS, defined as: LHSRHS ::= RHS action => deref
+    #   * This is NOT NECESSARY is RHSn is unique to LHS within all the grammar
+    # - We make sure <^LHSRHSn> prediction event and <LHSRHSn$> completion events exist
+    # - We register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...> AND get <Gx,y,...> data
+    # - We register callbacks '^LHSRHSn' that depend on condition '^LHSRHSn' and that initialize 'LHSRHS' data, and reset 'LHSRHSnTmp' data
+    # - We register callbacks 'LHSRHSn$' with topics 'LHSRHSn' and topic data persistence_level 'level' that depend on condition 'LHSRHS$' and that will:
+    #   * push 'LHSRHSnTmp' topic data to 'LHSRHSn' topic data
+    #   * reset 'LHSRHSnTmp' topic data
+    # - We register the callback 'LHSRHS$' that depend on condition 'LHSRHS$' and that will do the check
     #
     # In this technique it is assumed that all RHS are different. Otherwise one would have to use
     # a temporary RHS "proxy". But this is not the case in the C grammar.
-    #
-    # IF one the symbol implies left recursivivity, then the booleans may be putted down into the definition of this
-    # symbol. For example: declarationDeclarationSpecifiers depends on declarationSpecifiers that is
-    # right recursive. And on initDeclaratorList that is left recursive.
     # #######################################################################################################################
-
-    my @flags = ();          # See below
 
     # ###############################################################################################
     # A directDeclarator introduces a typedefName only when it eventually participates in the grammar
     # rule:
-    # declarationDeclarationSpecifiers ::= declarationSpecifiers initDeclaratorList SEMICOLON
+    # declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
     #
+    # Isolated to single rule:
+    #
+    # declarationDeclarationSpecifiers ::= declarationDeclarationSpecifiersDeclarationSpecifiers initDeclaratorList SEMICOLON  action => deref
+    #
+    # Take care: initDeclaratorList is left recursive
     # No problem with scope at the end of this rule
     # ###############################################################################################
-    push(@flags, $self->_register_rule_callbacks($outerSelf,
-						 {
-						     lhs => 'declarationDeclarationSpecifiers',
-						     rhs => { 'declarationSpecifiers' => ['storageClassSpecifierTypedef$'],
-							      'initDeclaratorList'    => ['directDeclaratorIdentifier$'  ],
-						     },
-						     method => \&_declarationDeclarationSpecifiers,
-						 }
-	 )
+    $self->_register_rule_callbacks($outerSelf,
+				    {
+					lhs => 'declarationDeclarationSpecifiers',
+					rhs => { 'declarationDeclarationSpecifiersDeclarationSpecifiers' => ['storageClassSpecifierTypedef$'],
+						 'initDeclaratorList'    => ['directDeclaratorIdentifier$'  ],
+					},
+					method => \&_declarationDeclarationSpecifiers,
+					
+				    }
+	);
+
+    # ###############################################################################################
+    # In:
+    # functionDefinition ::= declarationSpecifiers declarator declarationList? compoundStatement
+    # typedef is syntactically allowed but never valid in either declarationSpecifiers or
+    # declarationList.
+    #
+    # Take care: declarationList is left recursive
+    # End of functionDefinition will match exitScope[], which WILL delayed until another call
+    # to the Scope package. By definition, current topic level will be one level higher than the
+    # level we have to check. We will use $self->topic_data($topic, -1) to get that data.
+    # ###############################################################################################
+    $self->_register_rule_callbacks($outerSelf,
+				    {
+					lhs => 'functionDefinition',
+					rhs => { 'declarationSpecifiers' => ['storageClassSpecifierTypedef$'],
+						 'declarationList'       => ['storageClassSpecifierTypedef$'  ],
+					},
+					method => \&_functionDefinition,
+				    }
 	);
 
     # #############################################################################################
-    # Register scope callbacks: they have 'infinite' priorities, because they drive the topic level
-    # At every scope, all flags of every managed composite rule are resetted. Just not to pollute
-    # topic level data outside of a '^LHS'.
+    # Register scope callbacks:
+    #
+    # We want to have scopes happening exactly in time, but have a difficulty with the "reenterScope"
+    # at function body definition, that can occur ONLY after the >>>file-scope<<< declarator.
+    #
+    # This is where it can happen, starting from the very beginning:
+    #
+    # translationUnit ::= externalDeclaration+
+    # externalDeclaration ::= functionDefinition | declaration
+    # functionDefinition ::= declarationSpecifiers declarator declarationList compoundStatement
+    #                      | declarationSpecifiers declarator                 compoundStatement
+    #                                                        ^
+    #                                                      HERE
+    # declarationList ::= declaration+
+    # declaration ::= declarationSpecifiers SEMICOLON
+    #               | declarationDeclarationSpecifiers                    action => deref
+    #               | staticAssertDeclaration
+    #
+    # * We isolate file-scope declarator to a new LHS fileScopeDeclarator.
+    # * We insert a nulled event <reenterScope[]> after fileScopeDeclarator
+    # * We duplicate <enterScope> of a normal compoundStatement to a <maybeEnterScope> in a new compoundStatementWithMaybeEnterScope
+    # I.e.:
+    #
+    # functionDefinition ::= declarationSpecifiers fileScopeDeclarator (<reenterScope>) declarationList compoundStatementWithMaybeEnterScope
+    #                      | declarationSpecifiers fileScopeDeclarator (<reenterScope>)                 compoundStatementWithMaybeEnterScope
+    #
+    # Note that putting (<reenterScope>) on the two lines is redundant.
+    # We associate a topic_data with <reenterScope> of persistence level 1.
+    # At ^functionDefinition we attach and initialize the topic data to 0.
+    # At '<reenterScope[]>' we set the topic to 1.
+    #
+    # - the following cases then can happen:
+    # - fileScopeDeclarator end with a ')' :
+    #   the nulled event is triggered:       exitScope[],reenterScope[]
+    #
+    #   > there is a declarationList:        ................................................. maybeEnterScope[]
+    #   > there is no declarationList:       exitScope[],reenterScope[],maybeEnterScope[]
+    #
+    # - fileScopeDeclarator does not end end with a ')'
+    #   the nulled event is triggered:       reenterScope[]
+    #
+    #   > there is a declarationList:        ................................................. maybeEnterScope[]
+    #   > there is no declarationList:       reenterScope[],maybeEnterScope[]
+    #
+    # The rule is simple:
+    # * Execution of <reenterScope[]> has highest priority PRIO and sets a topic data, with persistence 'level' to 1
+    # - Take care, if <reenterScope[]> and <exitScope[]> are both matched, then the topic data is at current level - 1
+    # * Execution of <exitScope[]> has priority PRIO-1 and is like:
+    #   - noop if <reenterScope[]> topic data is 1 AT PREVIOUS topic level
+    #   - real exitScope otherwise
+    # * Execution of <maybeEnterScope[]> has priority PRIO-2 and is like:
+    #   - noop if <reenterScope[]> topic data is 1, reset this data.
+    #   - real enterScope otherwise
+    #
+    # Conclusion: there is NO notion of delayed exit scope anymore.
+    # 
+    # Implementation:
+    # - <reenterScope[]> has priority 999
+    # - <exitScope[]> has priority 998
+    # - <maybeEnterScope[]> has priority 997
+    # - <enterScope[]> has priority 996
     # #############################################################################################
-    $self->_register_scope_callbacks($outerSelf, {priority => 999}, @flags);
+    $self->_register_scope_callbacks($outerSelf);
 
     return $self;
 }
 
-# ----------------------------------------------------------------------------------------
-sub _enterCallback {
-    my ($self, $outerSelf, @flags) = @_;
-
-    $log->debugf('[%s] Saving all flags values', whoami(__PACKAGE__));
-    my $state = {};
-    foreach (@flags) {
-	$state->{$_} = $self->hscratchpad($_);
-	$self->hscratchpad($_, 0);
-	$log->debugf('[%s] \'%s\' was %d, is now %d', whoami(__PACKAGE__), $_, $state->{$_}, $self->hscratchpad($_));
-    }
-    $self->hscratchpad('allFlags', $state);
-    $self->pushTopicLevel();
-
-}
-# ----------------------------------------------------------------------------------------
-sub _exitCallback {
-    my ($self, $outerSelf, @flags) = @_;
-
-    $log->debugf('[%s] Restoring all flags values', whoami(__PACKAGE__));
-    my $state = {};
-    foreach (@flags) {
-	$state->{$_} = $self->hscratchpad($_);
-	$self->hscratchpad($_, ($self->hscratchpad('allFlags'))->{$_});
-	$log->debugf('[%s] \'%s\' was %d, is now %d', whoami(__PACKAGE__), $_, $state->{$_}, $self->hscratchpad($_));
-    }
-    $self->popTopicLevel();
-
-}
 # ----------------------------------------------------------------------------------------
 sub _introduceTypedefName {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
@@ -162,48 +206,129 @@ sub _introduceTypedefName {
     $self->reset_topic_fired_data('$directDeclaratorIdentifier');
 }
 # ----------------------------------------------------------------------------------------
+sub _initReenterScope {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
+    $self->topic_data('reenterScope', 0, [0]);
+    $log->debugf('[%s] Initialized topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_data('reenterScope', 0));
+}
+sub _reenterScope {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
+    if (grep {$_ eq 'exitScope[]'} @execArgs) {
+	$self->topic_data('reenterScope', -1, [1]);
+	$log->debugf('[%s] Changed topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
+    } else {
+	$self->topic_data('reenterScope', 0, [1]);
+	$log->debugf('[%s] Changed topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_data('reenterScope', 0));
+    }
+}
+sub _exitScope {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
+    if (defined($self->topic_data('reenterScope', -1)) && ($self->topic_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s] Topic data at level %d is %s. Do nothing.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
+    } else {
+	$outerSelf->{_scope}->parseExitScope();
+	$self->popTopicLevel();
+    }
+}
+sub _maybeEnterScope {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
+    if (($self->topic_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s] Topic data at level %d is %s. Resetted.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
+	$self->topic_data('reenterScope', -1, [0]);
+    } else {
+	$outerSelf->{_scope}->parseEnterScope();
+	$self->pushTopicLevel();
+    }
+}
+sub _enterScope {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
+    $outerSelf->{_scope}->parseEnterScope();
+    $self->pushTopicLevel();
+}
 sub _register_scope_callbacks {
-    my ($self, $outerSelf, $hashp, @flags) = @_;
+    my ($self, $outerSelf, $hashp) = @_;
 
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
-		     description => 'enterScope[]',
-		     method =>  [ sub { $outerSelf->{_scope}->parseEnterScope(); } ],
+		     description => '^functionDefinition',
+		     method =>  [ \&_initReenterScope, $self, $outerSelf ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
+		      topic => {'reenterScope'=> 1},
+		      topic_persistence => 'level',
 		      condition => [ [qw/auto/] ],
-		      priority => $hashp->{priority}
-		     )
-		    )
-	);
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => 'exitScope[]',
-		     method =>  [ sub { $outerSelf->{_scope}->parseExitScope(); } ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [qw/auto/] ],
-		      priority => $hashp->{priority},
 		     )
 		    )
 	);
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => 'reenterScope[]',
-		     method =>  [ sub { $outerSelf->{_scope}->parseReenterScope(); } ],
+		     method =>  [ \&_reenterScope, $self, $outerSelf ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
 		      condition => [ [qw/auto/] ],
-		      priority => $hashp->{priority},
+		      priority => 999
 		     )
 		    )
 	);
+    foreach (qw/rparen$ rcurly$/) {
+	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $_,
+			 method =>  [ \&_exitScope, $self, $outerSelf ],
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [qw/auto/] ],
+			  priority => 998
+			 )
+			)
+	    );
+    }
+    foreach (qw/lcurlyMaybeEnterScope$/) {
+	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $_,
+			 method =>  [ \&_maybeEnterScope, $self, $outerSelf ],
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [qw/auto/] ],
+			  priority => 997
+			 )
+			)
+	    );
+    }
+    foreach (qw/lparen$ lcurly$/) {
+	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $_,
+			 method =>  [ \&_enterScope, $self, $outerSelf ],
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [qw/auto/] ],
+			  priority => 997
+			 )
+			)
+	    );
+    }
+}
+# ----------------------------------------------------------------------------------------
+sub _reset_helper {
+    my ($cb, $self, $outerSelf, $datasp) = @_;
 
-    # --------------------------------------------------------------------
-    # We want to have topic levels following the real enter/exit of scopes
-    # --------------------------------------------------------------------
-    $outerSelf->{_scope}->enterCallback(\&_enterCallback, $self, $outerSelf, @flags);
-    $outerSelf->{_scope}->exitCallback(\&_exitCallback, $self, $outerSelf, @flags);
+    foreach (@{$datasp}) {
+	$log->debugf('[%s] Reset \'%s\' topic data at level %d', whoami(__PACKAGE__), $_, $self->currentTopicLevel);
+	$self->reset_topic_fired_data($_);
+    }
 }
 # ----------------------------------------------------------------------------------------
 sub _register_helper {
@@ -280,8 +405,9 @@ sub _register_rule_callbacks {
     # The priorities should be:
     # - "xxxOn"              4
     # - "xxx"                3       because we want to store data before ./..
-    # - "xxxOff"             2       ./.. the off flag. The on
+    # - "xxxOff"             2       ./.. the off flag.
     # - 'lhs$'               1       because of eventual grammar cycles ./..
+    # - 'zzz'                0       ./.. we want to reset after completion. Usualy 'zzz' is '^lhs'.
 
     #
     # Register data initializer, it aims to have a higher priority than
@@ -316,14 +442,16 @@ sub _register_rule_callbacks {
     #
     # Register topics
     #
+    my @datas = ();
     foreach (keys %{$hashp->{rhs}}) {
-	my $topic = $lhs . $_;
-	my $flag = $topic . 'Flag';
+	my $data = $lhs . $_;
+	push(@datas, $data);
+	my $flag = $data . 'Flag';
 	foreach my $genome (@{$hashp->{rhs}->{$_}}) {
 	    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			    (
-			     description => $topic,
-			     method =>  [ \&_data_storage, $self, $outerSelf, $topic . 'Flag', $genome ],
+			     description => $data,
+			     method =>  [ \&_data_storage, $self, $outerSelf, $data . 'Flag', $genome ],
 			     option => MarpaX::Languages::C::AST::Callback::Option->new
 			     (
 			      condition => [ [ sub {my $cb = shift;
@@ -332,7 +460,7 @@ sub _register_rule_callbacks {
 						    my $flag = shift;
 						    return 0 if (! $self->hscratchpad($flag));
 						    return grep {$_ eq $genome} @_; }, $self, $genome, $flag ] ],
-			      topic => {$topic => 1},
+			      topic => {$data => 1},
 			      topic_persistence => 'level',
 			      priority => 3,
 			     )
@@ -356,10 +484,6 @@ sub _register_rule_callbacks {
 		    )
 	);
 
-    #
-    # Return the flags
-    #
-    return @flags;
 }
 
 sub _declarationDeclarationSpecifiers {
@@ -388,6 +512,35 @@ sub _declarationDeclarationSpecifiers {
     foreach (@{$topicsp}) {
 	$log->debugf('[%s] Reset \'%s\' topic data', whoami(__PACKAGE__), $_);
 	$self->reset_topic_fired_data($_);
+    }
+}
+
+sub _functionDefinition {
+    my ($cb, $self, $outerSelf, $topicsp) = @_;
+
+    foreach (qw/functionDefinitiondeclarationSpecifiers functionDefinitiondeclarationList/) {
+	$log->debugf('[%s] %s level %d = %s', whoami(__PACKAGE__), $_, $self->currentTopicLevel    , $self->topic_data($_));
+	$log->debugf('[%s] %s level %d = %s', whoami(__PACKAGE__), $_, $self->currentTopicLevel - 1, $self->topic_data($_, -1));
+    }
+
+    my $functionDefinitiondeclarationSpecifiers = $self->topic_data('functionDefinitiondeclarationSpecifiers', -1) || [];
+    my $functionDefinitiondeclarationList = $self->topic_data('functionDefinitiondeclarationList', -1) || [];
+
+    #
+    # Count the number of typedef
+    #
+    if (scalar(@{$functionDefinitiondeclarationSpecifiers}) > 0) {
+	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationSpecifiers->[0]};
+	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationSpecifiers\n%s", whoami(__PACKAGE__), $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+    if (scalar(@{$functionDefinitiondeclarationList}) > 0) {
+	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationList->[0]};
+	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationList\n%s", whoami(__PACKAGE__), $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+
+    foreach (@{$topicsp}) {
+	$log->debugf('[%s] Reset \'%s\' topic data', whoami(__PACKAGE__), $_);
+	$self->reset_topic_fired_data($_, -1);
     }
 }
 

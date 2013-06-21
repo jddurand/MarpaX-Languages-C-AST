@@ -229,22 +229,32 @@ sub _fire {
 }
 
 sub topic_data {
-    my ($self, $topic, $level) = @_;
+    my $self = shift;
+    my $topic = shift;
+    my $level = shift;
 
     $level //= 0;
 
     #
-    # Level MUST be 0 or a negative number
+    # Level MUST be 0 for current or a negative number
     #
     $level = int($level);
     if ($level > 0) {
 	croak 'int(level) must be 0 or a negative number';
     }
     if ($level == 0) {
-	return $self->topic_fired_data($topic);
+	if (@_) {
+	    return $self->topic_fired_data($topic, shift);
+	} else {
+	    return $self->topic_fired_data($topic);
+	}
     } else {
 	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
-	return $old_topic_data;
+	if (@_) {
+	    return ($old_topic_data->{$topic} = shift);
+	} else {
+	    return $old_topic_data->{$topic};
+	}
     }
 }
 
@@ -442,10 +452,27 @@ sub popTopicLevel {
 }
 
 sub reset_topic_fired_data {
-  my ($self, $topic) = @_;
+    my ($self, $topic, $level, $value) = @_;
 
-  $log->tracef('[%s] Topic \'%s\' data reset at level %d', whoami(__PACKAGE__), $topic, $self->currentTopicLevel);
-  $self->topic_fired_data($topic, []);
+    $level //= 0;
+
+    #
+    # Level MUST be 0 or a negative number
+    # It is okay if $value is undef
+    #
+    $level = int($level);
+    if ($level > 0) {
+	croak 'int(level) must be 0 or a negative number';
+    }
+    if ($level == 0) {
+	$log->tracef('[%s] Topic \'%s\' data reset at level %d', whoami(__PACKAGE__), $topic, $self->currentTopicLevel);
+	$self->topic_fired_data($topic, $value);
+    } else {
+	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
+	$log->tracef('[%s] Topic \'%s\' data reset at previous level %d', whoami(__PACKAGE__), $topic, $self->currentTopicLevel + $level);
+	$old_topic_data->{$topic} = $value;
+    }
+
 }
 
 1;

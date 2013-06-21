@@ -20,6 +20,11 @@ sub deref_and_bless_declaration {
     return bless $self->deref(@_), 'C::AST::declaration';
 }
 
+sub deref_and_bless_declarator {
+    my $self = shift;
+    return bless $self->deref(@_), 'C::AST::declarator';
+}
+
 sub deref_and_bless_compoundStatement {
     my $self = shift;
     return bless $self->deref(@_), 'C::AST::compoundStatement';
@@ -116,12 +121,19 @@ __DATA__
 #
 :default ::= action => [values] bless => ::lhs
 
-event 'enterScope[]' = nulled <enterScope>
-event 'reenterScope[]' = nulled <reenterScope>
-event 'exitScope[]' = nulled <exitScope>
-enterScope ::=
-reenterScope ::=
-exitScope ::=
+# Except for the functionDefinition compoundStatement
+# we always associate LPAREN and LCURLY to enterScope,
+# RPAREN and RCURLY to exitScope
+event 'lparen$'                = completed <lparen>
+event 'rparen$'                = completed <rparen>
+event 'lcurly$'                = completed <lcurly>
+event 'lcurlyMaybeEnterScope$' = completed <lcurlyMaybeEnterScope>
+event 'rcurly$'                = completed <rcurly>
+lparen                ::= LPAREN                action => deref
+rparen                ::= RPAREN                action => deref
+lcurly                ::= LCURLY                action => deref
+lcurlyMaybeEnterScope ::= LCURLY                action => deref
+rcurly                ::= RCURLY                action => deref
 
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
@@ -136,7 +148,7 @@ primaryExpression
 	::= primaryExpressionIdentifier
 	| constant
 	| string
-	| LPAREN expression RPAREN
+	| lparen expression rparen
 	| genericSelection
 
 constant
@@ -156,7 +168,7 @@ string
 	| FUNC_NAME
 
 genericSelection
-	::= GENERIC LPAREN assignmentExpression COMMA genericAssocList RPAREN
+	::= GENERIC lparen assignmentExpression COMMA genericAssocList rparen
 
 genericAssocList
 	::= genericAssociation
@@ -169,14 +181,14 @@ genericAssociation
 postfixExpression
 	::= primaryExpression
 	| postfixExpression LBRACKET expression RBRACKET
-	| postfixExpression LPAREN RPAREN
-	| postfixExpression LPAREN argumentExpressionList RPAREN
+	| postfixExpression lparen rparen
+	| postfixExpression lparen argumentExpressionList rparen
 	| postfixExpression DOT IDENTIFIER
 	| postfixExpression PTR_OP IDENTIFIER
 	| postfixExpression INC_OP
 	| postfixExpression DEC_OP
-	| LPAREN typeName RPAREN LCURLY initializerList RCURLY
-	| LPAREN typeName RPAREN LCURLY initializerList COMMA RCURLY
+	| lparen typeName rparen lcurly initializerList rcurly
+	| lparen typeName rparen lcurly initializerList COMMA rcurly
 
 argumentExpressionList
 	::= assignmentExpression
@@ -188,8 +200,8 @@ unaryExpression
 	| DEC_OP unaryExpression
 	| unaryOperator castExpression
 	| SIZEOF unaryExpression
-	| SIZEOF LPAREN typeName RPAREN
-	| ALIGNOF LPAREN typeName RPAREN
+	| SIZEOF lparen typeName rparen
+	| ALIGNOF lparen typeName rparen
 
 unaryOperator
 	::= AMPERSAND
@@ -201,7 +213,7 @@ unaryOperator
 
 castExpression
 	::= unaryExpression
-	| LPAREN typeName RPAREN castExpression
+	| lparen typeName rparen castExpression
 
 multiplicativeExpression
 	::= castExpression
@@ -278,36 +290,16 @@ expression
 
 constantExpression
 	::= conditionalExpression # with constraints
-
-event 'declarationDeclarationSpecifiersdeclarationSpecifiersOn'  = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOn>
-event 'declarationDeclarationSpecifiersdeclarationSpecifiersOff' = nulled <declarationDeclarationSpecifiersdeclarationSpecifiersOff>
-event 'declarationDeclarationSpecifiersinitDeclaratorListOn'     = nulled <declarationDeclarationSpecifiersinitDeclaratorListOn>
-event 'declarationDeclarationSpecifiersinitDeclaratorListOff'    = nulled <declarationDeclarationSpecifiersinitDeclaratorListOff>
-
-<declarationDeclarationSpecifiersdeclarationSpecifiersOn> ::=
-<declarationDeclarationSpecifiersdeclarationSpecifiersOff> ::=
-<declarationDeclarationSpecifiersinitDeclaratorListOn> ::=
-<declarationDeclarationSpecifiersinitDeclaratorListOff> ::=
-
-event 'declarationDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiers>
-declarationDeclarationSpecifiers ::= (<declarationDeclarationSpecifiersdeclarationSpecifiersOn>)
-                                      declarationSpecifiers
-                                     (<declarationDeclarationSpecifiersdeclarationSpecifiersOff>)
-                                      initDeclaratorList
-                                     SEMICOLON action => deref
-
-functionDeclaration
-	::= declarationSpecifiers <reenterScope> SEMICOLON action => deref_and_bless_declaration
-	| declarationDeclarationSpecifiers                 action => deref_and_bless_declaration
-	| functionDefinitionStaticAssertDeclaration        action => deref_and_bless_declaration
+event '^declarationDeclarationSpecifiersDeclarationSpecifiers' = predicted <declarationDeclarationSpecifiersDeclarationSpecifiers>
+event 'declarationDeclarationSpecifiersDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiersDeclarationSpecifiers>
+declarationDeclarationSpecifiersDeclarationSpecifiers ::= declarationSpecifiers action => deref
+declarationDeclarationSpecifiers ::= declarationDeclarationSpecifiersDeclarationSpecifiers initDeclaratorList SEMICOLON  action => deref
 
 declaration
 	::= declarationSpecifiers SEMICOLON
-	| declarationDeclarationSpecifiers
+	| declarationDeclarationSpecifiers                    action => deref
 	| staticAssertDeclaration
 
-event '^declarationSpecifiers' = predicted <declarationSpecifiers>
-event 'declarationSpecifiers$' = completed <declarationSpecifiers>
 declarationSpecifiers
 	::= storageClassSpecifier declarationSpecifiers
 	| storageClassSpecifier
@@ -323,8 +315,8 @@ declarationSpecifiers
 event '^initDeclaratorList' = predicted <initDeclaratorList>
 event 'initDeclaratorList$' = completed <initDeclaratorList>
 initDeclaratorList
-	::= (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
-	| initDeclaratorList COMMA (<declarationDeclarationSpecifiersinitDeclaratorListOn>) initDeclarator (<declarationDeclarationSpecifiersinitDeclaratorListOff>)
+	::= initDeclarator
+	| initDeclaratorList COMMA initDeclarator
 
 initDeclarator
 	::= declarator EQUAL initializer
@@ -361,8 +353,8 @@ typeSpecifier
 	| TYPEDEF_NAME		# after it has been defined as such
 
 structOrUnionSpecifier
-	::= structOrUnion LCURLY (<enterScope>) structDeclarationList RCURLY (<exitScope>)
-	| structOrUnion IDENTIFIER LCURLY (<enterScope>) structDeclarationList RCURLY (<exitScope>)
+	::= structOrUnion lcurly structDeclarationList rcurly
+	| structOrUnion IDENTIFIER lcurly structDeclarationList rcurly
 	| structOrUnion IDENTIFIER
 
 structOrUnion
@@ -394,10 +386,10 @@ structDeclarator
 	| declarator
 
 enumSpecifier
-	::= ENUM LCURLY enumeratorList RCURLY
-	| ENUM LCURLY enumeratorList COMMA RCURLY
-	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY
-	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY
+	::= ENUM lcurly enumeratorList rcurly
+	| ENUM lcurly enumeratorList COMMA rcurly
+	| ENUM IDENTIFIER lcurly enumeratorList rcurly
+	| ENUM IDENTIFIER lcurly enumeratorList COMMA rcurly
 	| ENUM IDENTIFIER
 
 enumeratorList
@@ -409,7 +401,7 @@ enumerator	# identifiers must be flagged as ENUMERATION_CONSTANT
 	| enumerationConstant
 
 atomicTypeSpecifier
-	::= ATOMIC LPAREN typeName RPAREN
+	::= ATOMIC lparen typeName rparen
 
 typeQualifier
 	::= CONST
@@ -422,8 +414,8 @@ functionSpecifier
 	| NORETURN
 
 alignmentSpecifier
-	::= ALIGNAS LPAREN typeName RPAREN
-	| ALIGNAS LPAREN constantExpression RPAREN
+	::= ALIGNAS lparen typeName rparen
+	| ALIGNAS lparen constantExpression rparen
 
 declarator
 	::= pointer directDeclarator
@@ -435,7 +427,7 @@ directDeclaratorIdentifier
 
 directDeclarator
 	::= directDeclaratorIdentifier
-	| LPAREN declarator RPAREN
+	| lparen declarator rparen
 	| directDeclarator LBRACKET RBRACKET
 	| directDeclarator LBRACKET STAR RBRACKET
 	| directDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
@@ -445,9 +437,9 @@ directDeclarator
 	| directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
 	| directDeclarator LBRACKET typeQualifierList RBRACKET
 	| directDeclarator LBRACKET assignmentExpression RBRACKET
-	| directDeclarator LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
-	| directDeclarator LPAREN RPAREN
-	| directDeclarator LPAREN (<enterScope>) identifierList RPAREN (<exitScope>)
+	| directDeclarator lparen parameterTypeList rparen
+	| directDeclarator lparen rparen
+	| directDeclarator lparen identifierList rparen
 
 pointer
 	::= STAR typeQualifierList pointer
@@ -459,6 +451,7 @@ typeQualifierList
 	::= typeQualifier
 	| typeQualifierList typeQualifier
 
+event 'parameterTypeList$' = completed <parameterTypeList>
 parameterTypeList
 	::= parameterList COMMA ELLIPSIS
 	| parameterList
@@ -486,7 +479,7 @@ abstractDeclarator
 	| directAbstractDeclarator
 
 directAbstractDeclarator
-	::= LPAREN abstractDeclarator RPAREN
+	::= lparen abstractDeclarator rparen
 	| LBRACKET RBRACKET
 	| LBRACKET STAR RBRACKET
 	| LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
@@ -503,14 +496,14 @@ directAbstractDeclarator
 	| directAbstractDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
 	| directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
 	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
-	| LPAREN RPAREN
-	| LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
-	| directAbstractDeclarator LPAREN RPAREN
-	| directAbstractDeclarator LPAREN (<enterScope>) parameterTypeList RPAREN (<exitScope>)
+	| lparen rparen
+	| lparen parameterTypeList rparen
+	| directAbstractDeclarator lparen rparen
+	| directAbstractDeclarator lparen parameterTypeList rparen
 
 initializer
-	::= LCURLY initializerList RCURLY
-	| LCURLY initializerList COMMA RCURLY
+	::= lcurly initializerList rcurly
+	| lcurly initializerList COMMA rcurly
 	| assignmentExpression
 
 initializerList
@@ -531,10 +524,7 @@ designator
 	| DOT IDENTIFIER
 
 staticAssertDeclaration
-	::= STATIC_ASSERT LPAREN constantExpression COMMA STRING_LITERAL RPAREN SEMICOLON
-
-functionDefinitionStaticAssertDeclaration
-	::= STATIC_ASSERT <reenterScope> LPAREN constantExpression COMMA STRING_LITERAL RPAREN SEMICOLON
+	::= STATIC_ASSERT lparen constantExpression COMMA STRING_LITERAL rparen SEMICOLON
 
 statement
 	::= labeledStatement
@@ -550,12 +540,12 @@ labeledStatement
 	| DEFAULT COLON statement
 
 compoundStatement
-	::= LCURLY (<enterScope>) RCURLY(<exitScope>)
-	| LCURLY (<enterScope>) blockItemList RCURLY (<exitScope>)
+	::= lcurly rcurly
+	| lcurly blockItemList rcurly
 
-functionDefinitionCompoundStatement
-	::= LCURLY RCURLY(<exitScope>)                      action => deref_and_bless_compoundStatement
-	| LCURLY blockItemList RCURLY (<exitScope>)         action => deref_and_bless_compoundStatement
+compoundStatementWithMaybeEnterScope
+	::= lcurlyMaybeEnterScope rcurly                  action => deref_and_bless_compoundStatement
+	| lcurlyMaybeEnterScope blockItemList rcurly      action => deref_and_bless_compoundStatement
 
 blockItemList
 	::= blockItem
@@ -570,17 +560,17 @@ expressionStatement
 	| expression SEMICOLON
 
 selectionStatement
-	::= IF LPAREN expression RPAREN statement ELSE statement
-	| IF LPAREN expression RPAREN statement rank => 1
-	| SWITCH LPAREN expression RPAREN statement
+	::= IF lparen expression rparen statement ELSE statement
+	| IF lparen expression rparen statement rank => 1
+	| SWITCH lparen expression rparen statement
 
 iterationStatement
-	::= WHILE LPAREN expression RPAREN statement
-	| DO statement WHILE LPAREN expression RPAREN SEMICOLON
-	| FOR LPAREN expressionStatement expressionStatement RPAREN statement
-	| FOR LPAREN expressionStatement expressionStatement expression RPAREN statement
-	| FOR LPAREN declaration expressionStatement RPAREN statement
-	| FOR LPAREN declaration expressionStatement expression RPAREN statement
+	::= WHILE lparen expression rparen statement
+	| DO statement WHILE lparen expression rparen SEMICOLON
+	| FOR lparen expressionStatement expressionStatement rparen statement
+	| FOR lparen expressionStatement expressionStatement expression rparen statement
+	| FOR lparen declaration expressionStatement rparen statement
+	| FOR lparen declaration expressionStatement expression rparen statement
 
 jumpStatement
 	::= GOTO IDENTIFIER SEMICOLON
@@ -597,34 +587,19 @@ externalDeclaration
 	::= functionDefinition
 	| declaration
 
-event 'functionDefinitiondeclarationSpecifiersOn'  = nulled <functionDefinitiondeclarationSpecifiersOn>
-event 'functionDefinitiondeclarationSpecifiersOff' = nulled <functionDefinitiondeclarationSpecifiersOff>
-event 'functionDefinitiondeclarationListOn'        = nulled <functionDefinitiondeclarationListOn>
-event 'functionDefinitiondeclarationListOff'       = nulled <functionDefinitiondeclarationListOff>
-functionDefinitiondeclarationSpecifiersOn ::=
-functionDefinitiondeclarationSpecifiersOff ::=
-functionDefinitiondeclarationListOn ::=
-functionDefinitiondeclarationListOff ::=
+fileScopeDeclarator ::= declarator            action => deref_and_bless_declarator
+
+event 'reenterScope[]' = nulled <reenterScope>
+reenterScope ::=
 
 event '^functionDefinition' = predicted <functionDefinition>
-event 'functionDefinition$' = completed <functionDefinition>
 functionDefinition
-	::= (<functionDefinitiondeclarationSpecifiersOn>)
-             declarationSpecifiers
-            (<functionDefinitiondeclarationSpecifiersOff>)
-            (<functionDefinitiondeclarationSpecifiersOff>)
-             declarator
-             declarationList
-             functionDefinitionCompoundStatement
-	| (<functionDefinitiondeclarationSpecifiersOn>)
-            declarationSpecifiers
-            (<functionDefinitiondeclarationSpecifiersOff>)
-            declarator
-            functionDefinitionCompoundStatement
+	::= declarationSpecifiers fileScopeDeclarator (<reenterScope>) declarationList compoundStatementWithMaybeEnterScope
+	| declarationSpecifiers fileScopeDeclarator (<reenterScope>) compoundStatementWithMaybeEnterScope
 
 declarationList
-	::= (<functionDefinitiondeclarationListOn>) functionDeclaration (<functionDefinitiondeclarationListOff>)
-	| (<functionDefinitiondeclarationListOn>) declarationList (<functionDefinitiondeclarationListOff>) functionDeclaration
+	::= declaration
+	| declarationList declaration
 
 #
 # G0 (tokens), c.f. http://www.quut.com/c/ANSI-C-grammar-l.html

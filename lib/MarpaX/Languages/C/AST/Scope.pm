@@ -14,9 +14,13 @@ use Carp qw/croak/;
 
 =head1 DESCRIPTION
 
-This modules manages the scopes when translation a C source into an AST tree. This module is an implementation of the article:
+This modules manages the scopes when translation a C source into an AST tree. This module started after reading the article:
 
-I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Translation>, Volume 2, Number 4, written by W.M. McKeeman. A online version may be accessed at L<http://www.cs.dartmouth.edu/~mckeeman/references/JCLT/ResolvingTypedefsInAMultipassCCompiler.pdf>. Please note that this module is logging via Log::Any.
+I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Translation>, Volume 2, Number 4, written by W.M. McKeeman. A online version may be accessed at L<http://www.cs.dartmouth.edu/~mckeeman/references/JCLT/ResolvingTypedefsInAMultipassCCompiler.pdf>.
+
+but has been simplified using Marpa events facility and the Callback framework built with C::AST. Basically there is not more notion od delayed exit scope. Using events is enough to exact scope management in time.
+
+Please note that this module is logging via Log::Any.
 
 =head1 SYNOPSIS
 
@@ -26,7 +30,6 @@ I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Tr
 
     my $cAstScopeObject = MarpaX::Languages::C::AST::Scope->new();
     $cAstScopeObject->parseEnterScope();
-    $cAstScopeObject->parseReenterScope();
     $cAstScopeObject->parseEnterTypedef("myTypedef");
     $cAstScopeObject->parseEnterEnum("myEnum");
     $cAstScopeObject->parseObscureTypedef("myVariable");
@@ -51,43 +54,12 @@ sub new {
   my ($class) = @_;
 
   my $self  = {
-      enterCallback => undef,
-      exitCallback => undef,
-      delayedExitScope => 0,
-      typedefPerScope => [ {} ],
-      enumAnyScope => {}
+      _typedefPerScope => [ {} ],
+      _enumAnyScope => {}
   };
   bless($self, $class);
 
   return $self;
-}
-
-sub enterCallback {
-    my $self = shift;
-    if (@_) {
-	my $code = shift;
-	if (defined($code)) {
-	    croak 'enterCallback first argument must be a CODE reference' if (ref($code) ne 'CODE');
-	    $self->{enterCallback} = [ $code, @_ ];
-	} else {
-	    $self->{enterCallback} = undef;
-	}
-    }
-    return $self->{enterCallback};
-}
-
-sub exitCallback {
-    my $self = shift;
-    if (@_) {
-	my $code = shift;
-	if (defined($code)) {
-	    croak 'exitCallback first argument must be a CODE reference' if (ref($code) ne 'CODE');
-	    $self->{exitCallback} = [ $code, @_ ];
-	} else {$self->{exitCallback} = undef;
-	    
-	}
-    }
-    return $self->{exitCallback};
 }
 
 =head2 parseEnterScope($self)
@@ -99,18 +71,11 @@ Say we enter a scope.
 sub parseEnterScope {
   my ($self) = @_;
 
-  $self->_doDelayedExitScope();
-
-  my $scope = $#{$self->{typedefPerScope}};
-  push(@{$self->{typedefPerScope}}, dclone($self->{typedefPerScope}->[$scope]));
+  my $scope = $#{$self->{_typedefPerScope}};
+  push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$scope]));
 
   $log->debugf('[%s] Duplicated scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
   
-  my $enterCallback = $self->enterCallback;
-  if (defined($enterCallback)) {
-      my ($code, @args) = @{$enterCallback};
-      &$code(@args);
-  }
 }
 
 =head2 parseExitScope($self)
@@ -122,25 +87,11 @@ Say we leave current scope.
 sub parseExitScope {
   my ($self) = @_;
 
-  my $scope = $#{$self->{typedefPerScope}};
-  $self->{delayedExitScope} = 1;
+  my $scope = $#{$self->{_typedefPerScope}};
+  pop(@{$self->{_typedefPerScope}});
 
-  $log->debugf('[%s] Setted delay flag on scope %d', whoami(__PACKAGE__), $scope);
-}
+  $log->debugf('[%s] Removed scope %d', whoami(__PACKAGE__), $scope);
 
-=head2 parseReenterScope($self)
-
-Say we re-enter last scope.
-
-=cut
-
-sub parseReenterScope {
-  my ($self) = @_;
-
-  my $scope = $#{$self->{typedefPerScope}};
-  $self->{delayedExitScope} = 0;
-
-  $log->debugf('[%s] Resetted delay flag on scope %d', whoami(__PACKAGE__), $scope);
 }
 
 =head2 parseEnterTypedef($self, $token)
@@ -152,10 +103,8 @@ Declare a new typedef with name $token, that will be visible until current scope
 sub parseEnterTypedef {
   my ($self, $token) = @_;
 
-  $self->_doDelayedExitScope();
-
-  my $scope = $#{$self->{typedefPerScope}};
-  $self->{typedefPerScope}->[$scope]->{$token} = 1;
+  my $scope = $#{$self->{_typedefPerScope}};
+  $self->{_typedefPerScope}->[$scope]->{$token} = 1;
 
   $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
 }
@@ -169,9 +118,7 @@ Declare a new enum with name $token, that will be visible at any scope from now 
 sub parseEnterEnum {
   my ($self, $token) = @_;
 
-  $self->_doDelayedExitScope();
-
-  $self->{enumAnyScope}->{$token} = 1;
+  $self->{_enumAnyScope}->{$token} = 1;
 
   $log->debugf('[%s] "%s" enum entered', whoami(__PACKAGE__), $token);
 }
@@ -185,10 +132,8 @@ Obscures a typedef named $token.
 sub parseObscureTypedef {
   my ($self, $token) = @_;
 
-  $self->_doDelayedExitScope();
-
-  my $scope = $#{$self->{typedefPerScope}};
-  $self->{typedefPerScope}->[$scope]->{$token} = 0;
+  my $scope = $#{$self->{_typedefPerScope}};
+  $self->{_typedefPerScope}->[$scope]->{$token} = 0;
 
   $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);
 }
@@ -202,10 +147,8 @@ Return a true value if $token is a typedef.
 sub parseIsTypedef {
   my ($self, $token) = @_;
 
-  $self->_doDelayedExitScope();
-
-  my $scope = $#{$self->{typedefPerScope}};
-  my $rc = (exists($self->{typedefPerScope}->[$scope]->{$token}) && $self->{typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
+  my $scope = $#{$self->{_typedefPerScope}};
+  my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && $self->{_typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
 
   $log->debugf('[%s] "%s" at scope %d is a typedef? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
 
@@ -221,34 +164,11 @@ Return a true value if $token is an enum.
 sub parseIsEnum {
   my ($self, $token) = @_;
 
-  $self->_doDelayedExitScope();
-
-  my $rc = (exists($self->{enumAnyScope}->{$token}) && $self->{enumAnyScope}->{$token}) ? 1 : 0;
+  my $rc = (exists($self->{_enumAnyScope}->{$token}) && $self->{_enumAnyScope}->{$token}) ? 1 : 0;
 
   $log->debugf('[%s] "%s" is an enum? %s', whoami(__PACKAGE__), $token, $rc ? 'yes' : 'no');
 
   return($rc);
-}
-
-#
-# INTERNAL METHODS
-#
-sub _doDelayedExitScope {
-  my ($self) = @_;
-
-  if ($self->{delayedExitScope}) {
-    my $scope = $#{$self->{typedefPerScope}};
-    pop(@{$self->{typedefPerScope}});
-    $self->{delayedExitScope} = 0;
-
-    $log->debugf('[%s] Removed scope %d and resetted delay flag', whoami(__PACKAGE__), $scope);
-
-    my $exitCallback = $self->exitCallback;
-	if (defined($exitCallback)) {
-	    my ($code, @args) = @{$exitCallback};
-	    &$code(@args);
-    }
-  }
 }
 
 1;

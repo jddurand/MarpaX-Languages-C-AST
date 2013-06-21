@@ -12,7 +12,7 @@ use Data::Dumper;
 our $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = DEBUG, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
-log4perl.appender.Screen.stderr  = 0
+log4perl.appender.Screen.stderr  = 1
 log4perl.appender.Screen.layout  = PatternLayout
 log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
 DEFAULT_LOG4PERL_CONF
@@ -25,8 +25,11 @@ my $cSourceCode = do { local $/; <DATA> };
 my $cAstObject = MarpaX::Languages::C::AST->new();
 print Dumper($cAstObject->parse(\$cSourceCode));
 __DATA__
-typedef struct test_ {int i;} s_test_, *sp_test_;
-typedef int operation(int x1, int y1) {
+typedef typedef struct test_ {int i;} s_test_, *sp_test_;
+int operation(x1, y1)
+    int x1;
+    int y1;
+{
     typedef struct test2_ {int i2;} s_test2_, *sp_test2_;
     typedef struct test3_ {int i3;} s_test3_, *sp_test3_;
     int z;
