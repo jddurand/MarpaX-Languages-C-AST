@@ -111,7 +111,7 @@ sub register {
   $self->cb($self->ncb, $cb);
   $self->ncb($self->ncb + 1);
 
-  $log->tracef('[%s[%d]] Registering callback with description \'%s\', topic %s, topic persistence \'%s\', subscription %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->description, $cb->option->topic, $cb->option->topic_persistence, $cb->option->subscription);
+  $log->tracef('[%s[%d]] Registering callback with description \'%s\', topic %s, topic persistence \'%s\', subscription %s, condition %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->description, $cb->option->topic, $cb->option->topic_persistence, $cb->option->subscription, $cb->option->condition);
   $self->prioritized_cb([sort _sort @{$self->cb}]);
 }
 
@@ -474,7 +474,7 @@ sub reset_topic_fired_data {
 	croak 'int(level) must be 0 or a negative number';
     }
     if ($level == 0) {
-	$log->tracef('[%s[%d]] Topic \'%s\' data reset at level %d', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->currentTopicLevel);
+	$log->tracef('[%s[%d]] Topic \'%s\' data reset at current level', whoami(__PACKAGE__), $self->currentTopicLevel, $topic);
 	$self->topic_fired_data($topic, $value);
     } else {
 	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
