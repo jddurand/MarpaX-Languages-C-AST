@@ -2,7 +2,7 @@ use strict;
 use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Callback::Events;
-use MarpaX::Languages::C::AST::Util qw/whoami/;
+use MarpaX::Languages::C::AST::Util qw/whoami whowasi/;
 use parent qw/MarpaX::Languages::C::AST::Callback/;
 
 # ABSTRACT: Events callback when translating a C source to an AST
@@ -63,10 +63,8 @@ sub new {
     #
     # Isolated to single rule:
     #
-    # declarationDeclarationSpecifiers ::= declarationDeclarationSpecifiersDeclarationSpecifiers initDeclaratorList SEMICOLON  action => deref
-    #
-    # Take care: initDeclaratorList is left recursive
-    # No problem with scope at the end of this rule
+    # declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList
+    #                      SEMICOLON action => deref
     # ###############################################################################################
     $self->_register_rule_callbacks($outerSelf,
 				    {
@@ -85,20 +83,39 @@ sub new {
     # typedef is syntactically allowed but never valid in either declarationSpecifiers or
     # declarationList.
     #
-    # Take care: declarationList is left recursive
-    # End of functionDefinition will match exitScope[], which WILL delayed until another call
-    # to the Scope package. By definition, current topic level will be one level higher than the
-    # level we have to check. We will use $self->topic_level_fired_data($topic, -1) to get that data.
+    # Isolated to two rules:
+    #
+    # functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator
+    #                              (<reenterScope>)
+    #                              functionDefinitionCheck1declarationList
+    #                              compoundStatementWithMaybeEnterScope action => deref
+    # functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator
+    #                              (<reenterScope>)
+    #                              compoundStatementWithMaybeEnterScope action => deref
+    #
+    # Note: We arranged $rcurly to happen at the latest moment.
+    #       This mean that functionDefinitionCheckXdeclarationSpecifiers will always belong
+    #       to the data of the previous level.
     # ###############################################################################################
-    #$self->_register_rule_callbacks($outerSelf,
-#				    {
-#					lhs => 'functionDefinition',
-#					rhs => { 'declarationSpecifiers' => ['storageClassSpecifierTypedef$'],
-#						 'declarationList'       => ['storageClassSpecifierTypedef$'  ],
-#					},
-#					method => \&_functionDefinition,
-#				    }
-#	);
+    $self->_register_rule_callbacks($outerSelf,
+				    {
+					lhs => 'functionDefinitionCheck1',
+					rhs => [ [ 'functionDefinitionCheck1declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
+						 [ 'functionDefinitionCheck1declarationList',       [ 'storageClassSpecifierTypedef$' ] ]
+                                               ],
+					method => \&_functionDefinitionCheck1,
+					
+				    }
+	);
+    $self->_register_rule_callbacks($outerSelf,
+				    {
+					lhs => 'functionDefinitionCheck2',
+					rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
+                                               ],
+					method => \&_functionDefinitionCheck2,
+					
+				    }
+	);
 
     # #############################################################################################
     # Register scope callbacks:
@@ -159,15 +176,65 @@ sub new {
     # 
     # Implementation:
     # - <reenterScope[]> has priority 999
-    # - <exitScope[]> has priority 998
     # - <maybeEnterScope[]> has priority 997
     # - <enterScope[]> has priority 996
+    # - <exitScope[]> has priority -999
+    #
+    # - -999 for <exitScope[]> because this must be a showstopper in the C rules: always at the end
+    #   plus it will DESTROY all the topics
     # #############################################################################################
     $self->_register_scope_callbacks($outerSelf);
 
     return $self;
 }
+# ----------------------------------------------------------------------------------------
+sub _functionDefinitionCheck1 {
+    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    #
+    # Get the topics data we are interested in
+    #
+    my $functionDefinitionCheck1declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers', -1);
+    my $functionDefinitionCheck1declarationList = $self->topic_fired_data('functionDefinitionCheck1declarationList');
 
+    $log->debugf('[%s[%d]] functionDefinitionCheck1declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationSpecifiers);
+    $log->debugf('[%s[%d]] functionDefinitionCheck1declarationList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationList);
+
+    #
+    # By definition functionDefinitionCheck1declarationSpecifiers contains only typedefs
+    # By definition functionDefinitionCheck1declarationList contains only typedefs
+    #
+    my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
+    if ($nbTypedef1 >= 0) {
+	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
+	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+
+    my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
+    if ($nbTypedef2 >= 0) {
+	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
+	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+
+}
+sub _functionDefinitionCheck2 {
+    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    #
+    # Get the topics data we are interested in
+    #
+    my $functionDefinitionCheck2declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers', -1);
+
+    $log->debugf('[%s[%d]] functionDefinitionCheck2declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck2declarationSpecifiers);
+
+    #
+    # By definition functionDefinitionCheck2declarationSpecifiers contains only typedefs
+    #
+    my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
+    if ($nbTypedef >= 0) {
+	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
+	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+
+}
 # ----------------------------------------------------------------------------------------
 sub _declarationCheck {
     my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
@@ -191,7 +258,7 @@ sub _declarationCheck {
 	# Take the second typedef
 	#
 	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed)  = @{$_};
@@ -280,19 +347,6 @@ sub _register_scope_callbacks {
 		     )
 		    )
 	);
-    foreach (qw/rparen$ rcurly$/) {
-	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
-			(
-			 description => $_,
-			 method =>  [ \&_exitScope, $self, $outerSelf ],
-			 option => MarpaX::Languages::C::AST::Callback::Option->new
-			 (
-			  condition => [ [qw/auto/] ],
-			  priority => 998
-			 )
-			)
-	    );
-    }
     foreach (qw/lcurlyMaybeEnterScope$/) {
 	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
@@ -315,6 +369,19 @@ sub _register_scope_callbacks {
 			 (
 			  condition => [ [qw/auto/] ],
 			  priority => 997
+			 )
+			)
+	    );
+    }
+    foreach (qw/rparen$ rcurly$/) {
+	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $_,
+			 method =>  [ \&_exitScope, $self, $outerSelf ],
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [qw/auto/] ],
+			  priority => -999
 			 )
 			)
 	    );
@@ -344,6 +411,9 @@ sub _push_and_reset_helper {
     push(@{$self->topic_fired_data($desttopic)}, @{$self->topic_fired_data($origtopic)});
     $log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $origtopic);
     $self->reset_topic_fired_data($origtopic);
+
+    $log->debugf('[%s[%d]] New \'%s\' topic data: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $desttopic, $self->topic_fired_data($desttopic));
+    
 }
 # ----------------------------------------------------------------------------------------
 sub _register_helper {
@@ -371,7 +441,7 @@ sub _storage_helper {
     my $symbol = $event;
     substr($symbol, -1, 1, '');
     my $rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ];
-    $log->tracef('[%s[%d]] %s', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
+    $log->debugf('[%s[%d]] Topic \'%s\' data = "%s"', whoami(__PACKAGE__), $self->currentTopicLevel, $event, $rc);
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
@@ -425,6 +495,7 @@ sub _register_rule_callbacks {
         $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
                          description => $genome,
+			 extra_description => "$genome>$topicTmp",
                          method =>  [ \&_storage_helper, $self, $outerSelf, $genome ],
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
@@ -439,6 +510,7 @@ sub _register_rule_callbacks {
       $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                       (
                        description => $rhs . '$',
+		       extra_description => "${rhs}\$>$topic,$topicTmp",
                        method =>  [ \&_push_and_reset_helper, $self, $outerSelf, $topic, $topicTmp ],
                        method_void => 1,
                        option => MarpaX::Languages::C::AST::Callback::Option->new
