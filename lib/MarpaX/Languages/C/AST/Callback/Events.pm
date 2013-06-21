@@ -70,11 +70,11 @@ sub new {
     # ###############################################################################################
     $self->_register_rule_callbacks($outerSelf,
 				    {
-					lhs => 'declarationCheck01',
-					rhs => [ [ 'declarationCheck01declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
-						 [ 'declarationCheck01initDeclaratorList',    ['directDeclaratorIdentifier$'  ] ]
+					lhs => 'declarationCheck',
+					rhs => [ [ 'declarationCheckdeclarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
+						 [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier$'  ] ]
                                                ],
-					method => \&_declarationCheck01,
+					method => \&_declarationCheck,
 					
 				    }
 	);
@@ -169,71 +169,31 @@ sub new {
 }
 
 # ----------------------------------------------------------------------------------------
-sub _introduceTypedefName {
-    my ($cb, $self, $outerSelf, @execArgs) = @_;
-    #
-    # Get the topics data we are interested in
-    #
-    my $storageClassSpecifierTypedef = $self->topic_fired_data('storageClassSpecifierTypedef$');
-    my $directDeclaratorIdentifier = $self->topic_fired_data('directDeclaratorIdentifier$');
-    #
-    # We are not subscribed to storageClassSpecifierTypedef$ so it is not guaranteed there
-    # is associated data
-    #
-    if (! defined($storageClassSpecifierTypedef)) {
-	$log->warnf('[%s[%d]] No storageClassSpecifierTypedef, identifiers are %s', whoami(__PACKAGE__), $self->currentTopicLevel, $directDeclaratorIdentifier);
-	return;
-    }
-
-    my $nbTypedef = $#{$storageClassSpecifierTypedef};
-    if ($nbTypedef > 0) {
-	#
-	# Take the second typedef
-	#
-	my ($line_columnp, $last_completed)  = @{$storageClassSpecifierTypedef->[1]};
-	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
-    }
-    foreach (@{$directDeclaratorIdentifier}) {
-	my ($line_columnp, $last_completed)  = @{$_};
-	$log->debugf('[%s[%d]] Identifier %s at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $line_columnp);
-	if ($nbTypedef >= 0) {
-	    $outerSelf->{_scope}->parseEnterTypedef($last_completed);
-	} else {
-	    $outerSelf->{_scope}->parseObscureTypedef($last_completed);
-	}
-    }
-    #
-    # Reset data
-    #
-    $self->reset_topic_fired_data('storageClassSpecifierTypedef$');
-    $self->reset_topic_fired_data('$directDeclaratorIdentifier');
-}
-# ----------------------------------------------------------------------------------------
-sub _declarationCheck01 {
+sub _declarationCheck {
     my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $declarationCheck01declarationSpecifiers = $self->topic_fired_data('declarationCheck01declarationSpecifiers');
-    my $declarationCheck01initDeclaratorList = $self->topic_fired_data('declarationCheck01initDeclaratorList');
+    my $declarationCheckdeclarationSpecifiers = $self->topic_fired_data('declarationCheckdeclarationSpecifiers');
+    my $declarationCheckinitDeclaratorList = $self->topic_fired_data('declarationCheckinitDeclaratorList');
 
-    $log->debugf('[%s[%d]] declarationCheck01declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheck01declarationSpecifiers);
-    $log->debugf('[%s[%d]] declarationCheck01initDeclaratorList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheck01initDeclaratorList);
+    $log->debugf('[%s[%d]] declarationCheckdeclarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckdeclarationSpecifiers);
+    $log->debugf('[%s[%d]] declarationCheckinitDeclaratorList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckinitDeclaratorList);
 
     #
-    # By definition declarationCheck01declarationSpecifiers contains only typedefs
-    # By definition declarationCheck01initDeclaratorList contains only directDeclaratorIdentifier
+    # By definition declarationCheckdeclarationSpecifiers contains only typedefs
+    # By definition declarationCheckinitDeclaratorList contains only directDeclaratorIdentifier
     #
 
-    my $nbTypedef = $#{$declarationCheck01declarationSpecifiers};
+    my $nbTypedef = $#{$declarationCheckdeclarationSpecifiers};
     if ($nbTypedef > 0) {
 	#
 	# Take the second typedef
 	#
-	my ($line_columnp, $last_completed)  = @{$declarationCheck01declarationSpecifiers->[1]};
+	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
 	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
-    foreach (@{$declarationCheck01initDeclaratorList}) {
+    foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed)  = @{$_};
 	$log->debugf('[%s[%d]] Identifier %s at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $line_columnp);
 	if ($nbTypedef >= 0) {
@@ -415,24 +375,6 @@ sub _storage_helper {
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
-sub _data_flag {
-    my ($cb, $self, $outerSelf, $flag, $value, @events) = @_;
-
-    $log->debugf('[%s[%d]] Setting \'%s\' flag to %d', whoami(__PACKAGE__), $self->currentTopicLevel, $flag, $value);
-    $self->hscratchpad($flag, $value);
-}
-# ----------------------------------------------------------------------------------------
-sub _data_storage {
-    my ($cb, $self, $outerSelf, $flag, $genome, @events) = @_;
-
-    my $rc = undef;
-    if ($self->hscratchpad($flag)) {
-	$rc = _storage_helper($cb, $self, $outerSelf, $genome);
-	$log->debugf('[%s[%d]] Storing \'%s\' value: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $genome, $rc);
-    }
-    return $rc;
-}
-# ----------------------------------------------------------------------------------------
 sub _register_genome_callbacks {
     my ($self, $outerSelf, $hashp) = @_;
 
@@ -542,64 +484,6 @@ sub _register_rule_callbacks {
 		    )
                    );
 
-}
-
-sub _declarationDeclarationSpecifiers {
-    my ($cb, $self, $outerSelf, $topicsp) = @_;
-
-    foreach (qw/declarationDeclarationSpecifiersdeclarationSpecifiers declarationDeclarationSpecifiersinitDeclaratorList/) {
-	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel, $_, $self->topic_fired_data($_));
-    }
-
-    my $declarationDeclarationSpecifiersdeclarationSpecifiers = $self->topic_fired_data('declarationDeclarationSpecifiersdeclarationSpecifiers') || [];
-    my $declarationDeclarationSpecifiersinitDeclaratorList = $self->topic_fired_data('declarationDeclarationSpecifiersinitDeclaratorList') || [];
-
-    #
-    # Count the number of typedef - Note that we are NOT here doing a grammar check on the number of storageSpecifier
-    #
-    my $nbTypedef = scalar(@{$declarationDeclarationSpecifiersdeclarationSpecifiers});
-    foreach (@{$declarationDeclarationSpecifiersinitDeclaratorList}) {
-	my ($line_columnp, $last_completed)  = @{$_};
-	if ($nbTypedef > 0) {
-	    $outerSelf->{_scope}->parseEnterTypedef($last_completed);
-	} else {
-	    $outerSelf->{_scope}->parseObscureTypedef($last_completed);
-	}
-    }
-
-    foreach (@{$topicsp}) {
-	$log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
-	$self->reset_topic_fired_data($_);
-    }
-}
-
-sub _functionDefinition {
-    my ($cb, $self, $outerSelf, $topicsp) = @_;
-
-    foreach (qw/functionDefinitiondeclarationSpecifiers functionDefinitiondeclarationList/) {
-	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel, $_, $self->topic_level_fired_data($_));
-	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel-1, $_, $self->topic_level_fired_data($_, -1));
-    }
-
-    my $functionDefinitiondeclarationSpecifiers = $self->topic_level_fired_data('functionDefinitiondeclarationSpecifiers', -1) || [];
-    my $functionDefinitiondeclarationList = $self->topic_level_fired_data('functionDefinitiondeclarationList', -1) || [];
-
-    #
-    # Count the number of typedef
-    #
-    if (scalar(@{$functionDefinitiondeclarationSpecifiers}) > 0) {
-	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationSpecifiers->[0]};
-	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationSpecifiers\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
-    }
-    if (scalar(@{$functionDefinitiondeclarationList}) > 0) {
-	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationList->[0]};
-	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationList\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
-    }
-
-    foreach (@{$topicsp}) {
-	$log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
-	$self->reset_topic_fired_data($_, -1);
-    }
 }
 
 1;

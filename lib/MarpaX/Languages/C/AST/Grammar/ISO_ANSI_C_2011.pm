@@ -296,18 +296,18 @@ constantExpression
 # rule:
 # declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
 # ###############################################################################################
-event 'declarationCheck01declarationSpecifiers$' = completed <declarationCheck01declarationSpecifiers>
-declarationCheck01declarationSpecifiers ::= declarationSpecifiers action => deref
+event 'declarationCheckdeclarationSpecifiers$' = completed <declarationCheckdeclarationSpecifiers>
+declarationCheckdeclarationSpecifiers ::= declarationSpecifiers action => deref
 
-event 'declarationCheck01initDeclaratorList$' = completed <declarationCheck01initDeclaratorList>
-declarationCheck01initDeclaratorList    ::= initDeclaratorList    action => deref
+event 'declarationCheckinitDeclaratorList$' = completed <declarationCheckinitDeclaratorList>
+declarationCheckinitDeclaratorList    ::= initDeclaratorList    action => deref
 
-event 'declarationCheck01$' = completed <declarationCheck01>
-declarationCheck01 ::= declarationCheck01declarationSpecifiers declarationCheck01initDeclaratorList SEMICOLON
+event 'declarationCheck$' = completed <declarationCheck>
+declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON
 
 declaration
 	::= declarationSpecifiers SEMICOLON
-	| declarationCheck01                                      action => deref_and_bless_declaration
+	| declarationCheck                                      action => deref_and_bless_declaration
 	| staticAssertDeclaration
 
 declarationSpecifiers
