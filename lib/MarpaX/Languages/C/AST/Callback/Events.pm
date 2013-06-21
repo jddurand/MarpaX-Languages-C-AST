@@ -40,17 +40,20 @@ sub new {
     #
     # - We make sure <LHS$> completion event exist
     # - We replace all RHS of interest by LHSRHS, defined as: LHSRHS ::= RHS action => deref
-    #   * This is NOT NECESSARY is RHSn is unique to LHS within all the grammar
-    # - We make sure <^LHSRHSn> prediction event and <LHSRHSn$> completion events exist
-    # - We register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...> AND get <Gx,y,...> data
-    # - We register callbacks '^LHSRHSn' that depend on condition '^LHSRHSn' and that initialize 'LHSRHS' data, and reset 'LHSRHSnTmp' data
+    #   * This is NOT NECESSARY if RHSn is unique to LHS within all the grammar
+    # - We make sure <LHSRHSn$> completion events exist
+    # - We register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...$> AND get <Gx,y,...> data
     # - We register callbacks 'LHSRHSn$' with topics 'LHSRHSn' and topic data persistence_level 'level' that depend on condition 'LHSRHS$' and that will:
     #   * push 'LHSRHSnTmp' topic data to 'LHSRHSn' topic data
     #   * reset 'LHSRHSnTmp' topic data
+    #   * THE FIRST OF THE 'LHSRHSn$' WILL BE RESPONSIBLE TO DO A RESET DATA IF NOT YET DONE
     # - We register the callback 'LHSRHS$' that depend on condition 'LHSRHS$' and that will do the check
+    #   * THIS EVENT WILL FLAG THE NEED FOR A RESET
     #
     # In this technique it is assumed that all RHS are different. Otherwise one would have to use
     # a temporary RHS "proxy". But this is not the case in the C grammar.
+    # In addition the RHSs be UNIQUE to the whole grammar. Because we cannot affort recursion with them. There is
+    # no problem on the other hand if an RHS depends on something that cycles.
     # #######################################################################################################################
 
     # ###############################################################################################
@@ -67,11 +70,11 @@ sub new {
     # ###############################################################################################
     $self->_register_rule_callbacks($outerSelf,
 				    {
-					lhs => 'declarationDeclarationSpecifiers',
-					rhs => { 'declarationDeclarationSpecifiersDeclarationSpecifiers' => ['storageClassSpecifierTypedef$'],
-						 'initDeclaratorList'    => ['directDeclaratorIdentifier$'  ],
-					},
-					method => \&_declarationDeclarationSpecifiers,
+					lhs => 'declarationCheck01',
+					rhs => [ [ 'declarationCheck01declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
+						 [ 'declarationCheck01initDeclaratorList',    ['directDeclaratorIdentifier$'  ] ]
+                                               ],
+					method => \&_declarationCheck01,
 					
 				    }
 	);
@@ -85,17 +88,17 @@ sub new {
     # Take care: declarationList is left recursive
     # End of functionDefinition will match exitScope[], which WILL delayed until another call
     # to the Scope package. By definition, current topic level will be one level higher than the
-    # level we have to check. We will use $self->topic_data($topic, -1) to get that data.
+    # level we have to check. We will use $self->topic_level_fired_data($topic, -1) to get that data.
     # ###############################################################################################
-    $self->_register_rule_callbacks($outerSelf,
-				    {
-					lhs => 'functionDefinition',
-					rhs => { 'declarationSpecifiers' => ['storageClassSpecifierTypedef$'],
-						 'declarationList'       => ['storageClassSpecifierTypedef$'  ],
-					},
-					method => \&_functionDefinition,
-				    }
-	);
+    #$self->_register_rule_callbacks($outerSelf,
+#				    {
+#					lhs => 'functionDefinition',
+#					rhs => { 'declarationSpecifiers' => ['storageClassSpecifierTypedef$'],
+#						 'declarationList'       => ['storageClassSpecifierTypedef$'  ],
+#					},
+#					method => \&_functionDefinition,
+#				    }
+#	);
 
     # #############################################################################################
     # Register scope callbacks:
@@ -178,7 +181,7 @@ sub _introduceTypedefName {
     # is associated data
     #
     if (! defined($storageClassSpecifierTypedef)) {
-	$log->warnf('[%s] No storageClassSpecifierTypedef, identifiers are %s', whoami(__PACKAGE__), $directDeclaratorIdentifier);
+	$log->warnf('[%s[%d]] No storageClassSpecifierTypedef, identifiers are %s', whoami(__PACKAGE__), $self->currentTopicLevel, $directDeclaratorIdentifier);
 	return;
     }
 
@@ -188,11 +191,11 @@ sub _introduceTypedefName {
 	# Take the second typedef
 	#
 	my ($line_columnp, $last_completed)  = @{$storageClassSpecifierTypedef->[1]};
-	$outerSelf->_croak("[%s] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
     foreach (@{$directDeclaratorIdentifier}) {
 	my ($line_columnp, $last_completed)  = @{$_};
-	$log->debugf('[%s] Identifier %s at position %s', whoami(__PACKAGE__), $last_completed, $line_columnp);
+	$log->debugf('[%s[%d]] Identifier %s at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $line_columnp);
 	if ($nbTypedef >= 0) {
 	    $outerSelf->{_scope}->parseEnterTypedef($last_completed);
 	} else {
@@ -206,31 +209,69 @@ sub _introduceTypedefName {
     $self->reset_topic_fired_data('$directDeclaratorIdentifier');
 }
 # ----------------------------------------------------------------------------------------
+sub _declarationCheck01 {
+    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    #
+    # Get the topics data we are interested in
+    #
+    my $declarationCheck01declarationSpecifiers = $self->topic_fired_data('declarationCheck01declarationSpecifiers');
+    my $declarationCheck01initDeclaratorList = $self->topic_fired_data('declarationCheck01initDeclaratorList');
+
+    $log->debugf('[%s[%d]] declarationCheck01declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheck01declarationSpecifiers);
+    $log->debugf('[%s[%d]] declarationCheck01initDeclaratorList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheck01initDeclaratorList);
+
+    #
+    # By definition declarationCheck01declarationSpecifiers contains only typedefs
+    # By definition declarationCheck01initDeclaratorList contains only directDeclaratorIdentifier
+    #
+
+    my $nbTypedef = $#{$declarationCheck01declarationSpecifiers};
+    if ($nbTypedef > 0) {
+	#
+	# Take the second typedef
+	#
+	my ($line_columnp, $last_completed)  = @{$declarationCheck01declarationSpecifiers->[1]};
+	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+    foreach (@{$declarationCheck01initDeclaratorList}) {
+	my ($line_columnp, $last_completed)  = @{$_};
+	$log->debugf('[%s[%d]] Identifier %s at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $line_columnp);
+	if ($nbTypedef >= 0) {
+	    $outerSelf->{_scope}->parseEnterTypedef($last_completed);
+	} else {
+	    $outerSelf->{_scope}->parseObscureTypedef($last_completed);
+	}
+    }
+
+    my $cleanerTopicData = $self->topic_fired_data($cleanerTopic);
+    $log->debugf('[%s[%d]] Resetting \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic);
+    @{$cleanerTopicData} = (0);
+}
+# ----------------------------------------------------------------------------------------
 sub _initReenterScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
-    $self->topic_data('reenterScope', 0, [0]);
-    $log->debugf('[%s] Initialized topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_data('reenterScope', 0));
+    my $rc = 0;
+    $log->debugf('[%s[%d]] Initializing \'reenterScope\' topic data to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
+
+    return $rc;
 }
 sub _reenterScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
     if (grep {$_ eq 'exitScope[]'} @execArgs) {
-	$self->topic_data('reenterScope', -1, [1]);
-	$log->debugf('[%s] Changed topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
+	$self->topic_level_fired_data('reenterScope', -1, [1]);
+	$log->debugf('[%s[%d]] Changed reenterScope topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
     } else {
-	$self->topic_data('reenterScope', 0, [1]);
-	$log->debugf('[%s] Changed topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_data('reenterScope', 0));
+	$self->topic_level_fired_data('reenterScope', 0, [1]);
+	$log->debugf('[%s[%d]] Changed reenterScope topic data to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_level_fired_data('reenterScope', 0));
     }
 }
 sub _exitScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
-    if (defined($self->topic_data('reenterScope', -1)) && ($self->topic_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s] Topic data at level %d is %s. Do nothing.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
+    if (defined($self->topic_level_fired_data('reenterScope', -1)) && ($self->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data is %s. Do nothing.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
     } else {
 	$outerSelf->{_scope}->parseExitScope();
 	$self->popTopicLevel();
@@ -239,10 +280,9 @@ sub _exitScope {
 sub _maybeEnterScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
-    if (($self->topic_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s] Topic data at level %d is %s. Resetted.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_data('reenterScope', -1));
-	$self->topic_data('reenterScope', -1, [0]);
+    if (($self->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data is %s. Resetted.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
+	$self->topic_level_fired_data('reenterScope', -1, [0]);
     } else {
 	$outerSelf->{_scope}->parseEnterScope();
 	$self->pushTopicLevel();
@@ -251,7 +291,6 @@ sub _maybeEnterScope {
 sub _enterScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    $log->debugf('[%s] Current level is %d', whoami(__PACKAGE__), $self->currentTopicLevel);
     $outerSelf->{_scope}->parseEnterScope();
     $self->pushTopicLevel();
 }
@@ -323,12 +362,28 @@ sub _register_scope_callbacks {
 }
 # ----------------------------------------------------------------------------------------
 sub _reset_helper {
-    my ($cb, $self, $outerSelf, $datasp) = @_;
+    my ($cb, $self, $outerSelf, $cleanerTopic, $topicsp) = @_;
 
-    foreach (@{$datasp}) {
-	$log->debugf('[%s] Reset \'%s\' topic data at level %d', whoami(__PACKAGE__), $_, $self->currentTopicLevel);
-	$self->reset_topic_fired_data($_);
+    my $cleanerTopicData = $self->topic_fired_data($cleanerTopic);
+    if (! @{$cleanerTopicData} || ! $cleanerTopicData->[0]) {
+      foreach (@{$topicsp}) {
+        $log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
+        $self->reset_topic_fired_data($_);
+      }
+      $log->debugf('[%s[%d]] Setting \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic);
+      @{$cleanerTopicData} = (1);
+    } else {
+      $log->debugf('[%s[%d]] \'%s\' topic data is %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic, $cleanerTopicData);
     }
+}
+# ----------------------------------------------------------------------------------------
+sub _push_and_reset_helper {
+    my ($cb, $self, $outerSelf, $desttopic, $origtopic) = @_;
+
+    $log->debugf('[%s[%d]] Push \'%s\' topic data to \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $origtopic, $desttopic);
+    push(@{$self->topic_fired_data($desttopic)}, @{$self->topic_fired_data($origtopic)});
+    $log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $origtopic);
+    $self->reset_topic_fired_data($origtopic);
 }
 # ----------------------------------------------------------------------------------------
 sub _register_helper {
@@ -356,14 +411,14 @@ sub _storage_helper {
     my $symbol = $event;
     substr($symbol, -1, 1, '');
     my $rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ];
-    $log->tracef('[%s] %s', whoami(__PACKAGE__), $rc);
+    $log->tracef('[%s[%d]] %s', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
 sub _data_flag {
     my ($cb, $self, $outerSelf, $flag, $value, @events) = @_;
 
-    $log->debugf('[%s] Setting \'%s\' flag to %d', whoami(__PACKAGE__), $flag, $value);
+    $log->debugf('[%s[%d]] Setting \'%s\' flag to %d', whoami(__PACKAGE__), $self->currentTopicLevel, $flag, $value);
     $self->hscratchpad($flag, $value);
 }
 # ----------------------------------------------------------------------------------------
@@ -373,7 +428,7 @@ sub _data_storage {
     my $rc = undef;
     if ($self->hscratchpad($flag)) {
 	$rc = _storage_helper($cb, $self, $outerSelf, $genome);
-	$log->debugf('[%s] Storing \'%s\' value: %s', whoami(__PACKAGE__), $genome, $rc);
+	$log->debugf('[%s[%d]] Storing \'%s\' value: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $genome, $rc);
     }
     return $rc;
 }
@@ -392,97 +447,100 @@ sub _register_genome_callbacks {
 sub _register_rule_callbacks {
     my ($self, $outerSelf, $hashp) = @_;
 
+    # Rule model:
+    # LHS ::= RHS1 RHS2 ... RHSn
     #
-    # Aggregate all the necessary flags
-    #
-    my $lhs = $hashp->{lhs};
-    my @topics = ();
-    foreach (keys %{$hashp->{rhs}}) {
-	push(@topics, $lhs . $_);
-    }
+    # Events/topics used:
+    # <LHS$>       event
+    # <Gx$>        event
+    # 'LHSRHSnTmp' topic but nothing depend on it. This is juste a storage area.
+    # 'LHSRHSn'    topic but nothing depend on it. This is juste a storage area.
+    # <LHSRHSn$>   event
+    # <LHSRHSn$>   cleaner event
 
     #
     # The priorities should be:
-    # - "xxxOn"              4
-    # - "xxx"                3       because we want to store data before ./..
-    # - "xxxOff"             2       ./.. the off flag.
-    # - 'lhs$'               1       because of eventual grammar cycles ./..
-    # - 'zzz'                0       ./.. we want to reset after completion. Usualy 'zzz' is '^lhs'.
+    # - <Gx$>                3       Because we want to store genome data first
+    # - <LHSRHSn$>/cleaner   2       Because we want to make sure data is clean before pushing
+    # - <LHSRHSn$>           1       Push data
+    # - <LHS$>               0       Check data
 
     #
-    # Register data initializer, it aims to have a higher priority than
-    # the registered topics, although not necessary in our model.
-    # But take care, in case of recursivity one can have both
-    # '^$lhs' and '$lhs$'. This mean that '$lhs$' must have higher
-    # priority than '^$lhs'
+    # register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...> AND get <Gx,y,...> data
     #
-
-    #
-    # Register callbacks that are setting the flags
-    #
-    my @flags = ();
-    foreach my $topic (@topics) {
-	my $flag = $topic . 'Flag';
-	push(@flags, $flag);
-	foreach my $switch (qw/On Off/) {
-	    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-			    (
-			     description => $topic . $switch,
-			     method =>  [ \&_data_flag, $self, $outerSelf, $flag, $switch eq 'On' ? 1 : 0 ],
-			     option => MarpaX::Languages::C::AST::Callback::Option->new
-			     (
-			      condition => [ [qw/auto/] ],
-			      priority => $switch eq 'On' ? 4 : 2,
-			     )
-			    )
-		);
-	}
+    my @topics = ();
+    my $i = 0;
+    my $rhsCleaner = '';
+    foreach (@{$hashp->{rhs}}) {
+      my ($rhs, $genomep) = @{$_};
+      if ($i++ == 0) {
+        $rhsCleaner = $rhs;
+      }
+      my $topic = $rhs;
+      push(@topics, $topic);
+      my $topicTmp = $topic . 'Tmp';
+      foreach my $genome (@{$genomep}) {
+        $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                        (
+                         description => $genome,
+                         method =>  [ \&_storage_helper, $self, $outerSelf, $genome ],
+                         option => MarpaX::Languages::C::AST::Callback::Option->new
+                         (
+                          condition => [ [qw/auto/ ] ],
+                          topic => {$topicTmp => 1},
+                          topic_persistence => 'level',
+                          priority => 3,
+                         )
+                        )
+                       );
+      }
+      $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                      (
+                       description => $rhs . '$',
+                       method =>  [ \&_push_and_reset_helper, $self, $outerSelf, $topic, $topicTmp ],
+                       method_void => 1,
+                       option => MarpaX::Languages::C::AST::Callback::Option->new
+                       (
+                        topic => {$topic => 1, $topicTmp => 1},
+                        topic_persistence => 'level',
+                        condition => [ [qw/auto/ ] ],
+                        priority => 1,
+                       )
+                      )
+                     );
     }
-
     #
-    # Register topics
+    # Register reset procedure
     #
-    my @datas = ();
-    foreach (keys %{$hashp->{rhs}}) {
-	my $data = $lhs . $_;
-	push(@datas, $data);
-	my $flag = $data . 'Flag';
-	foreach my $genome (@{$hashp->{rhs}->{$_}}) {
-	    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-			    (
-			     description => $data,
-			     method =>  [ \&_data_storage, $self, $outerSelf, $data . 'Flag', $genome ],
-			     option => MarpaX::Languages::C::AST::Callback::Option->new
-			     (
-			      condition => [ [ sub {my $cb = shift;
-						    my $self = shift;
-						    my $genome = shift;
-						    my $flag = shift;
-						    return 0 if (! $self->hscratchpad($flag));
-						    return grep {$_ eq $genome} @_; }, $self, $genome, $flag ] ],
-			      topic => {$data => 1},
-			      topic_persistence => 'level',
-			      priority => 3,
-			     )
-			    )
-		);
-	}
-    }
-
+    my $cleanerTopic = $rhsCleaner . 'Resetted';
+    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                    (
+                     description => $rhsCleaner . '$',
+                     method =>  [ \&_reset_helper, $self, $outerSelf, $cleanerTopic, [ @topics ] ],
+                     method_void => 1,
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      topic => {$cleanerTopic => 1},
+                      topic_persistence => 'level',
+                      condition => [ [qw/auto/ ] ],
+                      priority => 2,
+                     )
+                    )
+                   );
     #
     # Register check procedure
     #
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
-		     description => "$lhs\$",
-		     method =>  [ $hashp->{method}, $self, $outerSelf, [ @topics ] ],
+		     description => $hashp->{lhs} . '$',
+		     method =>  [ $hashp->{method}, $self, $outerSelf, $cleanerTopic, [ @topics ] ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
 		      condition => [ [ qw/auto/ ] ],
 		      priority => 1
 		     )
 		    )
-	);
+                   );
 
 }
 
@@ -490,11 +548,11 @@ sub _declarationDeclarationSpecifiers {
     my ($cb, $self, $outerSelf, $topicsp) = @_;
 
     foreach (qw/declarationDeclarationSpecifiersdeclarationSpecifiers declarationDeclarationSpecifiersinitDeclaratorList/) {
-	$log->debugf('[%s] %s = %s', whoami(__PACKAGE__), $_, $self->topic_data($_));
+	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel, $_, $self->topic_fired_data($_));
     }
 
-    my $declarationDeclarationSpecifiersdeclarationSpecifiers = $self->topic_data('declarationDeclarationSpecifiersdeclarationSpecifiers') || [];
-    my $declarationDeclarationSpecifiersinitDeclaratorList = $self->topic_data('declarationDeclarationSpecifiersinitDeclaratorList') || [];
+    my $declarationDeclarationSpecifiersdeclarationSpecifiers = $self->topic_fired_data('declarationDeclarationSpecifiersdeclarationSpecifiers') || [];
+    my $declarationDeclarationSpecifiersinitDeclaratorList = $self->topic_fired_data('declarationDeclarationSpecifiersinitDeclaratorList') || [];
 
     #
     # Count the number of typedef - Note that we are NOT here doing a grammar check on the number of storageSpecifier
@@ -510,7 +568,7 @@ sub _declarationDeclarationSpecifiers {
     }
 
     foreach (@{$topicsp}) {
-	$log->debugf('[%s] Reset \'%s\' topic data', whoami(__PACKAGE__), $_);
+	$log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
 	$self->reset_topic_fired_data($_);
     }
 }
@@ -519,27 +577,27 @@ sub _functionDefinition {
     my ($cb, $self, $outerSelf, $topicsp) = @_;
 
     foreach (qw/functionDefinitiondeclarationSpecifiers functionDefinitiondeclarationList/) {
-	$log->debugf('[%s] %s level %d = %s', whoami(__PACKAGE__), $_, $self->currentTopicLevel    , $self->topic_data($_));
-	$log->debugf('[%s] %s level %d = %s', whoami(__PACKAGE__), $_, $self->currentTopicLevel - 1, $self->topic_data($_, -1));
+	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel, $_, $self->topic_level_fired_data($_));
+	$log->debugf('[%s[%d]] %s = %s', whoami(__PACKAGE__), $self->currentTopicLevel-1, $_, $self->topic_level_fired_data($_, -1));
     }
 
-    my $functionDefinitiondeclarationSpecifiers = $self->topic_data('functionDefinitiondeclarationSpecifiers', -1) || [];
-    my $functionDefinitiondeclarationList = $self->topic_data('functionDefinitiondeclarationList', -1) || [];
+    my $functionDefinitiondeclarationSpecifiers = $self->topic_level_fired_data('functionDefinitiondeclarationSpecifiers', -1) || [];
+    my $functionDefinitiondeclarationList = $self->topic_level_fired_data('functionDefinitiondeclarationList', -1) || [];
 
     #
     # Count the number of typedef
     #
     if (scalar(@{$functionDefinitiondeclarationSpecifiers}) > 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationSpecifiers->[0]};
-	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationSpecifiers\n%s", whoami(__PACKAGE__), $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationSpecifiers\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
     if (scalar(@{$functionDefinitiondeclarationList}) > 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitiondeclarationList->[0]};
-	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationList\n%s", whoami(__PACKAGE__), $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	$outerSelf->_croak("[%s] %s is not allowed in functionDefinition\'s declarationList\n%s", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
 
     foreach (@{$topicsp}) {
-	$log->debugf('[%s] Reset \'%s\' topic data', whoami(__PACKAGE__), $_);
+	$log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
 	$self->reset_topic_fired_data($_, -1);
     }
 }

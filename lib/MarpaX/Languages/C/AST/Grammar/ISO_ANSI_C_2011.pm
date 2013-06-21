@@ -290,14 +290,24 @@ expression
 
 constantExpression
 	::= conditionalExpression # with constraints
-event '^declarationDeclarationSpecifiersDeclarationSpecifiers' = predicted <declarationDeclarationSpecifiersDeclarationSpecifiers>
-event 'declarationDeclarationSpecifiersDeclarationSpecifiers$' = completed <declarationDeclarationSpecifiersDeclarationSpecifiers>
-declarationDeclarationSpecifiersDeclarationSpecifiers ::= declarationSpecifiers action => deref
-declarationDeclarationSpecifiers ::= declarationDeclarationSpecifiersDeclarationSpecifiers initDeclaratorList SEMICOLON  action => deref
+
+# ###############################################################################################
+# A directDeclarator introduces a typedefName only when it eventually participates in the grammar
+# rule:
+# declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
+# ###############################################################################################
+event 'declarationCheck01declarationSpecifiers$' = completed <declarationCheck01declarationSpecifiers>
+declarationCheck01declarationSpecifiers ::= declarationSpecifiers action => deref
+
+event 'declarationCheck01initDeclaratorList$' = completed <declarationCheck01initDeclaratorList>
+declarationCheck01initDeclaratorList    ::= initDeclaratorList    action => deref
+
+event 'declarationCheck01$' = completed <declarationCheck01>
+declarationCheck01 ::= declarationCheck01declarationSpecifiers declarationCheck01initDeclaratorList SEMICOLON
 
 declaration
 	::= declarationSpecifiers SEMICOLON
-	| declarationDeclarationSpecifiers                    action => deref
+	| declarationCheck01                                      action => deref_and_bless_declaration
 	| staticAssertDeclaration
 
 declarationSpecifiers
@@ -312,8 +322,6 @@ declarationSpecifiers
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
 
-event '^initDeclaratorList' = predicted <initDeclaratorList>
-event 'initDeclaratorList$' = completed <initDeclaratorList>
 initDeclaratorList
 	::= initDeclarator
 	| initDeclaratorList COMMA initDeclarator
@@ -451,7 +459,6 @@ typeQualifierList
 	::= typeQualifier
 	| typeQualifierList typeQualifier
 
-event 'parameterTypeList$' = completed <parameterTypeList>
 parameterTypeList
 	::= parameterList COMMA ELLIPSIS
 	| parameterList
