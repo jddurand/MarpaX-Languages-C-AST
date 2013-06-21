@@ -4,10 +4,11 @@ use warnings FATAL => 'all';
 package MarpaX::Languages::C::AST::Callback::Method;
 use MarpaX::Languages::C::AST::Callback::Option;
 use Class::Struct
-    description   => '$',
-    method        => '@',        # [ CODE ref, CODE ref arguments ]
-    method_void   => '$',        # Prevent push to topic data
-    option        => 'MarpaX::Languages::C::AST::Callback::Option',
+    description        => '$',
+    extra_description  => '$',
+    method             => '@',        # [ CODE ref, CODE ref arguments ]
+    method_void        => '$',        # Prevent push to topic data
+    option             => 'MarpaX::Languages::C::AST::Callback::Option',
     ;
 
 # ABSTRACT: Code reference for the Simple callback generic framework.
@@ -24,7 +25,11 @@ This module is describing the code reference for the Simple Callback framework. 
 
 =item description
 
-Any string that describes this event
+Any string that describes this event. This string is usually the event itself for convenience with the qw/auto/ condition.
+
+=item extra_description
+
+Any string that describes this event even more. Used only for logging in case the description is set to the event name for convenience with the qw/auto/ condition.
 
 =item method
 
