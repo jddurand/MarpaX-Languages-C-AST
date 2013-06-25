@@ -612,7 +612,6 @@ fileScopeDeclarator ::= declarator            action => deref_and_bless_declarat
 event 'reenterScope[]' = nulled <reenterScope>
 reenterScope ::=
 
-event '^functionDefinition' = predicted <functionDefinition>
 functionDefinition
 	::= functionDefinitionCheck1
 	| functionDefinitionCheck2
@@ -622,11 +621,14 @@ event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
 functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator (<reenterScope>) functionDefinitionCheck1declarationList compoundStatementWithMaybeEnterScope action => deref
 functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator (<reenterScope>)                                         compoundStatementWithMaybeEnterScope action => deref
 
+event '^functionDefinitionCheck1declarationSpecifiers' = predicted <functionDefinitionCheck1declarationSpecifiers>
+event '^functionDefinitionCheck2declarationSpecifiers' = predicted <functionDefinitionCheck2declarationSpecifiers>
 event 'functionDefinitionCheck1declarationSpecifiers$' = completed <functionDefinitionCheck1declarationSpecifiers>
 event 'functionDefinitionCheck2declarationSpecifiers$' = completed <functionDefinitionCheck2declarationSpecifiers>
 functionDefinitionCheck1declarationSpecifiers ::= declarationSpecifiers action => deref
 functionDefinitionCheck2declarationSpecifiers ::= declarationSpecifiers action => deref
 
+event '^functionDefinitionCheck1declarationList' = predicted <functionDefinitionCheck1declarationList>
 event 'functionDefinitionCheck1declarationList$' = completed <functionDefinitionCheck1declarationList>
 functionDefinitionCheck1declarationList ::= declarationList action => deref
 

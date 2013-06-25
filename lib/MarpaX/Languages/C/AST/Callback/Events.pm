@@ -540,10 +540,8 @@ sub _push_and_reset_helper {
     foreach (@{$topicsp}) {
 	my $topic = $_;
 	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting topic \'%s\' data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $self->topic_fired_data($topic));
-	if (defined($self->topic_fired_data($topic))) {
-	    push(@rc, @{$self->topic_fired_data($topic)});
-	    $self->topic_fired_data($topic, []);
-	}
+	push(@rc, @{$self->topic_fired_data($topic)});
+	$self->topic_fired_data($topic, []);
     }
 
     $log->debugf('%s[%s[%d]] Callback \'%s\', collected data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, \@rc);
