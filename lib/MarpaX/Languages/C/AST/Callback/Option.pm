@@ -38,7 +38,7 @@ A hash of subscription (to topics). Key can be a topic or a regexp. Any true val
 
 =item subscriptionMode (to topics)
 
-It can be 'required' or 'optional'. Default is 'required'. When the value is 'required', it acts a a filter to eventual condition: all subscribed topics must have been raised. Otherwise, the callback remain sligible if its condition is true and there would be no subscribed topic raised.
+It can be 'required' or 'optional'. Default is 'required'. When the value is 'required', it acts a a filter to eventual condition: all subscribed topics must have been raised. Otherwise, the callback remain eligible if its condition is true and there would be no subscribed topic raised.
 
 =item condition
 

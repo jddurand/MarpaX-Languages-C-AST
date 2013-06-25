@@ -22,18 +22,7 @@ Log::Any::Adapter->set('Log4perl');
 # Parse C
 #
 my $cSourceCode = do { local $/; <DATA> };
-my $cAstObject = MarpaX::Languages::C::AST->new();
-print Dumper($cAstObject->parse(\$cSourceCode));
+$log->infof("Source code:\n%s", $cSourceCode);
+MarpaX::Languages::C::AST->new()->parse(\$cSourceCode);
 __DATA__
-typedef typedef struct test_ {int i;} s_test_, *sp_test_;
-int operation(x1, y1)
-    int x1;
-    int y1;
-{
-    typedef struct test2_ {int i2;} s_test2_, *sp_test2_;
-    typedef struct test3_ {int i3;} s_test3_, *sp_test3_;
-    int z;
-
-    x1 = 0;
-}
-
+void func(x ,y) int x; typedef y; {}

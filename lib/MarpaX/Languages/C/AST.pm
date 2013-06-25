@@ -218,21 +218,36 @@ sub _doLexeme {
   my $lexeme = $self->{_impl}->pause_lexeme();
   return if (! defined($lexeme));
 
+  my %events = ();
+  my $iEvent = 0;
+  while (defined($_ = $self->{_impl}->event($iEvent++))) {
+    ++$events{$_->[0]};
+  }
+
   #
   # Determine the correct lexeme
   #
   my ($start, $length) = $self->{_impl}->pause_span();
+  my ($line, $column) = $self->{_impl}->line_column($start);
   my $lexeme_value = $self->{_impl}->literal($start, $length);
-  my $newlexeme =
-    $self->{_scope}->parseIsTypedef($lexeme_value) ? 'TYPEDEF_NAME' :
-      $self->{_scope}->parseIsEnum($lexeme_value)  ? 'ENUMERATION_CONSTANT' :
-        'IDENTIFIER';
+  my $newlexeme;
+  if (defined($events{'onlyIdentifier[]'})) {
+      $newlexeme = 'IDENTIFIER';
+  } elsif (defined($self->{_callbackEvents}->topic_level_fired_data('^typedefnameLexeme')) &&
+      $self->{_scope}->parseIsTypedef($lexeme_value)) {
+      $newlexeme = 'TYPEDEF_NAME';
+  } elsif (defined($self->{_callbackEvents}->topic_level_fired_data('^enumerationConstantLexeme')) &&
+	   $self->{_scope}->parseIsEnum($lexeme_value)) {
+      $newlexeme = 'ENUMERATION_CONSTANT';
+  } else {
+      $newlexeme = 'IDENTIFIER';
+  }
   #
   # Push the unambiguated lexeme
   #
-  $log->debugf('[%s] Pushing lexeme %s \'%s\'', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
+  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
   if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
-      $self->_croak("[%s] Lexeme value '%s' cannot be associated to lexeme name %s at position %d and length %d", whoami(__PACKAGE__), $lexeme_value, $newlexeme, $start, $length);
+      $self->_croak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
   }
   #
   # A lexeme_read() can generate an event

@@ -10,6 +10,7 @@ use Class::Struct
   #
   # External attributes
   #
+    log_prefix              => '$',   # Prepended to every log
   hscratchpad             => '%',   # User working area
   ascratchpad             => '@',   # User working area
   sscratchpad             => '$',   # User working area
@@ -17,6 +18,7 @@ use Class::Struct
   # Internal attributes
   #
   cb                      => '@', # List of methods.
+  cb_unregistered         => '@', # List of unregistered methods, post-processed if done during fire()
   topic_fired             => '%', # Remember what are the eligible cb's topics.
   topic_fired_data        => '%', # Remember what are the eligible cb's topics data.
   topic_fired_persistence => '%', # Remember what are the eligible cb's topics persistence.
@@ -24,7 +26,9 @@ use Class::Struct
   ncb                     => '$', # Number of methods.
   prioritized_cb          => '@', # Prioritized list of methods, for efficiency.
   prioritized_cb_tofire   => '@', # Remember what cb are eligible.
+  prioritized_cb_fired    => '@', # Remember what cb were fired
   arguments               => '@', # List of arguments to the exec method.
+  firing                  => '$'
   ;
 
 # ABSTRACT: Simple but powerful callback generic framework that depend on nothing else but core modules.
@@ -40,8 +44,12 @@ use Carp qw/croak/;
 
 =cut
 
-sub _sort($$) {
+sub _sort_by_option_priority_desc ($$) {
   return $_[1]->option->priority <=> $_[0]->option->priority;
+}
+
+sub _sort_by_numeric_desc ($$) {
+  return $_[1] <=> $_[0];
 }
 
 sub register {
@@ -49,6 +57,12 @@ sub register {
 
   if (ref($cb) ne 'MarpaX::Languages::C::AST::Callback::Method') {
     croak 'argument bust be a reference to a MarpaX::Languages::C::AST::Callback::Method object';
+  }
+  #
+  # Sanitize self
+  #
+  if (! defined($self->log_prefix)) {
+      $self->log_prefix('');
   }
 
   #
@@ -61,9 +75,15 @@ sub register {
     if (! @{$cb->method}) {
       croak 'method is a reference to an empty array';
     }
-    if (ref(($cb->method)->[0]) ne 'CODE') {
-      croak 'method must be an ARRAY ref starting with a CODE reference';
+    if (ref(($cb->method)->[0]) ne 'CODE' && (! ref($cb->method) && $cb->method eq 'auto')) {
+      croak 'method must be an ARRAY ref starting with a CODE reference, or the string \'auto\'';
     }
+  }
+  if (! defined($cb->method_mode)) {
+    $cb->method_mode('push');
+  }
+  if ($cb->method_mode ne 'push' && $cb->method_mode ne 'replace') {
+    croak 'method_mode must be \'push\' or \'replace\'';
   }
   #
   # Sanitize $cb->option
@@ -110,9 +130,43 @@ sub register {
   $self->ncb(0) if (! defined($self->ncb));
   $self->cb($self->ncb, $cb);
   $self->ncb($self->ncb + 1);
+  $self->prioritized_cb([sort _sort_by_option_priority_desc  @{$self->cb}]);
 
-  $log->tracef('[%s[%d]] Registering callback \'%s\', topic %s, topic persistence \'%s\', subscription %s, condition %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $cb->option->topic, $cb->option->topic_persistence, $cb->option->subscription, $cb->option->condition);
-  $self->prioritized_cb([sort _sort @{$self->cb}]);
+  $log->tracef('%s[%s[%d]] Registered callback \'%s\', topic %s, topic persistence \'%s\', subscription %s, priority %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $cb->option->topic, $cb->option->topic_persistence, $cb->option->subscription, $cb->option->priority);
+
+  #
+  # We return the indice within Callback
+  #
+  return $self->ncb - 1;
+}
+
+sub _unregister {
+    my $self = shift;
+
+    foreach (sort _sort_by_numeric_desc @_) {
+
+	my $cb = $self->cb($_);
+	croak "Unknown callback indice $_" if (! defined($cb));
+
+	splice(@{$self->cb}, $_, 1);
+	$self->ncb($self->ncb - 1);
+	$self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}]);
+	
+	$log->tracef('%s[%s[%d]] Unregistered callback \'%s\', indice %d, topic %s, topic persistence \'%s\', subscription %s, condition %s, priority %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $_, $cb->option->topic, $cb->option->topic_persistence, $cb->option->subscription, $cb->option->condition, $cb->option->priority);
+
+    }
+
+}
+
+sub unregister {
+  my $self = shift;
+
+  my $firing = $self->firing() || 0;
+  if (! $firing) {
+      return $self->_unregister(@_);
+  } else {
+      push(@{$self->cb_unregistered}, @_);
+  }
 }
 
 sub exec {
@@ -129,15 +183,21 @@ sub exec {
   # Fire everything that is eligible
   #
   $self->_fire();
+  #
+  # And post-process eventual unregistrations
+  #
+  $self->_unregister(@{$self->cb_unregistered});
+  $self->cb_unregistered([]);
 }
 
 sub _inventory_condition_tofire {
   my $self = shift;
-  my $nOKfound = 0;
+  my $nbConditionOK = 0;
   my $nbNewTopics = 0;
   foreach (my $i = 0; $i < $self->ncb; $i++) {
     my $cb = $self->prioritized_cb($i);
     my $option = $cb->option;
+    my $conditionMode = $option->conditionMode;
 
     my @condition = ();
     foreach my $condition (@{$option->condition}) {
@@ -155,18 +215,18 @@ sub _inventory_condition_tofire {
     my $condition = 0;
     if (@condition) {
       $condition = shift(@condition);
-      if ($condition eq 'and') {
+      if ($conditionMode eq 'and') {
         foreach (@condition) {
           $condition &&= $_;
         }
-      } elsif ($condition eq 'or') {
+      } elsif ($conditionMode eq 'or') {
         foreach (@condition) {
           $condition ||= $_;
         }
       }
     }
     if ($condition) {
-      $log->tracef('[%s[%d]] Condition OK for callback \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
+      $log->tracef('%s[%s[%d]] Condition OK for callback \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
       $self->prioritized_cb_tofire($i, 1);
       #
       # Initialize the associated topics if needed
@@ -179,50 +239,70 @@ sub _inventory_condition_tofire {
           $self->topic_fired_persistence($topic, $option->topic_persistence);
           if (! defined($self->topic_fired_data($topic))) {
             $self->topic_fired_data($topic, []);
-            $log->tracef('[%s[%d]] Created topic \'%s\' with persistence \'%s\' and data %s', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->topic_fired_persistence($topic), $self->topic_fired_data($topic));
+            $log->debugf('%s[%s[%d]] Created topic \'%s\' with persistence \'%s\' and data %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->topic_fired_persistence($topic), $self->topic_fired_data($topic));
 	    ++$nbNewTopics;
           }
         }
       }
-      ++$nOKfound;
+      ++$nbConditionOK;
     } else {
       if (@condition) {
-        $log->tracef('[%s[%d]] Condition KO for callback \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
+        $log->tracef('%s[%s[%d]] Condition KO for callback \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
         $self->prioritized_cb_tofire($i, -1);
       } else {
-        # $log->tracef('[%s[%d]] Condition NA for callback \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
+        # $log->tracef('%s[%s[%d]] Condition NA for callback \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
       }
     }
   }
   if ($nbNewTopics) {
-      $log->tracef('[%s[%d]] %d conditions OK and %d topics created : redo inventory', whoami(__PACKAGE__), $self->currentTopicLevel, $nOKfound, $nbNewTopics);
-      return $self->_inventory_condition_tofire;
+      $log->debugf('%s[%s[%d]] %d conditions OK and %d topics created', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $nbConditionOK, $nbNewTopics);
   } else {
-      $log->tracef('[%s[%d]] %d conditions OK', whoami(__PACKAGE__), $self->currentTopicLevel, $nOKfound);
+      $log->debugf('%s[%s[%d]] %d conditions OK', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $nbConditionOK);
   }
+  return $nbNewTopics;
 }
 
 sub _fire {
   my $self = shift;
 
+  $self->firing(1);
+
   #
-  # Make sure the raised topic data always exist
+  # Make sure the raised topic data always exist.
+  # It is very important that this routine is safe v.s. any on-the-fly registration
+  # or unregistration. Thus all dependencies are expressed in the beginning.
+  # This mean that nay on-the-flu registration/unregistration will happend at NEXT round.
   #
-  foreach (my $i = 0; $i < $self->ncb; $i++) {
-    if ($self->prioritized_cb_tofire($i) <= 0) {
+  my $ncb = $self->ncb;
+  my @prioritized_cb_tofire = @{$self->prioritized_cb_tofire};
+  my @prioritized_cb_fired = @{$self->prioritized_cb_fired};
+  my @prioritized_cb = @{$self->prioritized_cb};
+  foreach (my $i = 0; $i < $ncb; $i++) {
+    if ($prioritized_cb_tofire[$i] <= 0) {
       # -1: Condition KO
       # -2: Condition NA and Subscription NA
       # -3: Subscription KO
       next;
     }
+    my $cb = $prioritized_cb[$i];
+    if ($prioritized_cb_fired[$i]) {
+      # already fired
+      $log->tracef('%s[%s[%d]] Method for callback No %d \'%s\' already fired', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
+      next;
+    }
     #
     # Fire the callback (if there is a method)
     #
-    my $cb = $self->prioritized_cb($i);
+    $self->prioritized_cb_fired($i, 1);
     if (defined($cb->method)) {
-      my ($method, @arguments) = @{$cb->method};
-      $log->tracef('[%s[%d]] Calling method for callback No %d \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
-      my $rc = $cb->$method(@arguments, @{$self->arguments()});
+      my @rc;
+      if (ref($cb->method) eq 'ARRAY') {
+        my ($method, @arguments) = @{$cb->method};
+        $log->tracef('%s[%s[%d]] Calling method for callback No %d \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
+        @rc = $cb->$method(@arguments, @{$self->arguments()});
+      } else {
+        @rc = $self->topic_fired_data($cb->description) || [];
+      }
       #
       # Push result to data attached to every topic of this callback
       #
@@ -232,13 +312,30 @@ sub _fire {
           next if (! defined($option->topic($topic)));
           next if (! $option->topic($topic));
           my $topic_fired_data = $self->topic_fired_data($topic) || [];
-	  $log->tracef('[%s[%d]] Pushing %s to \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $rc, $topic);
-          push(@{$topic_fired_data}, $rc);
+          if (ref($cb->method) eq 'ARRAY') {
+            if ($cb->method_mode eq 'push') {
+              $log->tracef('%s[%s[%d]] Pushing method output to \'%s\' topic data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic);
+              push(@{$topic_fired_data}, @rc);
+            } else {
+              $log->tracef('%s[%s[%d]] Putting method output to \'%s\' topic data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic);
+              @{$topic_fired_data} = @rc;
+            }
+          } else {
+            if ($cb->method_mode eq 'push') {
+              $log->tracef('%s[%s[%d]] Pushing \'%s\' output to \'%s\' topic data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->description, $topic);
+              push(@{$topic_fired_data}, @rc);
+            } else {
+              $log->tracef('%s[%s[%d]] Putting \'%s\' output to \'%s\' topic data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->description, $topic);
+              @{$topic_fired_data} = @rc;
+            }
+          }
           $self->topic_fired_data($topic, $topic_fired_data);
         }
       }
     }
   }
+
+  $self->firing(0);
 }
 
 sub topic_level_fired_data {
@@ -280,7 +377,7 @@ sub _inventory_initialize_topic {
   foreach my $topic (keys %{$self->topic_fired}) {
     my $persistence = $self->topic_fired_persistence($topic);
     if (grep {$_ eq $persistence} qw/any level/) {
-      $log->tracef('[%s[%d]] Keeping topic \'%s\' with persistence \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $persistence);
+      $log->tracef('%s[%s[%d]] Keeping topic \'%s\' with persistence \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $persistence);
       $keep_topic_fired->{$topic} = $self->topic_fired($topic);
       $keep_topic_fired_persistence->{$topic} = $self->topic_fired_persistence($topic);
       $keep_topic_fired_data->{$topic} = $self->topic_fired_data($topic);
@@ -293,8 +390,17 @@ sub _inventory_initialize_topic {
 
 sub _inventory_initialize_tofire {
   my $self = shift;
+  $log->tracef('%s[%s[%d]] Initializing prioritized_cb_tofire', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
   foreach (my $i = 0; $i < $self->ncb; $i++) {
       $self->prioritized_cb_tofire($i, 0);
+  }
+}
+
+sub _inventory_initialize_fired {
+  my $self = shift;
+  $log->tracef('%s[%s[%d]] Initializing prioritized_cb_fired', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
+  foreach (my $i = 0; $i < $self->ncb; $i++) {
+      $self->prioritized_cb_fired($i, 0);
   }
 }
 
@@ -309,16 +415,26 @@ sub _inventory_fire {
   #
   # Resume
   #
-  $log->tracef('[%s[%d]] Fired topics: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('[%s[%d]] Fired topics persistence: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('[%s[%d]] Eligible callbacks: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->prioritized_cb_tofire);
+  $log->tracef('%s[%s[%d]] Fired topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired);
+  $log->tracef('%s[%s[%d]] Fired topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->tracef('%s[%s[%d]] Eligible callbacks: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->prioritized_cb_tofire);
+  $log->tracef('%s[%s[%d]] Already fired callbacks: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->prioritized_cb_fired);
 }
 
 sub _inventory {
   my $self = shift;
-  $self->_inventory_initialize_tofire();
-  $self->_inventory_condition_tofire();
-  $self->_inventory_subscription_tofire();
+  my $nbTopicsCreated = 0;
+  do {
+      $self->_inventory_initialize_tofire();
+      $self->_inventory_initialize_fired();
+      $nbTopicsCreated += $self->_inventory_condition_tofire();
+      $nbTopicsCreated += $self->_inventory_subscription_tofire();
+      if ($nbTopicsCreated > 0) {
+	  $log->debugf('%s[%s[%d]] %d topics created: fire eligible methods and redo inventory', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $nbTopicsCreated);
+	  $self->_fire();
+	  $nbTopicsCreated = 0;
+      }
+  } while ($nbTopicsCreated > 0);
 }
 
 sub _inventory_subscription_tofire {
@@ -326,6 +442,8 @@ sub _inventory_subscription_tofire {
   #
   # This is a loop because when a new callback is eligible there might be new topics
   #
+  my $nbNewTopics = 0;
+  my $nbSubscriptionOK = 0;
   foreach (my $i = 0; $i < $self->ncb; $i++) {
     my $cb = $self->prioritized_cb($i);
     my $option = $cb->option;
@@ -361,7 +479,7 @@ sub _inventory_subscription_tofire {
       #
       # no condition was setted and no subscription is raised
       #
-      # $log->tracef('[%s[%d]] Subscription NA for callback \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
+      # $log->tracef('%s[%s[%d]] Subscription NA for callback \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
       $self->prioritized_cb_tofire($i, -2);
       next;
     }
@@ -370,7 +488,7 @@ sub _inventory_subscription_tofire {
       #
       # There are active subscription not raised, and subscriptionMode is 'required'
       #
-      # $log->tracef('[%s[%d]] Subscription KO for callback \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
+      # $log->tracef('%s[%s[%d]] Subscription KO for callback \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description);
       $self->prioritized_cb_tofire($i, -3);
       next;
     }
@@ -379,11 +497,11 @@ sub _inventory_subscription_tofire {
       #
       # There must have been topic subscription being raised
       #
-      $log->tracef('[%s[%d]] Subscription OK for callback \'%s\': %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, \%subscribed);
+      $log->tracef('%s[%s[%d]] Subscription OK for callback \'%s\': %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, \%subscribed);
       $self->prioritized_cb_tofire($i, 1);
+      ++$nbSubscriptionOK;
     }
 
-    my $nbTopicCreated = 0;
     foreach my $topic (keys %{$option->topic}) {
       next if (! defined($option->topic($topic)));
       next if (! $option->topic($topic));
@@ -391,18 +509,17 @@ sub _inventory_subscription_tofire {
         $self->topic_fired($topic, 1);
         $self->topic_fired_persistence($topic, $option->topic_persistence);
         $self->topic_fired_data($topic, []);
-        $log->tracef('[%s[%d]] Created topic \'%s\' with persistence \'%s\' and empty data', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->topic_fired_persistence($topic));
-        ++$nbTopicCreated;
+        $log->tracef('%s[%s[%d]] Created topic \'%s\' with persistence \'%s\' and data %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->topic_fired_persistence($topic), $self->topic_fired_data($topic));
+        ++$nbNewTopics;
       }
     }
-    if ($nbTopicCreated) {
-      $log->tracef('[%s[%d]] %d topic(s) has been created - redo initialisation', whoami(__PACKAGE__), $self->currentTopicLevel, $nbTopicCreated);
-      #
-      # Take care: this is recursive
-      #
-      $self->_inventory();
-    }
   }
+  if ($nbNewTopics) {
+      $log->debugf('%s[%s[%d]] %d subscriptions OK and %d topics created', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $nbSubscriptionOK, $nbNewTopics);
+  } else {
+      $log->debugf('%s[%s[%d]] %d subscriptions OK', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $nbSubscriptionOK);
+  }
+  return $nbNewTopics;
 }
 
 sub currentTopicLevel {
@@ -417,9 +534,9 @@ sub pushTopicLevel {
   #
   # We push current topics and their persistence into the topic_level
   #
-  $log->tracef('[%s[%d]] Topic level %d: Pushing fired topics: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('[%s[%d]] Topic level %d: Pushing fired topics persistence: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('[%s[%d]] Topic level %d: Pushing fired topics data', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
+  $log->tracef('%s[%s[%d]] Topic level %d: Pushing fired topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
+  $log->tracef('%s[%s[%d]] Topic level %d: Pushing fired topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->tracef('%s[%s[%d]] Topic level %d: Pushing fired topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
   push(@{$self->topic_level}, [ dclone($self->topic_fired), dclone($self->topic_fired_persistence), $self->topic_fired_data ]);
   #
   # We remove from current topics those that do not have the 'any' persistence
@@ -430,7 +547,7 @@ sub pushTopicLevel {
   foreach my $topic (keys %{$self->topic_fired}) {
     my $persistence = $self->topic_fired_persistence($topic);
     if (grep {$_ eq $persistence} qw/any/) {
-      $log->tracef('[%s[%d]] Keeping topic \'%s\' with persistence \'%s\'', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $persistence);
+      $log->tracef('%s[%s[%d]] Keeping topic \'%s\' with persistence \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $persistence);
       $new_topic_fired->{$topic} = $self->topic_fired($topic);
       $new_topic_fired_persistence->{$topic} = $self->topic_fired_persistence($topic);
       $new_topic_fired_data->{$topic} = $self->topic_fired_data($topic);
@@ -440,9 +557,9 @@ sub pushTopicLevel {
   $self->topic_fired_persistence($new_topic_fired_persistence);
   $self->topic_fired_data($new_topic_fired_data);
 
-  $log->tracef('[%s[%d]] Topic level %d: Kept topics: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('[%s[%d]] Topic level %d: Kept topics persistence: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('[%s[%d]] Topic level %d: Kept topics data', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
+  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
+  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
 }
 
 sub popTopicLevel {
@@ -457,9 +574,9 @@ sub popTopicLevel {
   $self->topic_fired_persistence($old_topic_persistence);
   $self->topic_fired_data($old_topic_data);
 
-  $log->tracef('[%s[%d]] Topic level %d: Restored fired topics: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('[%s[%d]] Topic level %d: Restored fired topics persistence: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('[%s[%d]] Topic level %d: Restored fired topics data', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
+  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
+  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
 }
 
 sub reset_topic_fired_data {
@@ -481,11 +598,11 @@ sub reset_topic_fired_data {
 	croak 'int(level) must be 0 or a negative number';
     }
     if ($level == 0) {
-	$log->tracef('[%s[%d]] Topic \'%s\' data reset at current level', whoami(__PACKAGE__), $self->currentTopicLevel, $topic);
+	$log->tracef('%s[%s[%d]] Topic \'%s\' data reset at current level', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic);
 	$self->topic_fired_data($topic, $value);
     } else {
 	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
-	$log->tracef('[%s[%d]] Topic \'%s\' data reset at previous level %d', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->currentTopicLevel + $level);
+	$log->tracef('%s[%s[%d]] Topic \'%s\' data reset at previous level %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $self->currentTopicLevel + $level);
 	$old_topic_data->{$topic} = $value;
     }
 

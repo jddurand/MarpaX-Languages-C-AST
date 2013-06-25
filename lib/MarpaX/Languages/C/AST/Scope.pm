@@ -121,6 +121,13 @@ sub parseEnterEnum {
   $self->{_enumAnyScope}->{$token} = 1;
 
   $log->debugf('[%s] "%s" enum entered', whoami(__PACKAGE__), $token);
+
+  #
+  # Enum wins from now on and forever
+  #
+  foreach (0..$#{$self->{_typedefPerScope}}) {
+      $self->parseObscureTypedef($token, $_);
+  }
 }
 
 =head2 parseObscureTypedef($self, $token)
@@ -130,9 +137,9 @@ Obscures a typedef named $token.
 =cut
 
 sub parseObscureTypedef {
-  my ($self, $token) = @_;
+  my ($self, $token, $scope) = @_;
 
-  my $scope = $#{$self->{_typedefPerScope}};
+  $scope //= $#{$self->{_typedefPerScope}};
   $self->{_typedefPerScope}->[$scope]->{$token} = 0;
 
   $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);

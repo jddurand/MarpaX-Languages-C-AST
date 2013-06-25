@@ -24,11 +24,14 @@ sub new {
     my ($class, $outerSelf) = @_;
     my $self = $class->SUPER();
 
-    # ####################################################################################################
-    # Create topics <Gx> based on "genome" rules with a priority of 1, so that they are always triggered first.
-    # The topic data will always be in an array reference of [ [$line, $column], $last_completion ]
-    # ####################################################################################################
-    $self->_register_genome_callbacks($outerSelf, {priority => 998, topic_persistence => 'none' });
+    # #################################################################################################
+    # For the lexeme that are paused 'before' we want to tell what is the context.
+    # I.e. we want to know if there is a prediction of TYPEDEF_NAME, ENUMERATION_CONSTANT.
+    # Otherwise this will be an identifier.
+    # That's why it is very important to process the events BEFORE the paused lexemes.
+    # We associate a one-shot topic that has no persistence for every pause-before lexeme.
+    # #################################################################################################
+    $self->_register_predictions($outerSelf);
 
     # #######################################################################################################################
     # From now on, the technique is always the same:
@@ -38,26 +41,24 @@ sub new {
     #
     # Suppose we want, at <LHS$> to inspect genome data <Gx,y,...> aggregation associated with rule <RHSn>.
     #
+    # - We create a brand new callback object:
+    # - We make sure LHS rule is unique, creating a proxy rule with action => deref if needed
     # - We make sure <LHS$> completion event exist
-    # - We replace all RHS of interest by LHSRHS, defined as: LHSRHS ::= RHS action => deref
-    #   * This is NOT NECESSARY if RHSn is unique to LHS within all the grammar
     # - We make sure <LHSRHSn$> completion events exist
-    # - We register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...$> AND get <Gx,y,...> data
-    # - We register callbacks 'LHSRHSn$' with topics 'LHSRHSn' and topic data persistence_level 'level' that depend on condition 'LHSRHS$' and that will:
-    #   * push 'LHSRHSnTmp' topic data to 'LHSRHSn' topic data
-    #   * reset 'LHSRHSnTmp' topic data
-    #   * THE FIRST OF THE 'LHSRHSn$' WILL BE RESPONSIBLE TO DO A RESET DATA IF NOT YET DONE
-    # - We register the callback 'LHSRHS$' that depend on condition 'LHSRHS$' and that will do the check
-    #   * THIS EVENT WILL FLAG THE NEED FOR A RESET
+    # - We make sure <^LHSRHSn> predictions events exist
+    # - We create a dedicated callback that is subscribed to every unique <Gx$> and that collect its data
     #
-    # In this technique it is assumed that all RHS are different. Otherwise one would have to use
-    # a temporary RHS "proxy". But this is not the case in the C grammar.
-    # In addition the RHSs be UNIQUE to the whole grammar. Because we cannot affort recursion with them. There is
-    # no problem on the other hand if an RHS depends on something that cycles.
+    # - Every <^LHSRHSn> is resetting the data collections they depend upon
+    # - Every <LHSRHSn$> is copying the data collections they depend upon and reset it
+    # - The first LHSRHS has a special behaviour: if <LHSRHS$> is hitted while there is a pending <LHS$>,
+    #   this mean that we are recursively hitting the rule. This will push one level. Levels are popped off at <LHS$>.
+    #
+    # - We create callbacks to <Gx$> that are firing the inner callback object.
+    #
     # #######################################################################################################################
 
-    # ###############################################################################################
-    # A directDeclarator introduces a typedefName only when it eventually participates in the grammar
+    # ################################################################################################
+    # A directDeclarator introduces a typedef-name only when it eventually participates in the grammar
     # rule:
     # declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
     #
@@ -65,19 +66,21 @@ sub new {
     #
     # declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList
     #                      SEMICOLON action => deref
-    # ###############################################################################################
+    # ################################################################################################
     $self->_register_rule_callbacks($outerSelf,
-				    {
-					lhs => 'declarationCheck',
-					rhs => [ [ 'declarationCheckdeclarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
-						 [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier$'  ] ]
-                                               ],
-					method => \&_declarationCheck,
-					
-				    }
-	);
+                                    {
+                                     lhs => 'declarationCheck',
+                                     rhs => [ [ 'declarationCheckdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
+                                              [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier'  ] ]
+                                            ],
+                                     method => \&_declarationCheck,
+                                    }
+                                   );
 
-    # ###############################################################################################
+
+    # ------------------------------------------------------------------------------------------
+    # directDeclarator constraint
+    # ------------------------------------------------------------------------------------------
     # In:
     # functionDefinition ::= declarationSpecifiers declarator declarationList? compoundStatement
     # typedef is syntactically allowed but never valid in either declarationSpecifiers or
@@ -96,25 +99,89 @@ sub new {
     # Note: We arranged $rcurly to happen at the latest moment.
     #       This mean that functionDefinitionCheckXdeclarationSpecifiers will always belong
     #       to the data of the previous level.
-    # ###############################################################################################
+    # ------------------------------------------------------------------------------------------
     $self->_register_rule_callbacks($outerSelf,
 				    {
 					lhs => 'functionDefinitionCheck1',
-					rhs => [ [ 'functionDefinitionCheck1declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
-						 [ 'functionDefinitionCheck1declarationList',       [ 'storageClassSpecifierTypedef$' ] ]
-                                               ],
-					method => \&_functionDefinitionCheck1,
-					
+					rhs => [ [ 'functionDefinitionCheck1declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
+						 [ 'functionDefinitionCheck1declarationList',       [ 'storageClassSpecifierTypedef' ] ]
+					    ],
+						     method => \&_functionDefinitionCheck1,
+						     
 				    }
 	);
     $self->_register_rule_callbacks($outerSelf,
 				    {
 					lhs => 'functionDefinitionCheck2',
-					rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ 'storageClassSpecifierTypedef$' ] ],
-                                               ],
+					rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
+					    ],
 					method => \&_functionDefinitionCheck2,
 					
 				    }
+	);
+
+    # ------------------------------------------------------------------------------------------
+    # directDeclarator constraint
+    # ------------------------------------------------------------------------------------------
+    # In:
+    # structDeclarator ::= declarator COLON constantExpression | declarator
+    #
+    # ordinary name space names cannot be defined. Therefore all parse symbol activity must be
+    # suspended for structDeclarator.
+    #
+    # We simply create a topic data 'structDeclarator' of persistence 'level', initialized to 0 at
+    # ^structDeclarator and
+    # setted to 1 at structDeclaratordeclarator, where:
+    # structDeclaratordeclarator ::= declarator
+    #
+    # In _declarationCheck(), we suspend activity if the flag is on.
+    #
+    # It has quite a high priority so that the flag is setted before _declarationCheck is
+    # called.
+    # ------------------------------------------------------------------------------------------
+    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+		    (
+		     description => '^structDeclaratordeclarator',
+		     method =>  [ \&_structDeclaratordeclarator, $self, $outerSelf, 0 ],
+		     method_mode => 'replace',
+		     option => MarpaX::Languages::C::AST::Callback::Option->new
+		     (
+		      condition => [ [qw/auto/] ],
+		      topic => {'structDeclaratordeclarator'=> 1},
+		      topic_persistence => 'level',
+		      priority => 500
+		     )
+		    )
+	);
+    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+		    (
+		     description => 'structDeclaratordeclarator$',
+		     method =>  [ \&_structDeclaratordeclarator, $self, $outerSelf, 1 ],
+		     method_mode => 'replace',
+		     option => MarpaX::Languages::C::AST::Callback::Option->new
+		     (
+		      condition => [ [qw/auto/] ],
+		      topic => {'structDeclaratordeclarator'=> 1},
+		      topic_persistence => 'level',
+		      priority => 500
+		     )
+		    )
+	);
+
+    # ################################################################################################
+    # An enumerationConstantIdentifier introduces a enum-name. Full point.
+    # rule:
+    # enumerationConstantIdentifier ::= IDENTIFIER
+    # ################################################################################################
+    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+		    (
+		     description => 'enumerationConstantIdentifier$',
+		     method =>  [ \&_enumerationConstantIdentifier, $self, $outerSelf ],
+		     option => MarpaX::Languages::C::AST::Callback::Option->new
+		     (
+		      condition => [ [qw/auto/] ],
+		     )
+		    )
 	);
 
     # #############################################################################################
@@ -188,13 +255,29 @@ sub new {
     return $self;
 }
 # ----------------------------------------------------------------------------------------
+sub _structDeclaratordeclarator {
+    my ($cb, $self, $outerSelf, $value, @execArgs) = @_;
+
+    my $topic = 'structDeclaratordeclarator';
+    $log->debugf('[%s[%d]] Setting %s to [%d]', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $value);
+
+    return $value
+}
+sub _enumerationConstantIdentifier {
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    my $enum = $outerSelf->_last_completed('enumerationConstantIdentifier');
+    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $enum, $outerSelf->_line_column());
+    $outerSelf->{_scope}->parseEnterEnum($enum);
+}
+# ----------------------------------------------------------------------------------------
 sub _functionDefinitionCheck1 {
-    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $functionDefinitionCheck1declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers', -1);
-    my $functionDefinitionCheck1declarationList = $self->topic_fired_data('functionDefinitionCheck1declarationList');
+    my $functionDefinitionCheck1declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers$', -1);
+    my $functionDefinitionCheck1declarationList = $self->topic_fired_data('functionDefinitionCheck1declarationList$');
 
     $log->debugf('[%s[%d]] functionDefinitionCheck1declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationSpecifiers);
     $log->debugf('[%s[%d]] functionDefinitionCheck1declarationList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationList);
@@ -215,13 +298,21 @@ sub _functionDefinitionCheck1 {
 	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
 
+    #
+    # Reset topic data
+    #
+    foreach (qw/functionDefinitionCheck1declarationSpecifiers$ functionDefinitionCheck1declarationList$/) {
+	$log->debugf('[%s[%d]] %s topic data reset', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
+	$self->topic_fired_data($_, []);
+    }
+    
 }
 sub _functionDefinitionCheck2 {
     my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $functionDefinitionCheck2declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers', -1);
+    my $functionDefinitionCheck2declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers$', -1);
 
     $log->debugf('[%s[%d]] functionDefinitionCheck2declarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck2declarationSpecifiers);
 
@@ -234,15 +325,33 @@ sub _functionDefinitionCheck2 {
 	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
     }
 
+    #
+    # Reset topic data
+    #
+    foreach (qw/functionDefinitionCheck2declarationSpecifiers$/) {
+	$log->debugf('[%s[%d]] %s topic data reset', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
+	$self->topic_fired_data($_, []);
+    }
 }
 # ----------------------------------------------------------------------------------------
 sub _declarationCheck {
-    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    my ($cb, $self, $outerSelf, @execArgs) = @_;
+
+    #
+    # Check if we are in _structDeclaratordeclarator context
+    #
+    my $structDeclaratordeclarator = $self->topic_fired_data('structDeclaratordeclarator') || [0];
+    if ($structDeclaratordeclarator->[0]) {
+	$log->debugf('[%s[%d]] structDeclaratordeclarator context, doing nothing.', whoami(__PACKAGE__), $self->currentTopicLevel);
+	return;
+    } else {
+	$log->debugf('[%s[%d]] Not in a structDeclaratordeclarator context.', whoami(__PACKAGE__), $self->currentTopicLevel);
+    }
     #
     # Get the topics data we are interested in
     #
-    my $declarationCheckdeclarationSpecifiers = $self->topic_fired_data('declarationCheckdeclarationSpecifiers');
-    my $declarationCheckinitDeclaratorList = $self->topic_fired_data('declarationCheckinitDeclaratorList');
+    my $declarationCheckdeclarationSpecifiers = $self->topic_fired_data('declarationCheckdeclarationSpecifiers$');
+    my $declarationCheckinitDeclaratorList = $self->topic_fired_data('declarationCheckinitDeclaratorList$');
 
     $log->debugf('[%s[%d]] declarationCheckdeclarationSpecifiers data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckdeclarationSpecifiers);
     $log->debugf('[%s[%d]] declarationCheckinitDeclaratorList data is: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckinitDeclaratorList);
@@ -269,17 +378,27 @@ sub _declarationCheck {
 	    $outerSelf->{_scope}->parseObscureTypedef($last_completed);
 	}
     }
-
-    my $cleanerTopicData = $self->topic_fired_data($cleanerTopic);
-    $log->debugf('[%s[%d]] Resetting \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic);
-    @{$cleanerTopicData} = (0);
+    #
+    # Reset topic data
+    #
+    foreach (qw/declarationCheckdeclarationSpecifiers$ declarationCheckinitDeclaratorList$/) {
+	$log->debugf('[%s[%d]] %s topic data reset', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
+	$self->topic_fired_data($_, []);
+    }
+    
 }
 # ----------------------------------------------------------------------------------------
 sub _initReenterScope {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
+    #
+    # No need to init 'reenterScope' to an empty array. It can happen only at
+    # file-scope level, i.e. at this stage the data is undef. Callback will
+    # automatically create it using the return value of this method
+    #
+
     my $rc = 0;
-    $log->debugf('[%s[%d]] Initializing \'reenterScope\' topic data to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
+    $log->debugf('[%s[%d]] Setting \'reenterScope\' topic data to [%d]', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
 
     return $rc;
 }
@@ -388,173 +507,233 @@ sub _register_scope_callbacks {
     }
 }
 # ----------------------------------------------------------------------------------------
-sub _reset_helper {
-    my ($cb, $self, $outerSelf, $cleanerTopic, $topicsp) = @_;
-
-    my $cleanerTopicData = $self->topic_fired_data($cleanerTopic);
-    if (! @{$cleanerTopicData} || ! $cleanerTopicData->[0]) {
-      foreach (@{$topicsp}) {
-        $log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $_);
-        $self->reset_topic_fired_data($_);
-      }
-      $log->debugf('[%s[%d]] Setting \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic);
-      @{$cleanerTopicData} = (1);
-    } else {
-      $log->debugf('[%s[%d]] \'%s\' topic data is %s', whoami(__PACKAGE__), $self->currentTopicLevel, $cleanerTopic, $cleanerTopicData);
-    }
-}
-# ----------------------------------------------------------------------------------------
-sub _push_and_reset_helper {
-    my ($cb, $self, $outerSelf, $desttopic, $origtopic) = @_;
-
-    $log->debugf('[%s[%d]] Push \'%s\' topic data to \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $origtopic, $desttopic);
-    push(@{$self->topic_fired_data($desttopic)}, @{$self->topic_fired_data($origtopic)});
-    $log->debugf('[%s[%d]] Reset \'%s\' topic data', whoami(__PACKAGE__), $self->currentTopicLevel, $origtopic);
-    $self->reset_topic_fired_data($origtopic);
-
-    $log->debugf('[%s[%d]] New \'%s\' topic data: %s', whoami(__PACKAGE__), $self->currentTopicLevel, $desttopic, $self->topic_fired_data($desttopic));
-    
-}
-# ----------------------------------------------------------------------------------------
-sub _register_helper {
-    my ($self, $outerSelf, $event, $hashp) = @_;
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => $event,
-		     method =>  [ \&_storage_helper, $self, $outerSelf, $event ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [qw/auto/] ],
-		      topic => {$event => 1},
-		      topic_persistence => $hashp->{topic_persistence},
-		      priority => $hashp->{priority}
-		     )
-		    )
-	);
-}
-# ----------------------------------------------------------------------------------------
 sub _storage_helper {
     my ($cb, $self, $outerSelf, $event) = @_;
     #
-    # The event name, by convention, is "symbol$"
+    # The event name, by convention, is 'symbol$' or '^$symbol'
     #
     my $symbol = $event;
-    substr($symbol, -1, 1, '');
-    my $rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ];
-    $log->debugf('[%s[%d]] Topic \'%s\' data = "%s"', whoami(__PACKAGE__), $self->currentTopicLevel, $event, $rc);
+    my $rc;
+    if (substr($symbol, 0, 1) eq '^') {
+	substr($symbol, 0, 1, '');
+	$rc = [ $outerSelf->_line_column() ];
+    } elsif (substr($symbol, -1, 1) eq '$') {
+	substr($symbol, -1, 1, '');
+	$rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ];
+    }
+    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $event, $rc);
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
-sub _register_genome_callbacks {
+sub _reset_helper {
+    my ($cb, $self, $outerSelf, $genomep) = @_;
+
+    $log->debugf('%s[%s[%d]] Callback \'%s\', resetting data of topics %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $genomep);
+
+    return ();
+}
+# ----------------------------------------------------------------------------------------
+sub _push_and_reset_helper {
+    my ($cb, $self, $outerSelf, $topicsp) = @_;
+
+    my @rc = ();
+    foreach (@{$topicsp}) {
+	my $topic = $_;
+	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting topic \'%s\' data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $self->topic_fired_data($topic));
+	if (defined($self->topic_fired_data($topic))) {
+	    push(@rc, @{$self->topic_fired_data($topic)});
+	    $self->topic_fired_data($topic, []);
+	}
+    }
+
+    $log->debugf('%s[%s[%d]] Callback \'%s\', collected data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, \@rc);
+    return @rc;
+}
+# ----------------------------------------------------------------------------------------
+sub _register_predictions {
     my ($self, $outerSelf, $hashp) = @_;
 
-    foreach (qw/primaryExpressionIdentifier$
-              enumerationConstantIdentifier$
-              storageClassSpecifierTypedef$
-              directDeclaratorIdentifier$/) {
-	$self->_register_helper($outerSelf, $_, $hashp);
+    foreach (qw/^typedefnameLexeme ^enumerationConstantLexeme/) {
+	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $_,
+                         method =>  [ \&_storage_helper, $self, $outerSelf, $_ ],
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [qw/auto/] ],
+			  topic => {$_ => 1},
+			  topic_persistence => 'none',
+			  priority => 0
+			 )
+			)
+	    );
     }
 }
 # ----------------------------------------------------------------------------------------
+sub _incScratchpad {
+  my ($cb, $self, $flag) = @_;
+
+  ++$self->hscratchpad($flag);
+  $log->debugf('%s[%s[%d]] Number of expected end of rule: %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->hscratchpad($flag));
+}
+
+sub _subFire {
+  my ($cb, $self, $callback, $lhs, $subEventsp, @events) = @_;
+
+  my @subEvents = grep {exists($subEventsp->{$_})} @_;
+  if (@subEvents) {
+    $log->debugf('%s[%s[%d]] Sub-firing %s callback with %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $lhs, \@subEvents);
+    $callback->exec(@subEvents);
+  }
+}
+
 sub _register_rule_callbacks {
-    my ($self, $outerSelf, $hashp) = @_;
+  my ($self, $outerSelf, $hashp) = @_;
 
-    # Rule model:
-    # LHS ::= RHS1 RHS2 ... RHSn
-    #
-    # Events/topics used:
-    # <LHS$>       event
-    # <Gx$>        event
-    # 'LHSRHSnTmp' topic but nothing depend on it. This is juste a storage area.
-    # 'LHSRHSn'    topic but nothing depend on it. This is juste a storage area.
-    # <LHSRHSn$>   event
-    # <LHSRHSn$>   cleaner event
+  #
+  # subEvents will be the list of events that we forward to the inner callback object
+  #
+  my %subEvents = ();
 
-    #
-    # The priorities should be:
-    # - <Gx$>                3       Because we want to store genome data first
-    # - <LHSRHSn$>/cleaner   2       Because we want to make sure data is clean before pushing
-    # - <LHSRHSn$>           1       Push data
-    # - <LHS$>               0       Check data
+  #
+  # Create inner callback object
+  #
+  my $callback = MarpaX::Languages::C::AST::Callback->new(log_prefix => '  ');
 
-    #
-    # register callbacks/topics 'LHSRHSnTmp' with persistence_level 'level' that are subscribed to topics <Gx,y,...> AND get <Gx,y,...> data
-    #
-    my @topics = ();
-    my $i = 0;
-    my $rhsCleaner = '';
-    foreach (@{$hashp->{rhs}}) {
-      my ($rhs, $genomep) = @{$_};
-      if ($i++ == 0) {
-        $rhsCleaner = $rhs;
-      }
-      my $topic = $rhs;
-      push(@topics, $topic);
-      my $topicTmp = $topic . 'Tmp';
-      foreach my $genome (@{$genomep}) {
-        $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-                        (
-                         description => $genome,
-			 extra_description => "$genome>$topicTmp",
-                         method =>  [ \&_storage_helper, $self, $outerSelf, $genome ],
-                         option => MarpaX::Languages::C::AST::Callback::Option->new
-                         (
-                          condition => [ [qw/auto/ ] ],
-                          topic => {$topicTmp => 1},
-                          topic_persistence => 'level',
-                          priority => 3,
-                         )
-                        )
-                       );
-      }
-      $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-                      (
-                       description => $rhs . '$',
-		       extra_description => "${rhs}\$>$topic,$topicTmp",
-                       method =>  [ \&_push_and_reset_helper, $self, $outerSelf, $topic, $topicTmp ],
-                       method_void => 1,
-                       option => MarpaX::Languages::C::AST::Callback::Option->new
-                       (
-                        topic => {$topic => 1, $topicTmp => 1},
-                        topic_persistence => 'level',
-                        condition => [ [qw/auto/ ] ],
-                        priority => 1,
-                       )
-                      )
-                     );
+  #
+  # Collect the unique list of <Gx$>
+  #
+  my %genomeEvents = ();
+  foreach (@{$hashp->{rhs}}) {
+    my ($rhs, $genomep) = @{$_};
+    foreach (@{$genomep}) {
+	my $event = $_ . '$';
+	++$genomeEvents{$event};
+	++$subEvents{$event};
+    }
+  }
+  #
+  # Create data Gx$ data collectors. The data will be collected in a
+  # topic with the same name: Gx
+  #
+  foreach (keys %genomeEvents) {
+	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+			    (
+			     description => $_,
+			     method =>  [ \&_storage_helper, $callback, $outerSelf, $_ ],
+			     option => MarpaX::Languages::C::AST::Callback::Option->new
+			     (
+			      topic => {$_ => 1},
+			      topic_persistence => 'level',
+			      condition => [ [ 'auto' ] ],  # == match on description
+			      priority => 999,
+			     )
+			    )
+	    );
+  }
+  
+  my $i = 0;
+  foreach (@{$hashp->{rhs}}) {
+    my ($rhs, $genomep) = @{$_};
+
+    my %topic = ();
+    foreach (@{$genomep}) {
+	$topic{$_ . '$'} = 1;
     }
     #
-    # Register reset procedure
+    # ^rhs will reset all Gx$ topics on which it depend
+    # We also assign topics explicitely so that they are created if needed
     #
-    my $cleanerTopic = $rhsCleaner . 'Resetted';
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-                    (
-                     description => $rhsCleaner . '$',
-                     method =>  [ \&_reset_helper, $self, $outerSelf, $cleanerTopic, [ @topics ] ],
-                     method_void => 1,
-                     option => MarpaX::Languages::C::AST::Callback::Option->new
-                     (
-                      topic => {$cleanerTopic => 1},
-                      topic_persistence => 'level',
-                      condition => [ [qw/auto/ ] ],
-                      priority => 2,
-                     )
-                    )
-                   );
+    my $event = '^' . $rhs;
+    ++$subEvents{$event};
+    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $event,
+			 method =>  [ \&_reset_helper, $callback, $outerSelf, [ keys %topic ] ],
+			 method_mode => 'replace',
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [ 'auto' ] ],  # == match on description
+			  topic => \%topic,
+			  topic_persistence => 'level',
+			  priority => -1,
+			 )
+			)
+	);
+
     #
-    # Register check procedure
+    # rhs$ will collect into $rhs topic all Gx$ topics on which it depend and reset them
     #
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => $hashp->{lhs} . '$',
-		     method =>  [ $hashp->{method}, $self, $outerSelf, $cleanerTopic, [ @topics ] ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [ qw/auto/ ] ],
-		      priority => 1
-		     )
-		    )
-                   );
+    $event = $rhs . '$';
+    ++$subEvents{$event};
+    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $event,
+			 method =>  [ \&_push_and_reset_helper, $callback, $outerSelf, [ keys %topic ] ],
+			 method_mode => 'push',
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [ 'auto' ] ],  # == match on description
+			  topic => {$rhs  . '$' => 1},
+			  topic_persistence => 'level',
+			  priority => 1,
+			 )
+			)
+	);
+
+    if ($i++ == 0) {
+	$callback->hscratchpad($rhs, 0);
+	#
+	# The very first rule is special:
+	# If we hit its completion and there is a pending LHS$
+	# completion, this mean we have recursed into LHS.
+	# To know that, we maitain a counter of number of
+	# pending LHS$ in the scratchpad
+	#
+	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+			    (
+			     description => $rhs . '$',
+			     method => [ \&_incScratchpad, $callback, $rhs ],
+			    )
+	    );
+    }
+  }
+
+  #
+  # Final callback
+  #
+  ++$subEvents{$hashp->{lhs} . '$'};
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
+                   description => $hashp->{lhs} . '$',
+                   method => [ $hashp->{method}, $callback, $outerSelf ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+		    condition => [ [ 'auto' ] ],  # == match on description
+                   )
+                  )
+                 );
+
+  #
+  ## Sub-fire events for this sub-callback object
+  #
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
+                   description => $hashp->{lhs} . ' sub-events',
+                   method => [ \&_subFire, $self, $callback, $hashp->{lhs}, \%subEvents ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+                    condition => [
+                                  [ sub { my $cb = shift;
+                                          my $subEventsp = shift;
+                                          return grep {exists($subEventsp->{$_})} @_;
+                                        },
+                                    \%subEvents
+                                  ]
+                                 ]
+                   )
+                  )
+                 );
 
 }
 
