@@ -6,7 +6,7 @@ package MarpaX::Languages::C::AST::Impl;
 # ABSTRACT: Implementation of Marpa's interface
 
 use MarpaX::Languages::C::AST::Util qw/traceAndUnpack/;
-use Marpa::R2 2.057006;
+use Marpa::R2 2.061001;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Impl::Logger;
 use Log::Any qw/$log/;
@@ -429,6 +429,20 @@ sub g1_location_to_span {
   my $args = traceAndUnpack(['g1'], @_);
 
   return $self->{recce}->g1_location_to_span($args->{g1});
+}
+
+=head2 terminals_expected($self)
+
+Returns Marpa's recognizer's terminals_expected.
+
+=cut
+
+sub terminals_expected {
+  my $self = shift;
+
+  my $args = traceAndUnpack([''], @_);
+
+  return $self->{recce}->terminals_expected();
 }
 
 #

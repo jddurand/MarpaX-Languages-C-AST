@@ -142,7 +142,7 @@ rcurly                ::= RCURLY                action => deref
 
 event 'primaryExpressionIdentifier$' = completed <primaryExpressionIdentifier>
 primaryExpressionIdentifier
-	::= <onlyIdentifier> IDENTIFIER         action => deref
+	::= IDENTIFIER         action => deref
 
 primaryExpression
 	::= primaryExpressionIdentifier
@@ -160,7 +160,7 @@ constant
 
 event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
 enumerationConstantIdentifier  # before it has been defined as such
-	::= <onlyIdentifier> IDENTIFIER        action => deref
+	::= IDENTIFIER        action => deref
 
 enumerationConstant            # before it has been defined as such
 	::= enumerationConstantIdentifier
@@ -185,8 +185,8 @@ postfixExpression
 	| postfixExpression LBRACKET expression RBRACKET
 	| postfixExpression lparen rparen
 	| postfixExpression lparen argumentExpressionList rparen
-	| postfixExpression DOT <onlyIdentifier> IDENTIFIER
-	| postfixExpression PTR_OP <onlyIdentifier> IDENTIFIER
+	| postfixExpression DOT IDENTIFIER
+	| postfixExpression PTR_OP IDENTIFIER
 	| postfixExpression INC_OP
 	| postfixExpression DEC_OP
 	| lparen typeName rparen lcurly initializerList rcurly
@@ -366,12 +366,10 @@ typeSpecifier
 	| enumSpecifier
 	| typedefnameLexeme		# after it has been defined as such
 
-event 'onlyIdentifier[]' = nulled <onlyIdentifier>
-onlyIdentifier ::=
 structOrUnionSpecifier
 	::= structOrUnion lcurly structDeclarationList rcurly
-	| structOrUnion <onlyIdentifier> IDENTIFIER lcurly structDeclarationList rcurly
-	| structOrUnion <onlyIdentifier> IDENTIFIER
+	| structOrUnion IDENTIFIER lcurly structDeclarationList rcurly
+	| structOrUnion IDENTIFIER
 
 structOrUnion
 	::= STRUCT
@@ -408,9 +406,9 @@ structDeclarator
 enumSpecifier
 	::= ENUM lcurly enumeratorList rcurly
 	| ENUM lcurly enumeratorList COMMA rcurly
-	| ENUM <onlyIdentifier> IDENTIFIER lcurly enumeratorList rcurly
-	| ENUM <onlyIdentifier> IDENTIFIER lcurly enumeratorList COMMA rcurly
-	| ENUM <onlyIdentifier> IDENTIFIER
+	| ENUM IDENTIFIER lcurly enumeratorList rcurly
+	| ENUM IDENTIFIER lcurly enumeratorList COMMA rcurly
+	| ENUM IDENTIFIER
 
 enumeratorList
 	::= enumerator
@@ -485,8 +483,8 @@ parameterDeclaration
 	| declarationSpecifiers
 
 identifierList
-	::= <onlyIdentifier> IDENTIFIER
-	| identifierList COMMA <onlyIdentifier> IDENTIFIER
+	::= IDENTIFIER
+	| identifierList COMMA IDENTIFIER
 
 typeName
 	::= specifierQualifierList abstractDeclarator
@@ -540,7 +538,7 @@ designatorList
 
 designator
 	::= LBRACKET constantExpression RBRACKET
-	| DOT <onlyIdentifier> IDENTIFIER
+	| DOT IDENTIFIER
 
 staticAssertDeclaration
 	::= STATIC_ASSERT lparen constantExpression COMMA STRING_LITERAL rparen SEMICOLON
@@ -554,7 +552,7 @@ statement
 	| jumpStatement
 
 labeledStatement
-	::= <onlyIdentifier> IDENTIFIER COLON statement
+	::= IDENTIFIER COLON statement
 	| CASE constantExpression COLON statement
 	| DEFAULT COLON statement
 
@@ -592,7 +590,7 @@ iterationStatement
 	| FOR lparen declaration expressionStatement expression rparen statement
 
 jumpStatement
-	::= GOTO <onlyIdentifier> IDENTIFIER SEMICOLON
+	::= GOTO IDENTIFIER SEMICOLON
 	| CONTINUE SEMICOLON
 	| BREAK SEMICOLON
 	| RETURN SEMICOLON

@@ -193,6 +193,7 @@ sub _doEvents {
   my %events = ();
   my $iEvent = 0;
   while (defined($_ = $self->{_impl}->event($iEvent++))) {
+      next if (! defined($_->[0]));
     ++$events{$_->[0]};
   }
 
@@ -218,11 +219,7 @@ sub _doLexeme {
   my $lexeme = $self->{_impl}->pause_lexeme();
   return if (! defined($lexeme));
 
-  my %events = ();
-  my $iEvent = 0;
-  while (defined($_ = $self->{_impl}->event($iEvent++))) {
-    ++$events{$_->[0]};
-  }
+  my @terminals_expected = @{$self->{_impl}->terminals_expected()};
 
   #
   # Determine the correct lexeme
@@ -231,16 +228,14 @@ sub _doLexeme {
   my ($line, $column) = $self->{_impl}->line_column($start);
   my $lexeme_value = $self->{_impl}->literal($start, $length);
   my $newlexeme;
-  if (defined($events{'onlyIdentifier[]'})) {
-      $newlexeme = 'IDENTIFIER';
-  } elsif (defined($self->{_callbackEvents}->topic_level_fired_data('^typedefnameLexeme')) &&
-      $self->{_scope}->parseIsTypedef($lexeme_value)) {
+  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
       $newlexeme = 'TYPEDEF_NAME';
-  } elsif (defined($self->{_callbackEvents}->topic_level_fired_data('^enumerationConstantLexeme')) &&
-	   $self->{_scope}->parseIsEnum($lexeme_value)) {
+  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexeme_value)) {
       $newlexeme = 'ENUMERATION_CONSTANT';
-  } else {
+  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
       $newlexeme = 'IDENTIFIER';
+  } else {
+      $self->_croak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
   }
   #
   # Push the unambiguated lexeme
