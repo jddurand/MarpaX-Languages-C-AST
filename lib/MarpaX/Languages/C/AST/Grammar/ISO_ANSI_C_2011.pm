@@ -473,8 +473,15 @@ parameterList
 	::= parameterDeclaration
 	| parameterList COMMA parameterDeclaration
 
+event '^parameterDeclarationdeclarationSpecifiers' = predicted <parameterDeclarationdeclarationSpecifiers>
+event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
+parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers action => deref
+
+event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
+parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator action => deref
+
 parameterDeclaration
-	::= declarationSpecifiers declarator
+	::= parameterDeclarationCheck
 	| declarationSpecifiers abstractDeclarator
 	| declarationSpecifiers
 

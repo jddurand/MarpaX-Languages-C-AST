@@ -16,7 +16,7 @@ use SUPER;
 
 =head1 DESCRIPTION
 
-This modules implements the Marpa events callback using the very simple framework MarpaX::Languages::C::AST::Callback. it is useful because it shows the FUNCTIONAL things that appear within the events: monitor the TYPEDEFs, introduce/obscure names in name space, apply the few grammar constraints needed at parsing time.
+This modules implements the Marpa events callback using the very simple framework MarpaX::Languages::C::AST::Callback. it is useful because it shows the FUNCTIONAL things that appear within the events: monitor the TYPEDEFs, introduce/obscure names in name space, apply the few grammar constraints needed at parsing time. And the TECHNICAL things i.e. recursivity of the grammar.
 
 =cut
 
@@ -116,6 +116,27 @@ sub new {
                                         )
         );
 
+    # ------------------------------------------------------------------------------------------
+    # directDeclarator constraint
+    # ------------------------------------------------------------------------------------------
+    # In:
+    # parameterDeclaration ::= declarationSpecifiers declarator
+    # typedef is syntactically allowed but never valid.
+    #
+    # Isolated to:
+    #
+    # parameterDeclarationCheck ::= declarationSpecifiers declarator
+    # ------------------------------------------------------------------------------------------
+    push(@callbacks,
+         $self->_register_rule_callbacks($outerSelf,
+                                         {
+                                          lhs => 'parameterDeclarationCheck',
+                                          rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ]
+                                                 ],
+                                          method => \&_parameterDeclarationCheck,
+                                         }
+                                        )
+        );
     # ------------------------------------------------------------------------------------------
     # directDeclarator constraint
     # ------------------------------------------------------------------------------------------
@@ -267,8 +288,27 @@ sub _enumerationConstantIdentifier {
     $outerSelf->{_scope}->parseEnterEnum($enum);
 }
 # ----------------------------------------------------------------------------------------
+sub _parameterDeclarationCheck {
+    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
+    #
+    # Get the topics data we are interested in
+    #
+    my $parameterDeclarationdeclarationSpecifiers = $self->topic_level_fired_data('parameterDeclarationdeclarationSpecifiers$');
+
+    $log->debugf('%s[%s[%d]] parameterDeclarationdeclarationSpecifiers data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $parameterDeclarationdeclarationSpecifiers);
+
+    #
+    # By definition parameterDeclarationdeclarationSpecifiers contains only typedefs
+    #
+    my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
+    if ($nbTypedef >= 0) {
+	my ($line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
+	$outerSelf->_croak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+    }
+}
+# ----------------------------------------------------------------------------------------
 sub _functionDefinitionCheck1 {
-    my ($cb, $self, $outerSelf, @execArgs) = @_;
+    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
     #
     # Get the topics data we are interested in
     #
@@ -295,7 +335,7 @@ sub _functionDefinitionCheck1 {
     }
 }
 sub _functionDefinitionCheck2 {
-    my ($cb, $self, $outerSelf, $cleanerTopic, @execArgs) = @_;
+    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
     #
     # Get the topics data we are interested in
     #
@@ -314,12 +354,12 @@ sub _functionDefinitionCheck2 {
 }
 # ----------------------------------------------------------------------------------------
 sub _declarationCheck {
-    my ($cb, $self, $outerSelf, @execArgs) = @_;
+    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
 
     #
     # Check if we are in _structDeclaratordeclarator context
     #
-    my $structDeclaratordeclarator = $self->topic_fired_data('structDeclaratordeclarator') || [0];
+    my $structDeclaratordeclarator = $scopeSelf->topic_fired_data('structDeclaratordeclarator') || [0];
     if ($structDeclaratordeclarator->[0]) {
 	$log->debugf('%s[%s[%d]] structDeclaratordeclarator context, doing nothing.', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
 	return;
@@ -645,24 +685,6 @@ sub _register_rule_callbacks {
 			 )
 			)
 	);
-
-    if ($i++ == 0) {
-	$callback->hscratchpad($rhs, 0);
-	#
-	# The very first rule is special:
-	# If we hit its completion and there is a pending LHS$
-	# completion, this mean we have recursed into LHS.
-	# To know that, we maitain a counter of number of
-	# pending LHS$ in the scratchpad
-	#
-	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-			    (
-			     description => $rhs . '$',
-                             extra_description => $rhs . '$ [recursivity] ',
-			     method => [ \&_incScratchpad, $callback, $rhs ],
-			    )
-	    );
-    }
   }
 
   #
@@ -673,7 +695,7 @@ sub _register_rule_callbacks {
                   (
                    description => $hashp->{lhs} . '$',
                    extra_description => $hashp->{lhs} . '$ [processing] ',
-                   method => [ $hashp->{method}, $callback, $outerSelf ],
+                   method => [ $hashp->{method}, $callback, $outerSelf, $self ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
 		    condition => [ [ 'auto' ] ],  # == match on description
