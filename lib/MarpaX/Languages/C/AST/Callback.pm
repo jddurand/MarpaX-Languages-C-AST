@@ -10,7 +10,7 @@ use Class::Struct
   #
   # External attributes
   #
-    log_prefix              => '$',   # Prepended to every log
+  log_prefix              => '$',   # Prepended to every log
   hscratchpad             => '%',   # User working area
   ascratchpad             => '@',   # User working area
   sscratchpad             => '$',   # User working area
@@ -310,7 +310,7 @@ sub _fire {
       if (! $cb->method_void) {
         foreach my $topic (keys %{$option->topic}) {
           next if (! defined($option->topic($topic)));
-          next if (! $option->topic($topic));
+          next if ($option->topic($topic) != 1);
           my $topic_fired_data = $self->topic_fired_data($topic) || [];
           if (ref($cb->method) eq 'ARRAY') {
             if ($cb->method_mode eq 'push') {
@@ -557,9 +557,9 @@ sub pushTopicLevel {
   $self->topic_fired_persistence($new_topic_fired_persistence);
   $self->topic_fired_data($new_topic_fired_data);
 
-  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('%s[%s[%d]] Topic level %d: Kept topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
+  $log->debugf('%s[%s[%d]] Topic level %d: Kept topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
+  $log->debugf('%s[%s[%d]] Topic level %d: Kept topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->debugf('%s[%s[%d]] Topic level %d: Kept topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
 }
 
 sub popTopicLevel {
@@ -574,9 +574,9 @@ sub popTopicLevel {
   $self->topic_fired_persistence($old_topic_persistence);
   $self->topic_fired_data($old_topic_data);
 
-  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
-  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
-  $log->tracef('%s[%s[%d]] Topic level %d: Restored fired topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
+  $log->debugf('%s[%s[%d]] Topic level %d: Restored fired topics: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired);
+  $log->debugf('%s[%s[%d]] Topic level %d: Restored fired topics persistence: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel, $self->topic_fired_persistence);
+  $log->debugf('%s[%s[%d]] Topic level %d: Restored fired topics data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel);
 }
 
 sub reset_topic_fired_data {

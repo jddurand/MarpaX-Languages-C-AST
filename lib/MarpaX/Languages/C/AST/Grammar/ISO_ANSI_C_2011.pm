@@ -151,12 +151,10 @@ primaryExpression
 	| lparen expression rparen
 	| genericSelection
 
-event '^enumerationConstantLexeme' = predicted <enumerationConstantLexeme>
-enumerationConstantLexeme ::= ENUMERATION_CONSTANT action => deref
 constant
 	::= I_CONSTANT         # includes character_constant
 	| F_CONSTANT
-	| enumerationConstantLexeme # after it has been defined as such
+	| ENUMERATION_CONSTANT # after it has been defined as such
 
 event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
 enumerationConstantIdentifier  # before it has been defined as such
@@ -346,8 +344,6 @@ storageClassSpecifier
 	| AUTO
 	| REGISTER
 
-event '^typedefnameLexeme' = predicted <typedefnameLexeme>
-typedefnameLexeme ::= TYPEDEF_NAME action => deref
 typeSpecifier
 	::= VOID
 	| CHAR
@@ -364,7 +360,7 @@ typeSpecifier
 	| atomicTypeSpecifier
 	| structOrUnionSpecifier
 	| enumSpecifier
-	| typedefnameLexeme		# after it has been defined as such
+	| TYPEDEF_NAME		# after it has been defined as such
 
 structOrUnionSpecifier
 	::= structOrUnion lcurly structDeclarationList rcurly
@@ -610,6 +606,7 @@ fileScopeDeclarator ::= declarator            action => deref_and_bless_declarat
 event 'reenterScope[]' = nulled <reenterScope>
 reenterScope ::=
 
+event '^functionDefinition' = predicted <functionDefinition>           # Used only to create topic reenterScope
 functionDefinition
 	::= functionDefinitionCheck1
 	| functionDefinitionCheck2
