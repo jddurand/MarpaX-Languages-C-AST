@@ -517,7 +517,7 @@ sub _push_and_reset_helper {
     my @rc = ();
     foreach (@{$topicsp}) {
 	my $topic = $_;
-	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting topic \'%s\' data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $self->topic_fired_data($topic));
+	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting and resetting topic \'%s\' data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $self->topic_fired_data($topic));
 	push(@rc, @{$self->topic_fired_data($topic)});
 	$self->topic_fired_data($topic, []);
     }
@@ -576,6 +576,7 @@ sub _register_rule_callbacks {
 	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			    (
 			     description => $_,
+                             extra_description => $_ . ' [storage] ',
 			     method =>  [ \&_storage_helper, $callback, $outerSelf, $_ ],
 			     option => MarpaX::Languages::C::AST::Callback::Option->new
 			     (
@@ -593,10 +594,11 @@ sub _register_rule_callbacks {
   foreach (@{$hashp->{rhs}}) {
     my ($rhs, $genomep) = @{$_};
 
+    $lhsTopicsToUpdate{$rhs  . '$'} = 1;
+
     my %rhsTopicsToUpdate = ();
     my %rhsTopicNotToUpdate = ();
     foreach (@{$genomep}) {
-      $lhsTopicsToUpdate{$_ . '$'} = 1;
       $rhsTopicsToUpdate{$_ . '$'} = 1;
       $rhsTopicNotToUpdate{$_ . '$'} = -1;
     }
@@ -609,6 +611,7 @@ sub _register_rule_callbacks {
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $event,
+                         extra_description => $event . ' [reset] ',
 			 method =>  [ \&_reset_helper, $callback, $outerSelf, [ keys %rhsTopicsToUpdate ] ],
 			 method_mode => 'replace',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
@@ -629,6 +632,7 @@ sub _register_rule_callbacks {
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $event,
+                         extra_description => $event . ' [push_and_reset] ',
 			 method =>  [ \&_push_and_reset_helper, $callback, $outerSelf, [ keys %rhsTopicNotToUpdate ] ],
 			 method_mode => 'push',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
@@ -654,6 +658,7 @@ sub _register_rule_callbacks {
 	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			    (
 			     description => $rhs . '$',
+                             extra_description => $rhs . '$ [recursivity] ',
 			     method => [ \&_incScratchpad, $callback, $rhs ],
 			    )
 	    );
@@ -664,7 +669,7 @@ sub _register_rule_callbacks {
   # Final callback
   #
   ++$subEvents{$hashp->{lhs} . '$'};
-  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+  $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => $hashp->{lhs} . '$',
                    extra_description => $hashp->{lhs} . '$ [processing] ',
@@ -697,7 +702,7 @@ sub _register_rule_callbacks {
   #
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
-                   description => $hashp->{lhs} . ' sub-events',
+                   description => $hashp->{lhs} . ' [sub-events fire]',
                    method => [ \&_subFire, $self, $callback, $hashp->{lhs}, \%subEvents ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
