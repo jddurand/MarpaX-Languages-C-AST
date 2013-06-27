@@ -87,124 +87,6 @@ sub new {
   return $self;
 }
 
-=head2 findInProgress($self, $earleySetId, $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, $wantedRhsp, $fatalMode, $indicesp, $matchesp, $originsp) = @_;
-
-Searches a rule at G1 Earley Set Id $earleySetId. The default Earley Set Id is the current one. $wantedRuleId, if defined, is the rule ID. $wantedDotPosition, if defined, is the dot position, that should be a number between 0 and the number of RHS, or -1. $wantedOrigin, if defined, is the wanted origin. In case $wantedRuleId is undef, the user can use $wantedLhs and/or $wantedRhs. $wantedLhs, if defined, is the LHS name. $wantedRhsp, if defined, is the list of RHS. $fatalMode, if defined and true, will mean the module will croak if there is a match. $indicesp, if defined, must be a reference to an array giving the indices from Marpa output we are interested in. $matchesp, if defined, has to be a reference to an array, which will be filled reference to hashes like {ruleId=>$ruleId, dotPosition=>$dotPosition, origin=>$origin} that matched. You can use the method g1Describe() to fill it. $originsp, if defined, have to be a reference to a hash that will be filled with Earley Set Id origins as a key if the later is not already in it, the value number will be 0 when the key is created, regardless if there is a match or not. Any origin different than $earleySetId and zero (the root) will putted in it. We remind that for a prediction, origin is always the same as the location of the current report. The shortcuts DOT_PREDICTION (0) and DOT_COMPLETION (-1) can be used if the caller import it. There is a special case: if $dotPrediction is defined, $wantedLhs is defined, and $wantedRhsp is undef then, if $dotPrediction is DOT_PREDICTION we will search any prediction of $wantedLhs, and if $dotPrediction is DOT_COMPLETION we will search any completion of $wantedLhs. This method will return a true value if there is at least one match. If one of $wantedRuleId, $wantedDotPosition, $wantedOrigin, $wantedLhs, or $wantedRhsp is defined and there is match, this method stop at the first match.
-
-=cut
-
-sub findInProgress {
-    my $self = shift;
-
-    my $args = traceAndUnpack(['earleySetId', 'wantedRuleId', 'wantedDotPosition', 'wantedOrigin', 'wantedLhs', 'wantedRhsp', 'fatalMode', 'indicesp', 'matchesp', 'originsp'], @_);
-
-    $args->{fatalMode} ||= 0;
-
-    my $rc = 0;
-
-    my $i = 0;
-    foreach (@{$self->progress($args->{earleySetId})}) {
-	my ($ruleId, $dotPosition, $origin) = @{$_};
-	if ($origin != 0 && defined($args->{originsp}) && ! exists($args->{originsp}->{$origin})) {
-          $args->{originsp}->{$origin} = 0;
-	}
-	next if (defined($args->{indicesp}) && ! grep {$_ == $i} @{$args->{indicesp}});
-	#
-	# There two special cases in findInprogress:
-	# if $wantedDotPrediction == DOT_PREDICTION, $args->{wantedLhs} is defined, and $args->{wantedRhsp} is undef
-	#   => we are searching any dot position that is predicting $args->{wantedLhs}
-	# if $wantedDotPrediction == DOT_COMPLETION, $args->{wantedLhs} is defined, and $args->{wantedRhsp} is undef
-	#   => we are searching any dot position that is following lhs
-	#
-	my $found = 0;
-	my ($lhs, @rhs);
-	if (defined($args->{wantedDotPosition}) && defined($args->{wantedLhs}) && ! defined($args->{wantedRhsp})) {
-	    if ($args->{wantedDotPosition} == DOT_PREDICTION) {
-		($lhs, @rhs) = $self->rule($ruleId);
-		if ($dotPosition != DOT_COMPLETION && $rhs[$dotPosition] eq $args->{wantedLhs}) {
-		    $found = 1;
-		}
-	    } elsif ($args->{wantedDotPosition} == DOT_COMPLETION) {
-		($lhs, @rhs) = $self->rule($ruleId);
-		if ($dotPosition != DOT_PREDICTION) {
-		    if ($dotPosition != DOT_COMPLETION) {
-			if ($rhs[$dotPosition-1] eq $args->{wantedLhs}) {
-			    $found = 1;
-			} elsif ($rhs[$dotPosition] eq $args->{wantedLhs}) { # indice -1
-			    $found = 1;
-			}
-		    }
-		}
-	    }
-	}
-	if (! $found) {
-	    next if (defined($args->{wantedRuleId}) && ($ruleId != $args->{wantedRuleId}));
-	    next if (defined($args->{wantedDotPosition}) && ($dotPosition != $args->{wantedDotPosition}));
-	    next if (defined($args->{wantedOrigin}) && ($origin != $args->{wantedOrigin}));
-	    ($lhs, @rhs) = $self->rule($ruleId);
-	    next if (defined($args->{wantedLhs}) && ($lhs ne $args->{wantedLhs}));
-	    next if (defined($args->{wantedRhsp}) && ! __PACKAGE__->_arrayEq(\@rhs, $args->{wantedRhsp}));
-	    $found = 1;
-	}
-	next if (! $found);
-	if ($args->{fatalMode}) {
-	    my $msg = sprintf('%s', $self->_sprintfDotPosition($args->{earleySetId}, $i, $dotPosition, $lhs, @rhs));
-	    fatalf($msg);
-	    croak($msg);
-	} else {
-	    $log->tracef('Match on [ruleId=%d, dotPosition=%d, origin=%d] : %s', $ruleId, $dotPosition, $origin, $self->_sprintfDotPosition($args->{earleySetId}, $i, $dotPosition, $lhs, @rhs));
-            push(@{$args->{matchesp}}, {ruleId => $ruleId, dotPosition => $dotPosition, origin => $origin}) if (defined($args->{matchesp}));
-	}
-	if (defined($args->{wantedRuleId}) ||
-            defined($args->{wantedDotPosition}) ||
-	    defined($args->{wantedOrigin}) ||
-            defined($args->{wantedLhs}) ||
-	    defined($args->{wantedRhsp})) {
-	    $rc = 1;
-	    last;
-	}
-	++$i;
-    }
-
-    return($rc);
-}
-
-=head2 findInProgressShort($self, $wantedDotPosition, $wantedLhs, $wantedRhsp)
-
-This method is shortcut to findInProgress(), that will force findInProgress()'s parameter $earleySetId to -1 (i.e. current G1 location), and $wantedRuleId, $wantedOrigin, $fatalMode, $indicesp, $matchesp to undef. This method exist because, in practice, only dot position, lhs or rhs are of interest within the current G1 location.
-
-=cut
-
-sub findInProgressShort {
-  my $self = shift;
-
-  my $args = traceAndUnpack(['wantedDotPosition', 'wantedLhs', 'wantedRhsp'], @_);
-
-  return $self->findInProgress(-1, undef, $args->{wantedDotPosition}, undef, $args->{wantedLhs}, $args->{wantedRhsp}, undef, undef, undef, undef);
-}
-
-=head2 rule($self, $ruleId)
-
-Returns Marpa's grammar's rule. Because the output of Marpa's rule is a constant for a given $ruleId, any call to this method will use a cached result if it exist, create a cache otherwise.
-
-=cut
-
-sub rule {
-    my $self = shift;
-    my ($ruleId) = @_;
-
-  #
-  # For a given grammar, the conversion ruleid->rule is a constant
-  # so it is legal to cache this data
-  #
-  if (! exists($self->{_cacheRule}->{$ruleId})) {
-      my $args = traceAndUnpack(['ruleId'], @_);
-      my ($lhs, @rhs) = $self->{grammar}->rule($ruleId);
-      $self->{_cacheRule}->{$ruleId} = [ $lhs, @rhs ];
-  }
-  return @{$self->{_cacheRule}->{$ruleId}};
-}
-
 =head2 value($self)
 
 Returns Marpa's recognizer's value.
@@ -289,20 +171,6 @@ sub range_to_string {
   my $args = traceAndUnpack(['start', 'end'], @_);
 
   return $self->{recce}->range_to_string($args->{start}, $args->{end});
-}
-
-=head2 progress($self, $g1)
-
-Returns Marpa's recognizer's progress for a g1 location $g1.
-
-=cut
-
-sub progress {
-  my $self = shift;
-
-  my $args = traceAndUnpack(['g1'], @_);
-
-  return $self->{recce}->progress($args->{g1});
 }
 
 =head2 event($self, $eventNumber)
@@ -443,63 +311,6 @@ sub terminals_expected {
   my $args = traceAndUnpack([''], @_);
 
   return $self->{recce}->terminals_expected();
-}
-
-#
-# INTERNAL METHODS
-#
-sub _endCondition {
-  my ($self, $g1, $endConditionp) = @_;
-
-  my $rc = 0;
-  if (defined($endConditionp)) {
-    my ($dotPrediction, $lhs, $rhsp) = @{$endConditionp};
-    $rc = $self->findInProgress($g1, undef, $dotPrediction, undef, $lhs, $rhsp, undef, undef, undef, undef);
-  }
-  return $rc;
-}
-
-sub _sprintfDotPosition {
-    my ($self, $earleySetId, $i, $dotPosition, $lhs, @rhs) = @_;
-
-    # We insert the 'dot' in the output
-    if (defined($dotPosition)) {
-	if ($dotPosition >= 0) {
-	    splice(@rhs, $dotPosition, 0, '.');
-	} else {
-	    #
-	    # Completion
-	    #
-	    push(@rhs, '.');
-	}
-    }
-    my $rhs = join(' ', map {if ($_ ne '.') {"<$_>"} else {$_}} @rhs);
-
-    if (defined($earleySetId) && defined($i)) {
-	return sprintf('<%s> ::= %s (ordinal %d, indice %d)', $lhs, $rhs, $earleySetId, $i);
-    } elsif (defined($earleySetId)) {
-	return sprintf('<%s> ::= %s (ordinal %d)', $lhs, $rhs, $earleySetId);
-    } elsif (defined($i)) {
-	return sprintf('<%s> ::= %s (indice %d)', $lhs, $rhs, $i);
-    } else {
-	return sprintf('<%s> ::= %s', $lhs, $rhs);
-    }
-}
-
-sub _arrayEq {
-    my ($class, $ap, $bp) = @_;
-    my $rc = 1;
-    if ($#{$ap} != $#{$bp}) {
-	$rc = 0;
-    } else {
-	foreach (0..$#{$ap}) {
-	    if ($ap->[$_] ne $bp->[$_]) {
-		$rc = 0;
-		last;
-	    }
-	}
-    }
-    return($rc);
 }
 
 1;
