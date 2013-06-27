@@ -21,13 +21,17 @@ This modules implements the Marpa events callback using the very simple framewor
 =cut
 
 sub new {
-    my ($class, $outerSelf, $impl, $scope, $referenceToSourceCodep) = @_;
+    my ($class, $outerSelf) = @_;
 
     my $self = $class->SUPER();
 
-    $self->hscratchpad('_impl', $impl);
-    $self->hscratchpad('_scope', $scope);
-    $self->hscratchpad('_referenceToSourceCodep', $referenceToSourceCodep);
+    if (! defined($outerSelf) || ref($outerSelf) ne 'MarpaX::Languages::C::AST') {
+      croak 'outerSelf must be a reference to MarpaX::Languages::C::AST';
+    }
+
+    $self->hscratchpad('_impl', $outerSelf->{_impl});
+    $self->hscratchpad('_scope', $outerSelf->{_scope});
+    $self->hscratchpad('_sourcep', $outerSelf->{_sourcep});
 
     # #######################################################################################################################
     # From now on, the technique is always the same:
@@ -262,7 +266,7 @@ sub _parameterDeclarationCheck {
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
+	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -284,13 +288,13 @@ sub _functionDefinitionCheck1 {
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
     }
 }
 sub _functionDefinitionCheck2 {
@@ -308,7 +312,7 @@ sub _functionDefinitionCheck2 {
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -345,7 +349,7 @@ sub _declarationCheck {
 	# Take the second typedef
 	#
 	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
+	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed)  = @{$_};

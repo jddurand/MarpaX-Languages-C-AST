@@ -73,31 +73,31 @@ sub new {
   my $recce_option = $grammar->recce_option();
 
   my $self  = {
-               _scope                  => MarpaX::Languages::C::AST::Scope->new(),
-               _grammar                => $grammar,
-               _impl                   => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
-               _referenceToSourceCodep => undef
+               _scope   => MarpaX::Languages::C::AST::Scope->new(),
+               _grammar => $grammar,
+               _impl    => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
+               _sourcep => undef
               };
 
-  $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
-
   bless($self, $class);
+
+  $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
 
   return $self;
 }
 
-=head2 parse($self, $referenceToSourceCodep, $optionalArrayOfValuesb)
+=head2 parse($self, $sourcep, $optionalArrayOfValuesb)
 
 Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code. Takes as optional second parameter a flag saying if the return value should be an array of all values or not. If this flag is false, the module will croak if there more than one parse tree value.
 
 =cut
 
 sub parse {
-  my ($self, $referenceToSourceCodep, $optionalArrayOfValuesb) = @_;
+  my ($self, $sourcep, $optionalArrayOfValuesb) = @_;
 
-  $self->{_referenceToSourceCodep} = $referenceToSourceCodep;
-  my $max = length(${$referenceToSourceCodep});
-  my $pos = $self->{_impl}->read($referenceToSourceCodep);
+  $self->{_sourcep} = $sourcep;
+  my $max = length(${$sourcep});
+  my $pos = $self->{_impl}->read($sourcep);
   do {
     $self->_doEvents();
     $self->_doLexeme();
