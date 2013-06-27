@@ -193,7 +193,6 @@ sub _doEvents {
   my %events = ();
   my $iEvent = 0;
   while (defined($_ = $self->{_impl}->event($iEvent++))) {
-      next if (! defined($_->[0]));
     ++$events{$_->[0]};
   }
 
