@@ -8,19 +8,21 @@ package MarpaX::Languages::C::AST::Util;
 use Exporter 'import';
 use Log::Any qw/$log/;
 use Data::Dumper;
+use Carp qw/croak/;
 
 # VERSION
 # CONTRIBUTORS
 
-our @EXPORT_OK = qw/whoami whowasi traceAndUnpack/;
+our @EXPORT_OK = qw/whoami whowasi traceAndUnpack logCroak showLineAndCol lineAndCol lastCompleted/;
+our %EXPORT_TAGS = ('all' => [ @EXPORT_OK ]);
 
 =head1 DESCRIPTION
 
-This modules implements some function utilities. This is inspired from L<https://kb.wisc.edu/middleware/page.php?id=4309>.
+This modules implements some function utilities.
 
 =head1 SYNOPSIS
 
-    use MarpaX::Languages::C::AST::Util qw/whoami whowasi traceAndUnpack/;
+    use MarpaX::Languages::C::AST::Util qw/:all/;
 
     my $whoami = whoami();
     my $whowasi = whowasi();
@@ -96,5 +98,61 @@ sub traceAndUnpack {
     $log->tracef('%s(%s)', $whowasi, join(', ', @string));
     return($rc);
 }
+
+=head2 logCroak($fmt, @arg)
+
+Formats a string using Log::Any, issue a $log->fatal with it, and croak with it.
+
+=cut
+
+sub logCroak {
+    my ($fmt, @arg) = @_;
+
+    my $msg = sprintf($fmt, @arg);
+    $log->fatalf($msg);
+    croak $msg;
+}
+
+=head2 showLineAndCol($line, $col, $sourcep)
+
+Returns a string showing the request line, followed by another string that shows what is the column of interest, in the form "------^".
+
+=cut
+
+sub showLineAndCol {
+    my ($line, $col, $sourcep) = @_;
+
+    my $pointer = ($col > 0 ? '-' x ($col-1) : '') . '^';
+    my $content = (split("\n", ${$sourcep}))[$line-1];
+    $content =~ s/\t/ /g;
+    return "$content\n$pointer";
+}
+
+=head2 lineAndCol($impl, $g1)
+
+Returns the output of Marpa's line_column at a given $g1 location. Default $g1 is Marpa's current_g1_location().
+
+=cut
+
+sub lineAndCol {
+    my ($impl, $g1) = @_;
+
+    $g1 //= $impl->current_g1_location();
+    my ($start, $length) = $impl->g1_location_to_span($g1);
+    my ($line, $column) = $impl->line_column($start);
+    return [ $line, $column ];
+}
+
+=head2 lastCompleted($impl, $symbol)
+
+Returns the string corresponding the last completion of $symbol.
+
+=cut
+
+sub lastCompleted {
+    my ($impl, $symbol) = @_;
+    return $impl->substring($impl->last_completed($symbol));
+}
+
 
 1;

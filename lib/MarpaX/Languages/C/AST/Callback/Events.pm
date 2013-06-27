@@ -2,7 +2,7 @@ use strict;
 use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Callback::Events;
-use MarpaX::Languages::C::AST::Util qw/whoami whowasi/;
+use MarpaX::Languages::C::AST::Util qw/:all/;
 use parent qw/MarpaX::Languages::C::AST::Callback/;
 
 # ABSTRACT: Events callback when translating a C source to an AST
@@ -21,8 +21,13 @@ This modules implements the Marpa events callback using the very simple framewor
 =cut
 
 sub new {
-    my ($class, $outerSelf) = @_;
+    my ($class, $outerSelf, $impl, $scope, $referenceToSourceCodep) = @_;
+
     my $self = $class->SUPER();
+
+    $self->hscratchpad('_impl', $impl);
+    $self->hscratchpad('_scope', $scope);
+    $self->hscratchpad('_referenceToSourceCodep', $referenceToSourceCodep);
 
     # #######################################################################################################################
     # From now on, the technique is always the same:
@@ -67,6 +72,16 @@ sub new {
                                                    [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier'  ] ]
                                                  ],
                                           method => \&_declarationCheck,
+                                          # ---------------------------
+                                          # directDeclarator constraint
+                                          # ---------------------------
+                                          # In:
+                                          # structDeclarator ::= declarator COLON constantExpression | declarator
+                                          #
+                                          # ordinary name space names cannot be defined. Therefore all parse symbol activity must be
+                                          # suspended for structDeclarator.
+                                          # ---------------------------
+                                          counters => [ 'structDeclaratordeclarator' ],
                                          }
                                         )
         );
@@ -137,54 +152,6 @@ sub new {
                                          }
                                         )
         );
-    # ------------------------------------------------------------------------------------------
-    # directDeclarator constraint
-    # ------------------------------------------------------------------------------------------
-    # In:
-    # structDeclarator ::= declarator COLON constantExpression | declarator
-    #
-    # ordinary name space names cannot be defined. Therefore all parse symbol activity must be
-    # suspended for structDeclarator.
-    #
-    # We simply create a topic data 'structDeclarator' of persistence 'level', initialized to 0 at
-    # ^structDeclarator and
-    # setted to 1 at structDeclaratordeclarator, where:
-    # structDeclaratordeclarator ::= declarator
-    #
-    # In _declarationCheck(), we suspend activity if the flag is on.
-    #
-    # It has quite a high priority so that the flag is setted before _declarationCheck is
-    # called.
-    # ------------------------------------------------------------------------------------------
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => '^structDeclaratordeclarator',
-		     method =>  [ \&_structDeclaratordeclarator, $self, $outerSelf, 0 ],
-		     method_mode => 'replace',
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [qw/auto/] ],
-		      topic => {'structDeclaratordeclarator'=> 1},
-		      topic_persistence => 'level',
-		      priority => 500
-		     )
-		    )
-	);
-    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => 'structDeclaratordeclarator$',
-		     method =>  [ \&_structDeclaratordeclarator, $self, $outerSelf, 1 ],
-		     method_mode => 'replace',
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [qw/auto/] ],
-		      topic => {'structDeclaratordeclarator'=> 1},
-		      topic_persistence => 'level',
-		      priority => 500
-		     )
-		    )
-	);
-
     # ################################################################################################
     # An enumerationConstantIdentifier introduces a enum-name. Full point.
     # rule:
@@ -272,19 +239,11 @@ sub new {
     return $self;
 }
 # ----------------------------------------------------------------------------------------
-sub _structDeclaratordeclarator {
-    my ($cb, $self, $outerSelf, $value, @execArgs) = @_;
-
-    my $topic = 'structDeclaratordeclarator';
-    $log->debugf('[%s[%d]] Setting %s to [%d]', whoami(__PACKAGE__), $self->currentTopicLevel, $topic, $value);
-
-    return $value
-}
 sub _enumerationConstantIdentifier {
     my ($cb, $self, $outerSelf, @execArgs) = @_;
 
-    my $enum = $outerSelf->_last_completed('enumerationConstantIdentifier');
-    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $enum, $outerSelf->_line_column());
+    my $enum = lastCompleted($outerSelf->{_impl}, 'enumerationConstantIdentifier');
+    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $enum, lineAndCol($outerSelf->{_impl}));
     $outerSelf->{_scope}->parseEnterEnum($enum);
 }
 # ----------------------------------------------------------------------------------------
@@ -303,7 +262,7 @@ sub _parameterDeclarationCheck {
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
-	$outerSelf->_croak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -325,13 +284,13 @@ sub _functionDefinitionCheck1 {
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
-	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
-	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
     }
 }
 sub _functionDefinitionCheck2 {
@@ -349,7 +308,7 @@ sub _functionDefinitionCheck2 {
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
-	$outerSelf->_croak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -359,7 +318,7 @@ sub _declarationCheck {
     #
     # Check if we are in _structDeclaratordeclarator context
     #
-    my $structDeclaratordeclarator = $scopeSelf->topic_fired_data('structDeclaratordeclarator') || [0];
+    my $structDeclaratordeclarator = $self->topic_fired_data('structDeclaratordeclarator') || [0];
     if ($structDeclaratordeclarator->[0]) {
 	$log->debugf('%s[%s[%d]] structDeclaratordeclarator context, doing nothing.', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
 	return;
@@ -386,7 +345,7 @@ sub _declarationCheck {
 	# Take the second typedef
 	#
 	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-	$outerSelf->_croak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $outerSelf->_show_line_and_col($line_columnp));
+	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_referenceToSourceCodep}));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed)  = @{$_};
@@ -534,13 +493,23 @@ sub _storage_helper {
     my $rc;
     if (substr($symbol, 0, 1) eq '^') {
 	substr($symbol, 0, 1, '');
-	$rc = [ $outerSelf->_line_column() ];
+	$rc = [ lineAndCol($outerSelf->{_impl}) ];
     } elsif (substr($symbol, -1, 1) eq '$') {
 	substr($symbol, -1, 1, '');
-	$rc = [ $outerSelf->_line_column(), $outerSelf->_last_completed($symbol) ];
+	$rc = [ lineAndCol($outerSelf->{_impl}), lastCompleted($outerSelf->{_impl}, $symbol) ];
     }
     $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $event, $rc);
     return $rc;
+}
+# ----------------------------------------------------------------------------------------
+sub _inc_helper {
+    my ($cb, $self, $topic, $increment) = @_;
+
+    my $old_value = $self->topic_fired_data($topic)->[0] || 0;
+    my $new_value = $old_value + $increment;
+    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', counter %d -> %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $old_value, $new_value);
+
+    return $new_value;
 }
 # ----------------------------------------------------------------------------------------
 sub _reset_helper {
@@ -587,14 +556,53 @@ sub _register_rule_callbacks {
   my ($self, $outerSelf, $hashp) = @_;
 
   #
-  # subEvents will be the list of events that we forward to the inner callback object
-  #
-  my %subEvents = ();
-
-  #
   # Create inner callback object
   #
   my $callback = MarpaX::Languages::C::AST::Callback->new(log_prefix => '  ' . $hashp->{lhs} . ' ');
+
+  #
+  # subEvents will be the list of events that we forward to the inner callback object
+  #
+  my %subEvents = ();
+  #
+  # Counters are events associated to a counter: every ^xxx increases a counter.
+  # Every xxx$ is decreasing it.
+  my $counters = $hashp->{counters} || [];
+  foreach (@{$hashp->{counters}}) {
+    my $event = '^' . $_;
+    ++$subEvents{$event};
+    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+                        (
+                         description => $event,
+                         extra_description => $event . ' [counter] ',
+                         method =>  [ \&_inc_helper, $callback, $_, 1 ],
+                         option => MarpaX::Languages::C::AST::Callback::Option->new
+                         (
+                          topic => {$_ => 1},
+                          topic_persistence => 'level',
+                          condition => [ [ 'auto' ] ],  # == match on description
+                          priority => 999,
+                         )
+                        )
+                       );
+    $event = $_ . '$';
+    ++$subEvents{$event};
+    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+                        (
+                         description => $event,
+                         extra_description => $event . ' [counter] ',
+                         method =>  [ \&_inc_helper, $callback, $_, -1 ],
+                         method_mode => 'replace',
+                         option => MarpaX::Languages::C::AST::Callback::Option->new
+                         (
+                          topic => {$_ => 1},
+                          topic_persistence => 'level',
+                          condition => [ [ 'auto' ] ],  # == match on description
+                          priority => 999,
+                         )
+                        )
+                       );
+  }
 
   #
   # Collect the unique list of <Gx$>

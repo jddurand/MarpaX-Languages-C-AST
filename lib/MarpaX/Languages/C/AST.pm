@@ -7,7 +7,7 @@ package MarpaX::Languages::C::AST;
 
 use Log::Any qw/$log/;
 use Carp qw/croak/;
-use MarpaX::Languages::C::AST::Util qw/whoami/;
+use MarpaX::Languages::C::AST::Util qw/:all/;
 use MarpaX::Languages::C::AST::Grammar;
 use MarpaX::Languages::C::AST::Impl qw/DOT_COMPLETION DOT_PREDICTION/;
 use MarpaX::Languages::C::AST::Scope;
@@ -66,19 +66,21 @@ sub new {
 
   $grammarName //= 'ISO-ANSI-C-2011';
 
-  my $self  = {};
-  $self->{_scope} = MarpaX::Languages::C::AST::Scope->new(),
-    $self->{_grammar} = MarpaX::Languages::C::AST::Grammar->new($grammarName);
-
-  my $grammar_option = $self->{_grammar}->grammar_option();
+  my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName);
+  my $grammar_option = $grammar->grammar_option();
   $grammar_option->{bless_package} = 'C::AST';
-  $grammar_option->{source} = \$self->{_grammar}->content();
+  $grammar_option->{source} = \$grammar->content();
+  my $recce_option = $grammar->recce_option();
 
-  my $recce_option = $self->{_grammar}->recce_option();
+  my $self  = {
+               _scope                  => MarpaX::Languages::C::AST::Scope->new(),
+               _grammar                => $grammar,
+               _impl                   => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
+               _referenceToSourceCodep => undef
+              };
 
-  $self->{_impl} = MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option);
   $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
-  $self->{_referenceToSourceCodep} = undef;
+
   bless($self, $class);
 
   return $self;
@@ -108,39 +110,6 @@ sub parse {
 # INTERNAL METHODS
 #
 
-#################
-# _last_completed
-#################
-sub _last_completed {
-    my ($self, $symbol) = @_;
-    return $self->{_impl}->substring($self->{_impl}->last_completed($symbol));
-}
-
-####################
-# _show_line_and_col
-####################
-sub _show_line_and_col {
-    my ($self, $line_and_colp) = @_;
-
-    my ($line, $col) = @{$line_and_colp};
-    my $pointer = ($col > 0 ? '-' x ($col-1) : '') . '^';
-    my $content = (split("\n", ${$self->{_referenceToSourceCodep}}))[$line-1];
-    $content =~ s/\t/ /g;
-    return "$content\n$pointer";
-}
-
-##############
-# _line_column
-##############
-sub _line_column {
-    my ($self, $g1) = @_;
-
-    $g1 //= $self->{_impl}->current_g1_location();
-    my ($start, $length) = $self->{_impl}->g1_location_to_span($g1);
-    my ($line, $column) = $self->{_impl}->line_column($start);
-    return [ $line, $column ];
-}
-
 #######################
 # _show_last_expression
 #######################
@@ -163,7 +132,7 @@ sub _value {
 
   my @rc = ();
   my $nvalue = 0;
-  my $valuep = $self->{_impl}->value() || $self->_croak($self->_show_last_expression());
+  my $valuep = $self->{_impl}->value() || logCroak('%s', $self->_show_last_expression());
   if (defined($valuep)) {
     push(@rc, $valuep);
   }
@@ -175,7 +144,7 @@ sub _value {
     }
   } while (defined($valuep));
   if ($#rc != 0 && ! $arrayOfValuesb) {
-    $self->_croak('Number of parse tree value should be 1');
+    logCroak('Number of parse tree value should be %d', 1);
   }
   if ($arrayOfValuesb) {
     return [ @rc ];
@@ -234,30 +203,19 @@ sub _doLexeme {
   } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
       $newlexeme = 'IDENTIFIER';
   } else {
-      $self->_croak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
+      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
   }
   #
   # Push the unambiguated lexeme
   #
   $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
   if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
-      $self->_croak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
+      logCroak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
   }
   #
   # A lexeme_read() can generate an event
   #
   $self->_doEvents();
-}
-
-########
-# _croak
-########
-sub _croak {
-    my ($self, $fmt, @arg) = @_;
-
-    my $msg = sprintf($fmt, @arg);
-    $log->fatalf($msg);
-    croak $msg;
 }
 
 1;
