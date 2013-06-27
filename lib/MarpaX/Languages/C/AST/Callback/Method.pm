@@ -34,7 +34,7 @@ Any string that describes this event even more. Used only for logging in case th
 
 =item method
 
-A reference to an array containing a CODE reference in the first indice, then the arguments. Or the single string 'auto'. In case of a CODE reference, The method will be called as $self->$CODE(@arguments) where $self is a reference to the method object. The arguments to the exec() routine will follow @arguments. Or the user can use $self->SUPER::arguments. In case of the single string 'auto', the description attribute will be used, and if there is a topic associated with the description, the derefenced array content of the topic will be pushed. The output of the method attribute will be pushed to any eventual topic associated to the method, unless the method is marked 'void', see below.
+A reference to an array containing a CODE reference in the first indice, then the arguments. Or the single string 'auto'. In case of a CODE reference, The method will be called as $self->$CODE($callback, @arguments) where $self is a reference to the method object, and $callback is a reference to the Callback package that triggered the call. The arguments to the exec() routine will be in @arguments. In case of the single string 'auto', the description attribute will be used as a source topic, and for every targeted topic associated to the method, the derefenced array content of the description data will be pushed, replaced, or nothing depending on the method_void and method_mode attributes.
 
 =item method_mode
 
