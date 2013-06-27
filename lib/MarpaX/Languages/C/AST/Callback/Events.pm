@@ -69,8 +69,7 @@ sub new {
     # ################################################################################################
     my @callbacks = ();
     push(@callbacks,
-         $self->_register_rule_callbacks($outerSelf,
-                                         {
+         $self->_register_rule_callbacks({
                                           lhs => 'declarationCheck',
                                           rhs => [ [ 'declarationCheckdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                    [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier'  ] ]
@@ -114,8 +113,7 @@ sub new {
     #       to the data of the previous level.
     # ------------------------------------------------------------------------------------------
     push(@callbacks,
-         $self->_register_rule_callbacks($outerSelf,
-                                         {
+         $self->_register_rule_callbacks({
                                           lhs => 'functionDefinitionCheck1',
                                           rhs => [ [ 'functionDefinitionCheck1declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                    [ 'functionDefinitionCheck1declarationList',       [ 'storageClassSpecifierTypedef' ] ]
@@ -125,8 +123,7 @@ sub new {
                                         )
         );
     push(@callbacks,
-         $self->_register_rule_callbacks($outerSelf,
-                                         {
+         $self->_register_rule_callbacks({
                                           lhs => 'functionDefinitionCheck2',
                                           rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                  ],
@@ -147,8 +144,7 @@ sub new {
     # parameterDeclarationCheck ::= declarationSpecifiers declarator
     # ------------------------------------------------------------------------------------------
     push(@callbacks,
-         $self->_register_rule_callbacks($outerSelf,
-                                         {
+         $self->_register_rule_callbacks({
                                           lhs => 'parameterDeclarationCheck',
                                           rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ]
                                                  ],
@@ -164,7 +160,7 @@ sub new {
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => 'enumerationConstantIdentifier$',
-		     method =>  [ \&_enumerationConstantIdentifier, $self, $outerSelf ],
+		     method =>  [ \&_enumerationConstantIdentifier ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
 		      condition => [ [qw/auto/] ],
@@ -238,27 +234,27 @@ sub new {
     # - -999 for <exitScope[]> because this must be a showstopper in the C rules: always at the end
     #   plus it will DESTROY all the topics
     # #############################################################################################
-    $self->_register_scope_callbacks($outerSelf, [ $self, @callbacks ]);
+    $self->_register_scope_callbacks(@callbacks);
 
     return $self;
 }
 # ----------------------------------------------------------------------------------------
 sub _enumerationConstantIdentifier {
-    my ($cb, $self, $outerSelf, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
 
-    my $enum = lastCompleted($outerSelf->{_impl}, 'enumerationConstantIdentifier');
-    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $self->currentTopicLevel, $enum, lineAndCol($outerSelf->{_impl}));
-    $outerSelf->{_scope}->parseEnterEnum($enum);
+    my $enum = lastCompleted($callback->hscratchpad('_impl'), 'enumerationConstantIdentifier');
+    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $enum, lineAndCol($callback->hscratchpad('_impl')));
+    $callback->hscratchpad('_scope')->parseEnterEnum($enum);
 }
 # ----------------------------------------------------------------------------------------
 sub _parameterDeclarationCheck {
-    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $parameterDeclarationdeclarationSpecifiers = $self->topic_level_fired_data('parameterDeclarationdeclarationSpecifiers$');
+    my $parameterDeclarationdeclarationSpecifiers = $callback->topic_level_fired_data('parameterDeclarationdeclarationSpecifiers$');
 
-    $log->debugf('%s[%s[%d]] parameterDeclarationdeclarationSpecifiers data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $parameterDeclarationdeclarationSpecifiers);
+    $log->debugf('%s[%s[%d]] parameterDeclarationdeclarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $parameterDeclarationdeclarationSpecifiers);
 
     #
     # By definition parameterDeclarationdeclarationSpecifiers contains only typedefs
@@ -266,20 +262,20 @@ sub _parameterDeclarationCheck {
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
+	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
 # ----------------------------------------------------------------------------------------
 sub _functionDefinitionCheck1 {
-    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $functionDefinitionCheck1declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers$', -1);
-    my $functionDefinitionCheck1declarationList = $self->topic_fired_data('functionDefinitionCheck1declarationList$');
+    my $functionDefinitionCheck1declarationSpecifiers = $callback->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers$', -1);
+    my $functionDefinitionCheck1declarationList = $callback->topic_fired_data('functionDefinitionCheck1declarationList$');
 
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationSpecifiers data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationSpecifiers);
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationList data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck1declarationList);
+    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck1declarationSpecifiers);
+    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationList data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck1declarationList);
 
     #
     # By definition functionDefinitionCheck1declarationSpecifiers contains only typedefs
@@ -288,23 +284,23 @@ sub _functionDefinitionCheck1 {
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
 sub _functionDefinitionCheck2 {
-    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
     #
     # Get the topics data we are interested in
     #
-    my $functionDefinitionCheck2declarationSpecifiers = $self->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers$', -1);
+    my $functionDefinitionCheck2declarationSpecifiers = $callback->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers$', -1);
 
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck2declarationSpecifiers data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $functionDefinitionCheck2declarationSpecifiers);
+    $log->debugf('%s[%s[%d]] functionDefinitionCheck2declarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck2declarationSpecifiers);
 
     #
     # By definition functionDefinitionCheck2declarationSpecifiers contains only typedefs
@@ -312,31 +308,31 @@ sub _functionDefinitionCheck2 {
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
 	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
+	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
 # ----------------------------------------------------------------------------------------
 sub _declarationCheck {
-    my ($cb, $self, $outerSelf, $scopeSelf, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
 
     #
     # Check if we are in _structDeclaratordeclarator context
     #
-    my $structDeclaratordeclarator = $self->topic_fired_data('structDeclaratordeclarator') || [0];
+    my $structDeclaratordeclarator = $callback->topic_fired_data('structDeclaratordeclarator') || [0];
     if ($structDeclaratordeclarator->[0]) {
-	$log->debugf('%s[%s[%d]] structDeclaratordeclarator context, doing nothing.', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
+	$log->debugf('%s[%s[%d]] structDeclaratordeclarator context, doing nothing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
 	return;
     } else {
-	$log->debugf('%s[%s[%d]] Not in a structDeclaratordeclarator context.', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel);
+	$log->debugf('%s[%s[%d]] Not in a structDeclaratordeclarator context.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
     }
     #
     # Get the topics data we are interested in
     #
-    my $declarationCheckdeclarationSpecifiers = $self->topic_fired_data('declarationCheckdeclarationSpecifiers$');
-    my $declarationCheckinitDeclaratorList = $self->topic_fired_data('declarationCheckinitDeclaratorList$');
+    my $declarationCheckdeclarationSpecifiers = $callback->topic_fired_data('declarationCheckdeclarationSpecifiers$');
+    my $declarationCheckinitDeclaratorList = $callback->topic_fired_data('declarationCheckinitDeclaratorList$');
 
-    $log->debugf('%s[%s[%d]] declarationCheckdeclarationSpecifiers data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckdeclarationSpecifiers);
-    $log->debugf('%s[%s[%d]] declarationCheckinitDeclaratorList data is: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $declarationCheckinitDeclaratorList);
+    $log->debugf('%s[%s[%d]] declarationCheckdeclarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $declarationCheckdeclarationSpecifiers);
+    $log->debugf('%s[%s[%d]] declarationCheckinitDeclaratorList data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $declarationCheckinitDeclaratorList);
 
     #
     # By definition declarationCheckdeclarationSpecifiers contains only typedefs
@@ -349,21 +345,21 @@ sub _declarationCheck {
 	# Take the second typedef
 	#
 	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $outerSelf->{_sourcep}));
+	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed)  = @{$_};
-	$log->debugf('%s[%s[%d]] Identifier %s at position %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $last_completed, $line_columnp);
+	$log->debugf('%s[%s[%d]] Identifier %s at position %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp);
 	if ($nbTypedef >= 0) {
-	    $outerSelf->{_scope}->parseEnterTypedef($last_completed);
+	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed);
 	} else {
-	    $outerSelf->{_scope}->parseObscureTypedef($last_completed);
+	    $callback->hscratchpad('_scope')->parseObscureTypedef($last_completed);
 	}
     }
 }
 # ----------------------------------------------------------------------------------------
 sub _initReenterScope {
-    my ($cb, $self, $outerSelf, $callbacksp, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
 
     #
     # No need to init 'reenterScope' to an empty array. It can happen only at
@@ -372,61 +368,61 @@ sub _initReenterScope {
     #
 
     my $rc = 0;
-    $log->debugf('[%s[%d]] Setting \'reenterScope\' topic data to [%d]', whoami(__PACKAGE__), $self->currentTopicLevel, $rc);
+    $log->debugf('[%s[%d]] Setting \'reenterScope\' topic data to [%d]', whoami(__PACKAGE__), $callback->currentTopicLevel, $rc);
 
     return $rc;
 }
 sub _reenterScope {
-    my ($cb, $self, $outerSelf, $callbacksp, @execArgs) = @_;
+    my ($method, $callback, $eventsp) = @_;
 
-    if (grep {$_ eq 'exitScope[]'} @execArgs) {
-	$self->topic_level_fired_data('reenterScope', -1, [1]);
-	$log->debugf('[%s[%d]] Changed reenterScope topic data at level %d to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
+    if (grep {$_ eq 'exitScope[]'} @{$eventsp}) {
+	$callback->topic_level_fired_data('reenterScope', -1, [1]);
+	$log->debugf('[%s[%d]] Changed reenterScope topic data at level %d to %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
     } else {
-	$self->topic_level_fired_data('reenterScope', 0, [1]);
-	$log->debugf('[%s[%d]] Changed reenterScope topic data to %s', whoami(__PACKAGE__), $self->currentTopicLevel, $self->topic_level_fired_data('reenterScope', 0));
+	$callback->topic_level_fired_data('reenterScope', 0, [1]);
+	$log->debugf('[%s[%d]] Changed reenterScope topic data to %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->topic_level_fired_data('reenterScope', 0));
     }
 }
 sub _exitScope {
-    my ($cb, $self, $outerSelf, $callbacksp, @execArgs) = @_;
+    my ($method, $callback, $eventsp, @callbacks) = @_;
 
-    if (defined($self->topic_level_fired_data('reenterScope', -1)) && ($self->topic_level_fired_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s[%d]] reenterScope topic data is %s. Do nothing.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
+    if (defined($callback->topic_level_fired_data('reenterScope', -1)) && ($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data is %s. Do nothing.', whoami(__PACKAGE__), $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
     } else {
-	$outerSelf->{_scope}->parseExitScope();
-        foreach (@{$callbacksp}) {
+	$callback->hscratchpad('_scope')->parseExitScope();
+        foreach ($callback, @callbacks) {
           $_->popTopicLevel();
         }
     }
 }
 sub _maybeEnterScope {
-    my ($cb, $self, $outerSelf, $callbacksp, @execArgs) = @_;
+    my ($method, $callback, $eventsp, @callbacks) = @_;
 
-    if (($self->topic_level_fired_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s[%d]] reenterScope topic data is %s. Resetted.', whoami(__PACKAGE__), $self->currentTopicLevel - 1, $self->topic_level_fired_data('reenterScope', -1));
-	$self->topic_level_fired_data('reenterScope', -1, [0]);
+    if (($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data is %s. Resetted.', whoami(__PACKAGE__), $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
+	$callback->topic_level_fired_data('reenterScope', -1, [0]);
     } else {
-	$outerSelf->{_scope}->parseEnterScope();
-        foreach (@{$callbacksp}) {
+	$callback->hscratchpad('_scope')->parseEnterScope();
+        foreach ($callback, @callbacks) {
           $_->pushTopicLevel();
         }
     }
 }
 sub _enterScope {
-    my ($cb, $self, $outerSelf, $callbacksp, @execArgs) = @_;
+    my ($method, $callback, $eventsp, @callbacks) = @_;
 
-    $outerSelf->{_scope}->parseEnterScope();
-    foreach (@{$callbacksp}) {
+    $callback->hscratchpad('_scope')->parseEnterScope();
+    foreach ($callback, @callbacks) {
       $_->pushTopicLevel();
     }
 }
 sub _register_scope_callbacks {
-    my ($self, $outerSelf, $callbacksp) = @_;
+    my ($self, @callbacks) = @_;
 
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => '^functionDefinition',
-		     method =>  [ \&_initReenterScope, $self, $outerSelf, $callbacksp ],
+		     method =>  [ \&_initReenterScope ],
                      method_mode => 'replace',
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
@@ -439,7 +435,7 @@ sub _register_scope_callbacks {
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => 'reenterScope[]',
-		     method =>  [ \&_reenterScope, $self, $outerSelf, $callbacksp ],
+		     method =>  [ \&_reenterScope ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
 		      condition => [ [qw/auto/] ],
@@ -451,7 +447,7 @@ sub _register_scope_callbacks {
 	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $_,
-			 method =>  [ \&_maybeEnterScope, $self, $outerSelf, $callbacksp ],
+			 method =>  [ \&_maybeEnterScope, @callbacks ],
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
 			  condition => [ [qw/auto/] ],
@@ -464,7 +460,7 @@ sub _register_scope_callbacks {
 	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $_,
-			 method =>  [ \&_enterScope, $self, $outerSelf, $callbacksp ],
+			 method =>  [ \&_enterScope, @callbacks ],
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
 			  condition => [ [qw/auto/] ],
@@ -477,7 +473,7 @@ sub _register_scope_callbacks {
 	$self->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $_,
-			 method =>  [ \&_exitScope, $self, $outerSelf, $callbacksp ],
+			 method =>  [ \&_exitScope, @callbacks ],
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
 			  condition => [ [qw/auto/] ],
@@ -489,7 +485,7 @@ sub _register_scope_callbacks {
 }
 # ----------------------------------------------------------------------------------------
 sub _storage_helper {
-    my ($cb, $self, $outerSelf, $event) = @_;
+    my ($method, $callback, $eventsp, $event) = @_;
     #
     # The event name, by convention, is 'symbol$' or '^$symbol'
     #
@@ -497,72 +493,72 @@ sub _storage_helper {
     my $rc;
     if (substr($symbol, 0, 1) eq '^') {
 	substr($symbol, 0, 1, '');
-	$rc = [ lineAndCol($outerSelf->{_impl}) ];
+	$rc = [ lineAndCol($callback->hscratchpad('_impl')) ];
     } elsif (substr($symbol, -1, 1) eq '$') {
 	substr($symbol, -1, 1, '');
-	$rc = [ lineAndCol($outerSelf->{_impl}), lastCompleted($outerSelf->{_impl}, $symbol) ];
+	$rc = [ lineAndCol($callback->hscratchpad('_impl')), lastCompleted($callback->hscratchpad('_impl'), $symbol) ];
     }
-    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $event, $rc);
+    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $event, $rc);
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
 sub _inc_helper {
-    my ($cb, $self, $topic, $increment) = @_;
+    my ($method, $callback, $eventsp, $topic, $increment) = @_;
 
-    my $old_value = $self->topic_fired_data($topic)->[0] || 0;
+    my $old_value = $callback->topic_fired_data($topic)->[0] || 0;
     my $new_value = $old_value + $increment;
-    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', counter %d -> %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $old_value, $new_value);
+    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', counter %d -> %d', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $topic, $old_value, $new_value);
 
     return $new_value;
 }
 # ----------------------------------------------------------------------------------------
 sub _reset_helper {
-    my ($cb, $self, $outerSelf, $topicsp) = @_;
+    my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
-    $log->debugf('%s[%s[%d]] Callback \'%s\', resetting topics \'%s\' data', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topicsp);
+    $log->debugf('%s[%s[%d]] Callback \'%s\', resetting topics \'%s\' data', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, \@topics);
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
 sub _push_and_reset_helper {
-    my ($cb, $self, $outerSelf, $topicsp) = @_;
+    my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
-    foreach (@{$topicsp}) {
+    foreach (@topics) {
 	my $topic = $_;
-	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting and resetting topic \'%s\' data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $topic, $self->topic_fired_data($topic));
-	push(@rc, @{$self->topic_fired_data($topic)});
-	$self->topic_fired_data($topic, []);
+	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting and resetting topic \'%s\' data: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $topic, $callback->topic_fired_data($topic));
+	push(@rc, @{$callback->topic_fired_data($topic)});
+	$callback->topic_fired_data($topic, []);
     }
 
-    $log->debugf('%s[%s[%d]] Callback \'%s\', collected data: %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, \@rc);
+    $log->debugf('%s[%s[%d]] Callback \'%s\', collected data: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, \@rc);
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
 sub _incScratchpad {
-  my ($cb, $self, $flag) = @_;
+  my ($method, $callback, $eventsp, $flag) = @_;
 
-  ++$self->hscratchpad($flag);
-  $log->debugf('%s[%s[%d]] Number of expected end of rule: %d', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $self->hscratchpad($flag));
+  ++$callback->hscratchpad($flag);
+  $log->debugf('%s[%s[%d]] Number of expected end of rule: %d', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->hscratchpad($flag));
 }
 
 sub _subFire {
-  my ($cb, $self, $callback, $lhs, $subEventsp, @events) = @_;
+  my ($method, $callback, $eventsp, $lhs, $subCallback) = @_;
 
-  my @subEvents = grep {exists($subEventsp->{$_})} @_;
-  if (@subEvents) {
-    $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $lhs, \@subEvents);
-    $callback->exec(@subEvents);
-  }
+  $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, $eventsp);
+  $subCallback->exec(@{$eventsp});
 }
 
 sub _register_rule_callbacks {
-  my ($self, $outerSelf, $hashp) = @_;
+  my ($self, $hashp) = @_;
 
   #
   # Create inner callback object
   #
   my $callback = MarpaX::Languages::C::AST::Callback->new(log_prefix => '  ' . $hashp->{lhs} . ' ');
+  $callback->hscratchpad('_impl', $self->hscratchpad('_impl'));
+  $callback->hscratchpad('_scope', $self->hscratchpad('_scope'));
+  $callback->hscratchpad('_sourcep', $self->hscratchpad('_sourcep'));
 
   #
   # subEvents will be the list of events that we forward to the inner callback object
@@ -579,11 +575,11 @@ sub _register_rule_callbacks {
                         (
                          description => $event,
                          extra_description => $event . ' [counter] ',
-                         method =>  [ \&_inc_helper, $callback, $_, 1 ],
+                         method =>  [ \&_inc_helper, $_, 1 ],
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
                           topic => {$_ => 1},
-                          topic_persistence => 'level',
+                          topic_persistence => 'any',
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,
                          )
@@ -595,12 +591,12 @@ sub _register_rule_callbacks {
                         (
                          description => $event,
                          extra_description => $event . ' [counter] ',
-                         method =>  [ \&_inc_helper, $callback, $_, -1 ],
+                         method =>  [ \&_inc_helper, $_, -1 ],
                          method_mode => 'replace',
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
                           topic => {$_ => 1},
-                          topic_persistence => 'level',
+                          topic_persistence => 'any',
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,
                          )
@@ -629,7 +625,7 @@ sub _register_rule_callbacks {
 			    (
 			     description => $_,
                              extra_description => $_ . ' [storage] ',
-			     method =>  [ \&_storage_helper, $callback, $outerSelf, $_ ],
+			     method =>  [ \&_storage_helper, $_ ],
 			     option => MarpaX::Languages::C::AST::Callback::Option->new
 			     (
 			      topic => {$_ => 1},
@@ -664,7 +660,7 @@ sub _register_rule_callbacks {
 			(
 			 description => $event,
                          extra_description => $event . ' [reset] ',
-			 method =>  [ \&_reset_helper, $callback, $outerSelf, [ keys %rhsTopicsToUpdate ] ],
+			 method =>  [ \&_reset_helper, keys %rhsTopicsToUpdate ],
 			 method_mode => 'replace',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
@@ -685,7 +681,7 @@ sub _register_rule_callbacks {
 			(
 			 description => $event,
                          extra_description => $event . ' [push_and_reset] ',
-			 method =>  [ \&_push_and_reset_helper, $callback, $outerSelf, [ keys %rhsTopicNotToUpdate ] ],
+			 method =>  [ \&_push_and_reset_helper, keys %rhsTopicNotToUpdate ],
 			 method_mode => 'push',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
@@ -697,6 +693,12 @@ sub _register_rule_callbacks {
 			 )
 			)
 	);
+
+    if ($i == 0) {
+      #
+      # The very first LHSRHS$ is special: we use it to push a scope if this is the first time it is hitted
+      #
+    }
   }
 
   #
@@ -707,7 +709,7 @@ sub _register_rule_callbacks {
                   (
                    description => $hashp->{lhs} . '$',
                    extra_description => $hashp->{lhs} . '$ [processing] ',
-                   method => [ $hashp->{method}, $callback, $outerSelf, $self ],
+                   method => [ $hashp->{method} ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
 		    condition => [ [ 'auto' ] ],  # == match on description
@@ -719,7 +721,7 @@ sub _register_rule_callbacks {
                       (
                        description => $hashp->{lhs} . '$',
                        extra_description => $hashp->{lhs} . '$ [reset] ',
-                       method =>  [ \&_reset_helper, $callback, $outerSelf, [ keys %lhsTopicsToUpdate ] ],
+                       method =>  [ \&_reset_helper, keys %lhsTopicsToUpdate ],
                        method_mode => 'replace',
                        option => MarpaX::Languages::C::AST::Callback::Option->new
                        (
@@ -737,13 +739,12 @@ sub _register_rule_callbacks {
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => $hashp->{lhs} . ' [sub-events fire]',
-                   method => [ \&_subFire, $self, $callback, $hashp->{lhs}, \%subEvents ],
+                   method => [ \&_subFire, $hashp->{lhs}, $callback ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
-                                  [ sub { my $cb = shift;
-                                          my $subEventsp = shift;
-                                          return grep {exists($subEventsp->{$_})} @_;
+                                  [ sub { my ($method, $callback, $eventsp, $subEventsp) = @_;
+                                          return grep {exists($subEventsp->{$_})} @{$eventsp};
                                         },
                                     \%subEvents
                                   ]

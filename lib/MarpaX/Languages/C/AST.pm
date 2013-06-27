@@ -81,8 +81,6 @@ sub new {
 
   bless($self, $class);
 
-  $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
-
   return $self;
 }
 
@@ -96,6 +94,8 @@ sub parse {
   my ($self, $sourcep, $optionalArrayOfValuesb) = @_;
 
   $self->{_sourcep} = $sourcep;
+  $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
+
   my $max = length(${$sourcep});
   my $pos = $self->{_impl}->read($sourcep);
   do {

@@ -203,8 +203,9 @@ sub _inventory_condition_tofire {
     foreach my $condition (@{$option->condition}) {
 	my ($coderef, @arguments) = @{$condition};
 	if (ref($coderef) eq 'CODE') {
-	    push(@condition, &$coderef($cb, @arguments, @{$self->arguments()}) ? 1 :0);
+	    push(@condition, &$coderef($cb, $self, $self->arguments(), @arguments) ? 1 :0);
 	} elsif (defined($cb->description)) {
+          $log->tracef('%s[%s[%d]] Callback \'%s\': Is \'%s\' in %s ?', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $cb->description, $self->arguments());
 	    push(@condition, (grep {$_ eq $cb->description} @{$self->arguments()}) ? 1 :0);
 	}
     }
@@ -299,7 +300,7 @@ sub _fire {
       if (ref($cb->method) eq 'ARRAY') {
         my ($method, @arguments) = @{$cb->method};
         $log->tracef('%s[%s[%d]] Calling method for callback No %d \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
-        @rc = $cb->$method(@arguments, @{$self->arguments()});
+        @rc = &$method($cb, $self, $self->arguments(), @arguments);
       } else {
         @rc = $self->topic_fired_data($cb->description) || [];
       }
