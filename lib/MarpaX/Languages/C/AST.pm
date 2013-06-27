@@ -188,6 +188,7 @@ sub _doLexeme {
   return if (! defined($lexeme));
 
   my @terminals_expected = @{$self->{_impl}->terminals_expected()};
+  return if (! @terminals_expected);
 
   #
   # Determine the correct lexeme
