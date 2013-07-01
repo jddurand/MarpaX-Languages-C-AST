@@ -21,7 +21,7 @@ Log::Any::Adapter->set('Log4perl');
 #
 # Parse C
 #
-my $file = shift || die "Usage: $^0 file\n";
+my $file = shift || die "Usage: $^X $0 file\n";
 open(FILE, '<', $file) || die "Cannot open $file, $!\n";
 my $cSourceCode = do { local $/; <FILE> };
 close(FILE) || warn "Cannot close $file, $!\n";
