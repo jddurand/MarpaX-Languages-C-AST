@@ -83,8 +83,13 @@ sub new {
                                           #
                                           # ordinary name space names cannot be defined. Therefore all parse symbol activity must be
                                           # suspended for structDeclarator.
+                                          #
+                                          # structDeclarator$ will be hitted many time (right recursive), but its container
+                                          # structDeclaration will be hitted only once.
                                           # ---------------------------
-                                          counters => [ 'structDeclaratordeclarator' ],
+                                          counters => {
+                                                       'structContext' => [ 'structContextStart[]', 'structContextEnd[]' ]
+                                                      },
                                          }
                                         )
         );
@@ -101,11 +106,9 @@ sub new {
     # Isolated to two rules:
     #
     # functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator
-    #                              (<reenterScope>)
     #                              functionDefinitionCheck1declarationList
     #                              compoundStatementWithMaybeEnterScope action => deref
     # functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator
-    #                              (<reenterScope>)
     #                              compoundStatementWithMaybeEnterScope action => deref
     #
     # Note: We arranged $rcurly to happen at the latest moment.
@@ -196,9 +199,9 @@ sub new {
     #                      | declarationSpecifiers fileScopeDeclarator (<reenterScope>)                 compoundStatementWithMaybeEnterScope
     #
     # Note that putting (<reenterScope>) on the two lines is redundant.
-    # We associate a topic_data with <reenterScope> of persistence level 1.
+    # We associate a topic_data with <reenterScope> of persistence 'level'.
     # At ^functionDefinition we attach and initialize the topic data to 0.
-    # At '<reenterScope[]>' we set the topic to 1.
+    # At '<reenterScope[]>' we set the topic to 1 if current topic level is 0 (i.e. file scope level)
     #
     # - the following cases then can happen:
     # - fileScopeDeclarator end with a ')' :
@@ -214,14 +217,16 @@ sub new {
     #   > there is no declarationList:       reenterScope[],maybeEnterScope[]
     #
     # The rule is simple:
-    # * Execution of <reenterScope[]> has highest priority PRIO and sets a topic data, with persistence 'level' to 1
+    # * Execution of <reenterScope[]> has highest priority PRIO and sets a topic data, with persistence 'level' to 1 if currentTopicLevel is 0
     # - Take care, if <reenterScope[]> and <exitScope[]> are both matched, then the topic data is at current level - 1
     # * Execution of <exitScope[]> has priority PRIO-1 and is like:
-    #   - noop if <reenterScope[]> topic data is 1 AT PREVIOUS topic level
+    #   - noop if <reenterScope[]> topic data is 1 AT PREVIOUS topic level, and currentTopicLevel is 1
     #   - real exitScope otherwise
     # * Execution of <maybeEnterScope[]> has priority PRIO-2 and is like:
-    #   - noop if <reenterScope[]> topic data is 1, reset this data.
+    #   - noop if <reenterScope[]> topic data is 1 or currentTopicLevel is not 0, reset this data.
     #   - real enterScope otherwise
+    # * functionDefinition$ is guaranteed to always close correctly the scopes.
+    # * declaration$ will be catched up to force closing of all the scopes.
     #
     # Conclusion: there is NO notion of delayed exit scope anymore.
     # 
@@ -316,14 +321,14 @@ sub _declarationCheck {
     my ($method, $callback, $eventsp) = @_;
 
     #
-    # Check if we are in _structDeclaratordeclarator context
+    # Check if we are in structContext context
     #
-    my $structDeclaratordeclarator = $callback->topic_fired_data('structDeclaratordeclarator') || [0];
-    if ($structDeclaratordeclarator->[0]) {
-	$log->debugf('%s[%s[%d]] structDeclaratordeclarator context, doing nothing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
+    my $structContext = $callback->topic_fired_data('structContext') || [0];
+    if ($structContext->[0]) {
+	$log->debugf('%s[%s[%d]] structContext is true, doing nothing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
 	return;
     } else {
-	$log->debugf('%s[%s[%d]] Not in a structDeclaratordeclarator context.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
+	$log->debugf('%s[%s[%d]] structContext is false, continuing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
     }
     #
     # Get the topics data we are interested in
@@ -377,7 +382,7 @@ sub _reenterScope {
 
     if (grep {$_ eq 'exitScope[]'} @{$eventsp}) {
 	$callback->topic_level_fired_data('reenterScope', -1, [1]);
-	$log->debugf('[%s[%d]] Changed reenterScope topic data at level %d to %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
+	$log->debugf('[%s[%d]] Changed reenterScope topic data at previous level to %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->topic_level_fired_data('reenterScope', -1));
     } else {
 	$callback->topic_level_fired_data('reenterScope', 0, [1]);
 	$log->debugf('[%s[%d]] Changed reenterScope topic data to %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->topic_level_fired_data('reenterScope', 0));
@@ -386,8 +391,9 @@ sub _reenterScope {
 sub _exitScope {
     my ($method, $callback, $eventsp, @callbacks) = @_;
 
-    if (defined($callback->topic_level_fired_data('reenterScope', -1)) && ($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s[%d]] reenterScope topic data is %s. Do nothing.', whoami(__PACKAGE__), $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
+    if ($callback->currentTopicLevel == 1 &&
+        defined($callback->topic_level_fired_data('reenterScope', -1)) && ($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data at previous level is is %s. Do nothing.', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->topic_level_fired_data('reenterScope', -1));
     } else {
 	$callback->hscratchpad('_scope')->parseExitScope();
         foreach ($callback, @callbacks) {
@@ -395,11 +401,22 @@ sub _exitScope {
         }
     }
 }
+sub _closeScopes {
+    my ($method, $callback, $eventsp, @callbacks) = @_;
+
+    while ($callback->currentTopicLevel > 0) {
+      $callback->hscratchpad('_scope')->parseExitScope();
+      foreach ($callback, @callbacks) {
+        $_->popTopicLevel();
+      }
+    }
+}
 sub _maybeEnterScope {
     my ($method, $callback, $eventsp, @callbacks) = @_;
 
-    if (($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
-	$log->debugf('[%s[%d]] reenterScope topic data is %s. Resetted.', whoami(__PACKAGE__), $callback->currentTopicLevel - 1, $callback->topic_level_fired_data('reenterScope', -1));
+    if ($callback->currentTopicLevel == 1 &&
+        ($callback->topic_level_fired_data('reenterScope', -1))->[0]) {
+	$log->debugf('[%s[%d]] reenterScope topic data at previous level is is %s. Resetted.', whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->topic_level_fired_data('reenterScope', -1));
 	$callback->topic_level_fired_data('reenterScope', -1, [0]);
     } else {
 	$callback->hscratchpad('_scope')->parseEnterScope();
@@ -482,7 +499,18 @@ sub _register_scope_callbacks {
 			)
 	    );
     }
-}
+    $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                    (
+                     description => 'declaration$',
+                     method =>  [ \&_closeScopes, @callbacks ],
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      condition => [ [qw/auto/] ],
+                      priority => 999
+                     )
+                    )
+                   );
+  }
 # ----------------------------------------------------------------------------------------
 sub _storage_helper {
     my ($method, $callback, $eventsp, $event) = @_;
@@ -567,35 +595,36 @@ sub _register_rule_callbacks {
   #
   # Counters are events associated to a counter: every ^xxx increases a counter.
   # Every xxx$ is decreasing it.
-  my $counters = $hashp->{counters} || [];
-  foreach (@{$hashp->{counters}}) {
-    my $event = '^' . $_;
-    ++$subEvents{$event};
+  my $countersHashp = $hashp->{counters} || {};
+  foreach (keys %{$countersHashp}) {
+    my $counter = $_;
+    my ($eventStart, $eventEnd) = @{$countersHashp->{$counter}};
+    ++$subEvents{$eventStart};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
-                         description => $event,
-                         extra_description => $event . ' [counter] ',
-                         method =>  [ \&_inc_helper, $_, 1 ],
+                         description => $eventStart,
+                         extra_description => $counter . ' [Start] ',
+                         method =>  [ \&_inc_helper, $counter, 1 ],
+                         method_mode => 'replace',
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
-                          topic => {$_ => 1},
+                          topic => {$counter => 1},
                           topic_persistence => 'any',
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,
                          )
                         )
                        );
-    $event = $_ . '$';
-    ++$subEvents{$event};
+    ++$subEvents{$eventEnd};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
-                         description => $event,
-                         extra_description => $event . ' [counter] ',
-                         method =>  [ \&_inc_helper, $_, -1 ],
+                         description => $eventEnd,
+                         extra_description => $counter . ' [End] ',
+                         method =>  [ \&_inc_helper, $counter, -1 ],
                          method_mode => 'replace',
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
-                          topic => {$_ => 1},
+                          topic => {$counter => 1},
                           topic_persistence => 'any',
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,

@@ -204,7 +204,7 @@ sub _doLexeme {
   } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
       $newlexeme = 'IDENTIFIER';
   } else {
-      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
+      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
   }
   #
   # Push the unambiguated lexeme
