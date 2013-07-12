@@ -205,7 +205,7 @@ sub _inventory_condition_tofire {
 	if (ref($coderef) eq 'CODE') {
 	    push(@condition, &$coderef($cb, $self, $self->arguments(), @arguments) ? 1 :0);
 	} elsif (defined($cb->description)) {
-          $log->tracef('%s[%s[%d]] Callback \'%s\': Is \'%s\' in %s ?', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $cb->description, $self->arguments());
+          # $log->tracef('%s[%s[%d]] Callback \'%s\': Is \'%s\' in %s ?', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $cb->extra_description || $cb->description, $cb->description, $self->arguments());
 	    push(@condition, (grep {$_ eq $cb->description} @{$self->arguments()}) ? 1 :0);
 	}
     }

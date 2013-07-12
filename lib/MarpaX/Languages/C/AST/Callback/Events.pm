@@ -11,7 +11,7 @@ use Log::Any qw/$log/;
 use Carp qw/croak/;
 use Storable qw/dclone/;
 use SUPER;
-
+use constant {CLOSE_SCOPE_PRIORITY => -999};
 # VERSION
 
 =head1 DESCRIPTION
@@ -55,6 +55,11 @@ sub new {
     #
     # - We create callbacks to <Gx$> that are firing the inner callback object.
     #
+    # - It is very important to know if we want all the scopes to be closed or not when firing final <LHS$> processing
+    #   callback. This is because of functionDefinitionCheckX that need to check its functionDefinitionCheckXdeclarationList
+    #   which is one scope higher than the file scope declarator. The base priority is the one of the event that is closing
+    #   the scope, i.e.: CLOSE_SCOPE_PRIORITY.
+    #
     # #######################################################################################################################
 
     # ################################################################################################
@@ -71,6 +76,7 @@ sub new {
     push(@callbacks,
          $self->_register_rule_callbacks({
                                           lhs => 'declarationCheck',
+                                          priority => CLOSE_SCOPE_PRIORITY - 1,
                                           rhs => [ [ 'declarationCheckdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                    [ 'declarationCheckinitDeclaratorList',    ['directDeclaratorIdentifier'  ] ]
                                                  ],
@@ -118,6 +124,7 @@ sub new {
     push(@callbacks,
          $self->_register_rule_callbacks({
                                           lhs => 'functionDefinitionCheck1',
+                                          priority => CLOSE_SCOPE_PRIORITY + 1,
                                           rhs => [ [ 'functionDefinitionCheck1declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                    [ 'functionDefinitionCheck1declarationList',       [ 'storageClassSpecifierTypedef' ] ]
                                                  ],
@@ -128,6 +135,7 @@ sub new {
     push(@callbacks,
          $self->_register_rule_callbacks({
                                           lhs => 'functionDefinitionCheck2',
+                                          priority => CLOSE_SCOPE_PRIORITY + 1,
                                           rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ],
                                                  ],
                                           method => \&_functionDefinitionCheck2,
@@ -149,6 +157,7 @@ sub new {
     push(@callbacks,
          $self->_register_rule_callbacks({
                                           lhs => 'parameterDeclarationCheck',
+                                          priority => CLOSE_SCOPE_PRIORITY - 1,
                                           rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ 'storageClassSpecifierTypedef' ] ]
                                                  ],
                                           method => \&_parameterDeclarationCheck,
@@ -226,7 +235,7 @@ sub new {
     #   - noop if <reenterScope[]> topic data is 1 or currentTopicLevel is not 0, reset this data.
     #   - real enterScope otherwise
     # * functionDefinition$ is guaranteed to always close correctly the scopes.
-    # * declaration$ will be catched up to force closing of all the scopes.
+    # * translationUnit$ will be catched up to force closing of all the scopes.
     #
     # Conclusion: there is NO notion of delayed exit scope anymore.
     # 
@@ -234,10 +243,9 @@ sub new {
     # - <reenterScope[]> has priority 999
     # - <maybeEnterScope[]> has priority 997
     # - <enterScope[]> has priority 996
-    # - <exitScope[]> has priority -999
+    # - <exitScope[]> has priority CLOSE_SCOPE_PRIORITY
+    # - <translationUnit$> has priority CLOSE_SCOPE_PRIORITY
     #
-    # - -999 for <exitScope[]> because this must be a showstopper in the C rules: always at the end
-    #   plus it will DESTROY all the topics
     # #############################################################################################
     $self->_register_scope_callbacks(@callbacks);
 
@@ -353,13 +361,17 @@ sub _declarationCheck {
 	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
-	my ($line_columnp, $last_completed)  = @{$_};
-	$log->debugf('%s[%s[%d]] Identifier %s at position %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp);
-	if ($nbTypedef >= 0) {
+	my ($line_columnp, $last_completed, %counters)  = @{$_};
+        $log->debugf('%s[%s[%d]] Identifier %s at position %s, counters=%s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp, \%counters);
+        if ($counters{structContext}) {
+          $log->debugf('%s[%s[%d]] Identifier %s at position %s, counters=%s : parse symbol inactive', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp, \%counters);
+        } else {
+          if ($nbTypedef >= 0) {
 	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed);
-	} else {
+          } else {
 	    $callback->hscratchpad('_scope')->parseObscureTypedef($last_completed);
-	}
+          }
+        }
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -494,26 +506,34 @@ sub _register_scope_callbacks {
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
 			  condition => [ [qw/auto/] ],
-			  priority => -999
+			  priority => CLOSE_SCOPE_PRIORITY
 			 )
 			)
 	    );
     }
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                     (
-                     description => 'declaration$',
+                     description => 'translationUnit$',
                      method =>  [ \&_closeScopes, @callbacks ],
                      option => MarpaX::Languages::C::AST::Callback::Option->new
                      (
                       condition => [ [qw/auto/] ],
-                      priority => 999
+                      priority => CLOSE_SCOPE_PRIORITY
                      )
                     )
                    );
   }
 # ----------------------------------------------------------------------------------------
 sub _storage_helper {
-    my ($method, $callback, $eventsp, $event) = @_;
+    my ($method, $callback, $eventsp, $event, $countersHashp) = @_;
+    #
+    # Collect the counters
+    #
+    my %counters = ();
+    foreach (keys %{$countersHashp}) {
+      my $counterDatap = $callback->topic_fired_data($_) || [0];
+      $counters{$_} = $counterDatap->[0] || 0;
+    }
     #
     # The event name, by convention, is 'symbol$' or '^$symbol'
     #
@@ -521,10 +541,10 @@ sub _storage_helper {
     my $rc;
     if (substr($symbol, 0, 1) eq '^') {
 	substr($symbol, 0, 1, '');
-	$rc = [ lineAndCol($callback->hscratchpad('_impl')) ];
+	$rc = [ lineAndCol($callback->hscratchpad('_impl')), %counters ];
     } elsif (substr($symbol, -1, 1) eq '$') {
 	substr($symbol, -1, 1, '');
-	$rc = [ lineAndCol($callback->hscratchpad('_impl')), lastCompleted($callback->hscratchpad('_impl'), $symbol) ];
+	$rc = [ lineAndCol($callback->hscratchpad('_impl')), lastCompleted($callback->hscratchpad('_impl'), $symbol), %counters ];
     }
     $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $event, $rc);
     return $rc;
@@ -548,7 +568,7 @@ sub _reset_helper {
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
-sub _push_and_reset_helper {
+sub _collect_helper {
     my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
@@ -563,18 +583,20 @@ sub _push_and_reset_helper {
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
-sub _incScratchpad {
-  my ($method, $callback, $eventsp, $flag) = @_;
-
-  ++$callback->hscratchpad($flag);
-  $log->debugf('%s[%s[%d]] Number of expected end of rule: %d', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $callback->hscratchpad($flag));
-}
-
 sub _subFire {
-  my ($method, $callback, $eventsp, $lhs, $subCallback) = @_;
+  my ($method, $callback, $eventsp, $lhs, $subCallback, $filterEventsp, $transformEventsp) = @_;
 
-  $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, $eventsp);
-  $subCallback->exec(@{$eventsp});
+  my @subEvents = grep {exists($filterEventsp->{$_})} @{$eventsp};
+  if (@subEvents) {
+    if (defined($transformEventsp)) {
+      my @transformEvents = map {$transformEventsp->{$_} || $_} @subEvents;
+      $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, \@transformEvents);
+      $subCallback->exec(@transformEvents);
+    } else {
+      $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, \@subEvents);
+      $subCallback->exec(@subEvents);
+    }
+  }
 }
 
 sub _register_rule_callbacks {
@@ -589,17 +611,19 @@ sub _register_rule_callbacks {
   $callback->hscratchpad('_sourcep', $self->hscratchpad('_sourcep'));
 
   #
-  # subEvents will be the list of events that we forward to the inner callback object
+  # processEvents will be the list of processing events that we forward to the inner callback object
   #
-  my %subEvents = ();
+  my %processEvents = ();
   #
   # Counters are events associated to a counter: every ^xxx increases a counter.
   # Every xxx$ is decreasing it.
+  # To any genome data, we have attached a hash like {counter1 => counter1_value, counter2 => etc...}
+  #
   my $countersHashp = $hashp->{counters} || {};
   foreach (keys %{$countersHashp}) {
     my $counter = $_;
     my ($eventStart, $eventEnd) = @{$countersHashp->{$counter}};
-    ++$subEvents{$eventStart};
+    ++$processEvents{$eventStart};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
                          description => $eventStart,
@@ -615,7 +639,7 @@ sub _register_rule_callbacks {
                          )
                         )
                        );
-    ++$subEvents{$eventEnd};
+    ++$processEvents{$eventEnd};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
                          description => $eventEnd,
@@ -642,7 +666,7 @@ sub _register_rule_callbacks {
     foreach (@{$genomep}) {
 	my $event = $_ . '$';
 	++$genomeEvents{$event};
-	++$subEvents{$event};
+	++$processEvents{$event};
     }
   }
   #
@@ -653,8 +677,8 @@ sub _register_rule_callbacks {
 	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			    (
 			     description => $_,
-                             extra_description => $_ . ' [storage] ',
-			     method =>  [ \&_storage_helper, $_ ],
+                             extra_description => "$_ [storage] ",
+			     method =>  [ \&_storage_helper, $_, $countersHashp ],
 			     option => MarpaX::Languages::C::AST::Callback::Option->new
 			     (
 			      topic => {$_ => 1},
@@ -667,120 +691,184 @@ sub _register_rule_callbacks {
   }
   
   my $i = 0;
-  my %lhsTopicsToUpdate = ();
+  my %rhsTopicsToUpdate = ();
+  my %rhsTopicsNotToUpdate = ();
   foreach (@{$hashp->{rhs}}) {
     my ($rhs, $genomep) = @{$_};
+    my $rhsTopic = $rhs . '$';
+    $rhsTopicsToUpdate{$rhsTopic} = 1;
+    $rhsTopicsNotToUpdate{$rhsTopic} = -1;
 
-    $lhsTopicsToUpdate{$rhs  . '$'} = 1;
-
-    my %rhsTopicsToUpdate = ();
-    my %rhsTopicNotToUpdate = ();
+    my %genomeTopicsToUpdate = ();
+    my %genomeTopicsNotToUpdate = ();
     foreach (@{$genomep}) {
-      $rhsTopicsToUpdate{$_ . '$'} = 1;
-      $rhsTopicNotToUpdate{$_ . '$'} = -1;
+      $genomeTopicsToUpdate{$_ . '$'} = 1;
+      $genomeTopicsNotToUpdate{$_ . '$'} = -1;
     }
     #
-    # ^rhs will reset all Gx$ topics on which it depend
-    # We also assign topics explicitely so that they are created if needed
+    # rhs$ event will collect into rhs$ topic all Gx$ topics (created automatically if needed)
     #
-    my $event = '^' . $rhs;
-    ++$subEvents{$event};
+    my $event = $rhs . '$';
+    ++$processEvents{$event};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
 			(
 			 description => $event,
-                         extra_description => $event . ' [reset] ',
-			 method =>  [ \&_reset_helper, keys %rhsTopicsToUpdate ],
-			 method_mode => 'replace',
-			 option => MarpaX::Languages::C::AST::Callback::Option->new
-			 (
-			  condition => [ [ 'auto' ] ],  # == match on description
-			  topic => \%rhsTopicsToUpdate,
-			  topic_persistence => 'level',
-			  priority => -2,
-			 )
-			)
-	);
-
-    #
-    # rhs$ will collect into $rhs topic all Gx$ topics on which it depend and reset them
-    #
-    $event = $rhs . '$';
-    ++$subEvents{$event};
-    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-			(
-			 description => $event,
-                         extra_description => $event . ' [push_and_reset] ',
-			 method =>  [ \&_push_and_reset_helper, keys %rhsTopicNotToUpdate ],
+                         extra_description => "$event [process] ",
+			 method =>  [ \&_collect_helper, keys %genomeTopicsNotToUpdate ],
 			 method_mode => 'push',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
 			  condition => [ [ 'auto' ] ],  # == match on description
-			  topic => {$rhs  . '$' => 1,
-                                   %rhsTopicNotToUpdate},
+			  topic => {$rhsTopic => 1,
+                                   %genomeTopicsNotToUpdate},
 			  topic_persistence => 'level',
-			  priority => 2,
+			  priority => 1,
+			 )
+			)
+	);
+    #
+    ## .. and reset them
+    #
+    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+			(
+			 description => $event,
+                         extra_description => "$event [reset] ",
+			 method =>  [ \&_reset_helper, keys %genomeTopicsToUpdate ],
+			 method_mode => 'replace',
+			 option => MarpaX::Languages::C::AST::Callback::Option->new
+			 (
+			  condition => [ [ 'auto' ] ],  # == match on description
+			  topic => {%genomeTopicsToUpdate},
+			  topic_persistence => 'level',
+			  priority => 0,
 			 )
 			)
 	);
 
-    if ($i == 0) {
-      #
-      # The very first LHSRHS$ is special: we use it to push a scope if this is the first time it is hitted
-      #
-    }
   }
 
   #
-  # Final callback
+  # Final callback: this will process the event
   #
-  ++$subEvents{$hashp->{lhs} . '$'};
+  my $lhsProcessEvent = $hashp->{lhs} . '[process]';
+  my %lhsProcessEvents = ($hashp->{lhs} . '$' => 1);
+  my $lhsResetEvent = $hashp->{lhs} . '[reset]';
+  my %lhsResetEvents = ($hashp->{lhs} . '$' => 1, 'translationUnit$' => 1);
   $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
-                   description => $hashp->{lhs} . '$',
-                   extra_description => $hashp->{lhs} . '$ [processing] ',
+                   description => $lhsProcessEvent,
                    method => [ $hashp->{method} ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
 		    condition => [ [ 'auto' ] ],  # == match on description
+                    topic => \%rhsTopicsNotToUpdate,
+                    topic_persistence => 'level',
                     priority => 1,
                    )
                   )
                  );
+  #
+  # ... and reset rhs topic data
+  #
   $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-                      (
-                       description => $hashp->{lhs} . '$',
-                       extra_description => $hashp->{lhs} . '$ [reset] ',
-                       method =>  [ \&_reset_helper, keys %lhsTopicsToUpdate ],
-                       method_mode => 'replace',
-                       option => MarpaX::Languages::C::AST::Callback::Option->new
-                       (
-                        condition => [ [ 'auto' ] ],  # == match on description
-                        topic => \%lhsTopicsToUpdate,
-                        topic_persistence => 'level',
-                        priority => 0,
-                       )
-                      )
-                     );
+                  (
+                   description => $lhsResetEvent,
+                   method =>  [ \&_reset_helper, keys %rhsTopicsToUpdate ],
+                   method_mode => 'replace',
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+		    condition => [ [ 'auto' ] ],  # == match on description
+                    topic => \%rhsTopicsToUpdate,
+                    topic_persistence => 'level',
+                    priority => 0,
+                   )
+                  )
+                 );
 
   #
-  ## Sub-fire events for this sub-callback object
+  ## Sub-fire processing events for this sub-callback object, except the <LHS$>
+  ## that is done just after.
   #
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
-                   description => $hashp->{lhs} . ' [sub-events fire]',
-                   method => [ \&_subFire, $hashp->{lhs}, $callback ],
+                   description => $hashp->{lhs} . ' [intermediary events]',
+                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%processEvents ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
-                                  [ sub { my ($method, $callback, $eventsp, $subEventsp) = @_;
-                                          return grep {exists($subEventsp->{$_})} @{$eventsp};
+                                  [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
+                                          return grep {exists($processEventsp->{$_})} @{$eventsp};
                                         },
-                                    \%subEvents
+                                    \%processEvents
                                   ]
                                  ]
                    )
                   )
                  );
+
+  #
+  ## For <LHS$> we distinguish the processing event and the reset event.
+  ## Processing event can happen at a pre-defined priority because sometimes we
+  ## want to fire the <LHS$> processing before a scope is closed.
+  ## On the other hand, the reset will always happen after all scopes are
+  ## closed.
+  #
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
+                   description => $lhsProcessEvent,
+                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%lhsProcessEvents, {$hashp->{lhs} . '$' => $lhsProcessEvent} ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+                    condition => [
+                                  [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
+                                          return grep {exists($processEventsp->{$_})} @{$eventsp};
+                                        },
+                                    \%lhsProcessEvents
+                                  ]
+                                 ],
+                    priority => $hashp->{priority}
+                   )
+                  )
+                 );
+
+  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+                  (
+                   description => $lhsResetEvent,
+                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%lhsResetEvents, {$hashp->{lhs} . '$' => $lhsResetEvent, 'translationUnit$' => $lhsResetEvent} ],
+                   option => MarpaX::Languages::C::AST::Callback::Option->new
+                   (
+                    condition => [
+                                  [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
+                                          return grep {exists($processEventsp->{$_})} @{$eventsp};
+                                        },
+                                    \%lhsResetEvents
+                                  ]
+                                 ],
+                    priority => CLOSE_SCOPE_PRIORITY - 1
+                   )
+                  )
+                 );
+
+  #
+  ## Sub-fire reset events for this sub-callback object
+  #
+#  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
+#                  (
+#                   description => $hashp->{lhs} . ' [reset sub-events fire]',
+#                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%resetEvents ],
+#                   option => MarpaX::Languages::C::AST::Callback::Option->new
+#                   (
+#                    condition => [
+#                                  [ sub { my ($method, $callback, $eventsp, $resetEventsp) = @_;
+#                                          return grep {exists($resetEventsp->{$_})} @{$eventsp};
+#                                        },
+#                                    \%resetEvents
+#                                  ]
+#                                 ],
+#                    priority => -1000
+#                   )
+#                  )
+#                 );
 
   return $callback;
 }

@@ -306,18 +306,16 @@ constantExpression
 # rule:
 # declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
 # ###############################################################################################
-event '^declarationCheckdeclarationSpecifiers' = predicted <declarationCheckdeclarationSpecifiers>
 event 'declarationCheckdeclarationSpecifiers$' = completed <declarationCheckdeclarationSpecifiers>
 declarationCheckdeclarationSpecifiers ::= declarationSpecifiers action => deref
 
-event '^declarationCheckinitDeclaratorList' = predicted <declarationCheckinitDeclaratorList>
 event 'declarationCheckinitDeclaratorList$' = completed <declarationCheckinitDeclaratorList>
 declarationCheckinitDeclaratorList    ::= initDeclaratorList    action => deref
 
+event '^declarationCheck' = predicted <declarationCheck>
 event 'declarationCheck$' = completed <declarationCheck>
 declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON action => deref
 
-event 'declaration$' = completed <declaration>
 declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationCheck
@@ -507,10 +505,10 @@ parameterList
 	::= parameterDeclaration
 	| parameterList COMMA parameterDeclaration
 
-event '^parameterDeclarationdeclarationSpecifiers' = predicted <parameterDeclarationdeclarationSpecifiers>
 event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
 parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers action => deref
 
+event '^parameterDeclarationCheck' = predicted <parameterDeclarationCheck>
 event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
 parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator action => deref
 
@@ -639,6 +637,7 @@ jumpStatement
 	| RETURN SEMICOLON
 	| RETURN expression SEMICOLON
 
+event 'translationUnit$' = completed <translationUnit>
 translationUnit
 	::= externalDeclaration
 	| translationUnit externalDeclaration
@@ -657,19 +656,20 @@ functionDefinition
 	::= functionDefinitionCheck1
 	| functionDefinitionCheck2
 
+event '^functionDefinitionCheck1' = predicted <functionDefinitionCheck1>
 event 'functionDefinitionCheck1$' = completed <functionDefinitionCheck1>
-event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
 functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator (<reenterScope>) functionDefinitionCheck1declarationList compoundStatementWithMaybeEnterScope action => deref
+
+event '^functionDefinitionCheck2' = predicted <functionDefinitionCheck2>
+event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
 functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator (<reenterScope>)                                         compoundStatementWithMaybeEnterScope action => deref
 
-event '^functionDefinitionCheck1declarationSpecifiers' = predicted <functionDefinitionCheck1declarationSpecifiers>
-event '^functionDefinitionCheck2declarationSpecifiers' = predicted <functionDefinitionCheck2declarationSpecifiers>
 event 'functionDefinitionCheck1declarationSpecifiers$' = completed <functionDefinitionCheck1declarationSpecifiers>
-event 'functionDefinitionCheck2declarationSpecifiers$' = completed <functionDefinitionCheck2declarationSpecifiers>
 functionDefinitionCheck1declarationSpecifiers ::= declarationSpecifiers action => deref
+
+event 'functionDefinitionCheck2declarationSpecifiers$' = completed <functionDefinitionCheck2declarationSpecifiers>
 functionDefinitionCheck2declarationSpecifiers ::= declarationSpecifiers action => deref
 
-event '^functionDefinitionCheck1declarationList' = predicted <functionDefinitionCheck1declarationList>
 event 'functionDefinitionCheck1declarationList$' = completed <functionDefinitionCheck1declarationList>
 functionDefinitionCheck1declarationList ::= declarationList action => deref
 
@@ -728,6 +728,7 @@ ES_AFTERBS ~ [\'\"\?\\abfnrtv]
 ES         ~ BS ES_AFTERBS
 WS         ~ [ \t\v\n\f]
 WS_any     ~ WS*
+WS_many    ~ WS+
 # Lexemes
 
 :lexeme ~ <AUTO>          priority => -1
@@ -1003,7 +1004,7 @@ ANYTHING_ELSE   ~ [.]
 :discard ~ <Cplusplus style comment>
 :discard ~ <C style comment>
 :discard ~ <Cpp style directive>
-:discard ~ WS            # whitespace separates tokens
+:discard ~ WS_many       # whitespace separates tokens
 :discard ~ ANYTHING_ELSE # discard bad characters
 
 #
