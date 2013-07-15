@@ -1036,6 +1036,12 @@ GCC_BUILTIN_OFFSETOF ~ '__builtin_offsetof'
 GCC_BUILTIN_VA_LIST ~ '__builtin_va_list'
 :lexeme ~ <GCC_ALIGNOF>              priority => -60
 GCC_ALIGNOF ~ '__alignof__'
+:lexeme ~ <GCC_NOTHROW>              priority => -60
+GCC_NOTHROW ~ '__nothrow__'
+:lexeme ~ <GCC_LEAF>                 priority => -60
+GCC_LEAF ~ '__leaf__'
+:lexeme ~ <GCC_NONNULL>              priority => -60
+GCC_NONNULL ~ '__nonnull__'
 
 #
 # MSVS C LEXEMES
@@ -1348,6 +1354,7 @@ gccEmptyRule ::=
 gccAttributeParameter ::= gccAnyWord
                         | gccAnyWord LPAREN RPAREN
                         | gccAnyWord LPAREN expression RPAREN
+                        | gccAttributeExtension
                         | gccEmptyRule
 
 gccAnyWord ::= IDENTIFIER
@@ -1355,6 +1362,10 @@ gccAnyWord ::= IDENTIFIER
              | typeSpecifier
              | typeQualifier
              | functionSpecifier
+
+gccAttributeExtension ::= GCC_NOTHROW
+                        | GCC_LEAF
+                        | GCC_NONNULL
 
 gccExtensionSpecifier ::= GCC_EXTENSION
 
