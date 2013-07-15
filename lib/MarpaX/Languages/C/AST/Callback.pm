@@ -299,10 +299,12 @@ sub _fire {
       my @rc;
       if (ref($cb->method) eq 'ARRAY') {
         my ($method, @arguments) = @{$cb->method};
-        $log->tracef('%s[%s[%d]] Calling method for callback No %d \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
-        @rc = &$method($cb, $self, $self->arguments(), @arguments);
-      } else {
-        @rc = $self->topic_fired_data($cb->description) || [];
+	if (ref($method) eq 'CODE') {
+	    $log->tracef('%s[%s[%d]] Calling method for callback No %d \'%s\'', $self->log_prefix, whoami(__PACKAGE__), $self->currentTopicLevel, $i, $cb->extra_description || $cb->description);
+	    @rc = &$method($cb, $self, $self->arguments(), @arguments);
+	} else {
+	    @rc = $self->topic_fired_data($cb->description) || [];
+	}
       }
       #
       # Push result to data attached to every topic of this callback
