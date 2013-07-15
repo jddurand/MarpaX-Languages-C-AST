@@ -1347,15 +1347,15 @@ gccDeclarationSpecifier ::= gccAttribute
 gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN gccAttributeParameterList RPAREN RPAREN
 
 gccAttributeParameterList ::= gccAttributeParameter
-                            | COMMA gccAttributeParameterList
+                            | gccAttributeParameterList COMMA gccAttributeParameter
 
 gccEmptyRule ::=
 
 gccAttributeParameter ::= gccAnyWord
                         | gccAnyWord LPAREN RPAREN
                         | gccAnyWord LPAREN expression RPAREN
-                        | gccAttributeExtension
                         | gccEmptyRule
+                        | gccAttributeExtension
 
 gccAnyWord ::= IDENTIFIER
              | storageClassSpecifier
@@ -1365,7 +1365,12 @@ gccAnyWord ::= IDENTIFIER
 
 gccAttributeExtension ::= GCC_NOTHROW
                         | GCC_LEAF
-                        | GCC_NONNULL
+                        | GCC_NONNULL LPAREN gccNonnullTaggedAttributeNumberList RPAREN
+
+gccNumber ::= I_CONSTANT
+
+gccNonnullTaggedAttributeNumberList ::= gccNumber
+                                      | gccNonnullTaggedAttributeNumberList COMMA gccNumber
 
 gccExtensionSpecifier ::= GCC_EXTENSION
 
