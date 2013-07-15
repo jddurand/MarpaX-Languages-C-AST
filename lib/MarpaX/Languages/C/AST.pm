@@ -185,38 +185,43 @@ sub _doLexeme {
   # Get paused lexeme
   #
   my $lexeme = $self->{_impl}->pause_lexeme();
-  return if (! defined($lexeme));
-
-  my @terminals_expected = @{$self->{_impl}->terminals_expected()};
-  return if (! @terminals_expected);
-
-  #
-  # Determine the correct lexeme
-  #
-  my ($start, $length) = $self->{_impl}->pause_span();
-  my ($line, $column) = $self->{_impl}->line_column($start);
-  my $lexeme_value = $self->{_impl}->literal($start, $length);
-  my $newlexeme;
-  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
-      $newlexeme = 'TYPEDEF_NAME';
-  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexeme_value)) {
-      $newlexeme = 'ENUMERATION_CONSTANT';
-  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
-      $newlexeme = 'IDENTIFIER';
-  } else {
-      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
+  if (defined($lexeme)) {
+      #
+      # pause start lexemes
+      #
+      if ($lexeme eq 'TYPEDEF_NAME' || $lexeme eq 'ENUMERATION_CONSTANT' || $lexeme eq 'IDENTIFIER') {
+	  my ($start, $length) = $self->{_impl}->pause_span();
+	  my @terminals_expected = @{$self->{_impl}->terminals_expected()};
+	  #
+	  # Determine the correct lexeme
+	  #
+	  my ($line, $column) = $self->{_impl}->line_column($start);
+	  my $lexeme_value = $self->{_impl}->literal($start, $length);
+	  my $newlexeme;
+	  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
+	      $newlexeme = 'TYPEDEF_NAME';
+	  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexeme_value)) {
+	      $newlexeme = 'ENUMERATION_CONSTANT';
+	  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
+	      $newlexeme = 'IDENTIFIER';
+	  } else {
+	      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
+	  }
+	  #
+	  # Push the unambiguated lexeme
+	  #
+	  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
+	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
+	      logCroak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
+	  }
+	  $lexeme = $newlexeme;
+	  #
+	  # A lexeme_read() can generate an event
+	  #
+	  $self->_doEvents();
+      }
+      # $log->debugf('[%s] Lexeme: %s', whoami(__PACKAGE__), $lexeme);
   }
-  #
-  # Push the unambiguated lexeme
-  #
-  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
-  if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
-      logCroak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
-  }
-  #
-  # A lexeme_read() can generate an event
-  #
-  $self->_doEvents();
 }
 
 1;
