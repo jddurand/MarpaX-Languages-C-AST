@@ -64,10 +64,22 @@ sub new {
   my ($class) = @_;
 
   my $self  = {
-    _content => do { local $/; <DATA> },
     _grammar_option => {action_object  => sprintf('%s::%s', __PACKAGE__, 'Actions')},
     _recce_option => {ranking_method => 'high_rule_only'},
   };
+  #
+  # Rework the grammar to have a systematic pause on EVERY lexeme.
+  # This is needed for scopes.
+  # And this will allow to do a tracing for the c2ast command-line -;
+  #
+  $self->{_content} = '';
+  while (defined($_ = <DATA>)) {
+      if (/^\s*:lexeme\b/ && ! /\bpause\b/) {
+	  substr($_, -1, 1) = " pause => after\n";
+      }
+      $self->{_content} .= $_;
+  }
+
   bless($self, $class);
 
   return $self;
@@ -120,20 +132,6 @@ __DATA__
 # Defaults
 #
 :default ::= action => [values] bless => ::lhs
-
-# Except for the functionDefinition compoundStatement
-# we always associate LPAREN and LCURLY to enterScope,
-# RPAREN and RCURLY to exitScope
-event 'lparen$'                = completed <lparen>
-event 'rparen$'                = completed <rparen>
-event 'lcurly$'                = completed <lcurly>
-event 'lcurlyMaybeEnterScope$' = completed <lcurlyMaybeEnterScope>
-event 'rcurly$'                = completed <rcurly>
-lparen                ::= LPAREN                action => deref
-rparen                ::= RPAREN                action => deref
-lcurly                ::= LCURLY                action => deref
-lcurlyMaybeEnterScope ::= LCURLY                action => deref
-rcurly                ::= RCURLY                action => deref
 
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
@@ -479,9 +477,9 @@ directDeclarator
 	| directDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
 	| directDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
 	| directDeclarator LBRACKET assignmentExpression RBRACKET
-	| directDeclarator lparen parameterTypeList rparen
-	| directDeclarator lparen rparen
-	| directDeclarator lparen identifierList rparen
+	| directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directDeclarator LPAREN_SCOPE RPAREN_SCOPE
+	| directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
 
 pointerQualifier ::= typeQualifier | gccAttribute
 
@@ -553,10 +551,10 @@ directAbstractDeclarator
 	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
 	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
 	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
-	| lparen rparen
-	| lparen parameterTypeList rparen
-	| directAbstractDeclarator lparen rparen
-	| directAbstractDeclarator lparen parameterTypeList rparen
+	| LPAREN_SCOPE RPAREN_SCOPE
+	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
 
 initializer
 	::= LCURLY initializerList RCURLY
@@ -600,12 +598,8 @@ labeledStatement
 	| DEFAULT COLON statement
 
 compoundStatement
-	::= lcurly rcurly
-	| lcurly blockItemList rcurly
-
-compoundStatementWithMaybeEnterScope
-	::= lcurlyMaybeEnterScope rcurly                  action => deref_and_bless_compoundStatement
-	| lcurlyMaybeEnterScope blockItemList rcurly      action => deref_and_bless_compoundStatement
+	::= LCURLY_SCOPE RCURLY_SCOPE
+	| LCURLY_SCOPE blockItemList RCURLY_SCOPE
 
 blockItemList
 	::= blockItem
@@ -644,27 +638,28 @@ translationUnit
 	::= externalDeclaration
 	| translationUnit externalDeclaration
 
+event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
 	::= functionDefinition
 	| declaration
 
-fileScopeDeclarator ::= declarator            action => deref_and_bless_declarator
+compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE                   action => deref_and_bless_compoundStatement
+	                        | LCURLY blockItemList RCURLY_SCOPE     action => deref_and_bless_compoundStatement
 
-event 'reenterScope[]' = nulled <reenterScope>
-reenterScope ::=
-
-event '^functionDefinition' = predicted <functionDefinition>           # Used only to create topic reenterScope
 functionDefinition
 	::= functionDefinitionCheck1
 	| functionDefinitionCheck2
 
+event 'fileScopeDeclarator$' = completed <fileScopeDeclarator>
+fileScopeDeclarator ::= declarator action => deref_and_bless_declarator
+
 event '^functionDefinitionCheck1' = predicted <functionDefinitionCheck1>
 event 'functionDefinitionCheck1$' = completed <functionDefinitionCheck1>
-functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator (<reenterScope>) functionDefinitionCheck1declarationList compoundStatementWithMaybeEnterScope action => deref
+functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator functionDefinitionCheck1declarationList compoundStatementReenterScope action => deref
 
 event '^functionDefinitionCheck2' = predicted <functionDefinitionCheck2>
 event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
-functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator (<reenterScope>)                                         compoundStatementWithMaybeEnterScope action => deref
+functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator                                         compoundStatementReenterScope action => deref
 
 event 'functionDefinitionCheck1declarationSpecifiers$' = completed <functionDefinitionCheck1declarationSpecifiers>
 functionDefinitionCheck1declarationSpecifiers ::= declarationSpecifiers action => deref
@@ -741,7 +736,7 @@ BREAK         ~ 'break'
 CASE          ~ 'case'
 :lexeme ~ <CHAR>          priority => -4
 CHAR          ~ 'char'
-:lexeme ~ <CONST>         priority => -5
+:lexeme ~ <CONST>         priority => -5 pause => after
 CONST         ~ 'const'
 CONST         ~ '__const'
 CONST         ~ 'const__'
@@ -920,8 +915,12 @@ NE_OP        ~ '!='
 SEMICOLON                     ~ ';'
 :lexeme ~ <LCURLY>        priority => -127
 LCURLY                       ~ '{' | '<%'
+:lexeme ~ <LCURLY_SCOPE>        priority => -127
+LCURLY_SCOPE                       ~ '{' | '<%'
 :lexeme ~ <RCURLY>        priority => -128
 RCURLY                       ~ '}' | '%>'
+:lexeme ~ <RCURLY_SCOPE>        priority => -128
+RCURLY_SCOPE                       ~ '}' | '%>'
 :lexeme ~ <COMMA>         priority => -129
 COMMA                     ~ ','
 :lexeme ~ <COLON>         priority => -130
@@ -930,8 +929,12 @@ COLON                      ~ ':'
 EQUAL       ~ '='
 :lexeme ~ <LPAREN>        priority => -132
 LPAREN                ~ '('
+:lexeme ~ <LPAREN_SCOPE>        priority => -132
+LPAREN_SCOPE                ~ '('
 :lexeme ~ <RPAREN>        priority => -133
 RPAREN                      ~ ')'
+:lexeme ~ <RPAREN_SCOPE>        priority => -133
+RPAREN_SCOPE                      ~ ')'
 :lexeme ~ <LBRACKET>      priority => -134
 LBRACKET      ~ '[' | '<:'
 :lexeme ~ <RBRACKET>      priority => -135

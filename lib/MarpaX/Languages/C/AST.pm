@@ -61,6 +61,7 @@ Instantiate a new object. Takes as parameter an optional base name of a grammar.
 
 =cut
 
+# ----------------------------------------------------------------------------------------
 sub new {
   my ($class, $grammarName) = @_;
 
@@ -90,6 +91,7 @@ Do the parsing and return the blessed value. Takes as first parameter the refere
 
 =cut
 
+# ----------------------------------------------------------------------------------------
 sub parse {
   my ($self, $sourcep, $optionalArrayOfValuesb) = @_;
 
@@ -99,20 +101,18 @@ sub parse {
   my $max = length(${$sourcep});
   my $pos = $self->{_impl}->read($sourcep);
   do {
+    my %lexeme = ();
+    $self->_getLexeme(\%lexeme);
+    $self->_doScope(\%lexeme);
     $self->_doEvents();
-    $self->_doLexeme();
+    $self->_doPauseAfterLexeme(\%lexeme);
+    $self->_doInfo(\%lexeme);
   } while (($pos = $self->{_impl}->resume()) < $max);
 
   return($self->_value($optionalArrayOfValuesb));
 }
 
-#
-# INTERNAL METHODS
-#
-
-#######################
-# _show_last_expression
-#######################
+# ----------------------------------------------------------------------------------------
 sub _show_last_expression {
   my ($self) = @_;
 
@@ -121,10 +121,7 @@ sub _show_last_expression {
   my $lastExpression = $self->{_impl}->range_to_string($start, $end);
   return "Last expression successfully parsed was: $lastExpression";
 }
-
-########
-# _value
-########
+# ----------------------------------------------------------------------------------------
 sub _value {
   my ($self, $arrayOfValuesb) = @_;
 
@@ -152,10 +149,7 @@ sub _value {
     return $rc[0];
   }
 }
-
-###########
-# _doEvents
-###########
+# ----------------------------------------------------------------------------------------
 sub _doEvents {
   my $self = shift;
 
@@ -171,56 +165,136 @@ sub _doEvents {
     $self->{_callbackEvents}->exec(@events);
   }
 }
+# ----------------------------------------------------------------------------------------
+sub _getLexeme {
+  my ($self, $lexemeHashp) = @_;
 
-###########
-# _doLexeme
-###########
-#
-# We manage ONLY 'before' pause lexemes in here
-#
-sub _doLexeme {
-  my ($self) = @_;
+  #
+  # Get paused "before" lexeme
+  #
+  my $lexeme = $self->{_impl}->pause_lexeme();
+  if (defined($lexeme)) {
+    $lexemeHashp->{name} = $lexeme;
+    ($lexemeHashp->{start}, $lexemeHashp->{length}) = $self->{_impl}->pause_span();
+    ($lexemeHashp->{line}, $lexemeHashp->{column}) = $self->{_impl}->line_column($lexemeHashp->{start});
+    $lexemeHashp->{value} = $self->{_impl}->literal($lexemeHashp->{start}, $lexemeHashp->{length});
+  }
+}
+# ----------------------------------------------------------------------------------------
+sub _doInfo {
+  my ($self, $lexemeHashp) = @_;
+
+  if (exists($lexemeHashp->{name})) {
+    $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
+  }
+}
+# ----------------------------------------------------------------------------------------
+sub _doScope {
+  my ($self, $lexemeHashp) = @_;
 
   #
   # Get paused lexeme
   #
-  my $lexeme = $self->{_impl}->pause_lexeme();
-  if (defined($lexeme)) {
+  if (exists($lexemeHashp->{name})) {
+
+    my $lexemeFormatString = "%s \"%s\" at position %d:%d";
+    my @lexemeCommonInfo = ($lexemeHashp->{name}, $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column});
+
+    if (defined($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator'))) {
+      if ($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] == -1) {
+        #
+        # This will be for next round.
+        #
+        $log->debugf('[%s] fileScopeDeclarator: flagging lookup required at next round.', whoami(__PACKAGE__));
+        $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 1;
+
+      } elsif ($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] == 1) {
+        #
+        # Lookup what follows the file-scope declarator
+        #
+        if ($lexemeHashp->{name} ne 'COMMA' &&
+            $lexemeHashp->{name} ne 'SEMICOLON' &&
+            $lexemeHashp->{name} ne 'EQUAL') {
+          $log->debugf('[%s] fileScopeDeclarator: next lexeme is %s, flagging reenterScope.', whoami(__PACKAGE__), $lexemeHashp->{name});
+          $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 1;
+        }
+        #
+        # Flag lookup done
+        #
+        $log->debugf('[%s] fileScopeDeclarator: flagging lookup done.', whoami(__PACKAGE__));
+        $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 0;
+      }
+    }
+
+    if ($lexemeHashp->{name} eq 'LCURLY_SCOPE' || $lexemeHashp->{name} eq 'LPAREN_SCOPE') {
+      $log->debugf('[%s] $lexemeFormatString: entering scope.', whoami(__PACKAGE__), @lexemeCommonInfo);
+      $self->{_scope}->parseEnterScope();
+    } elsif ($lexemeHashp->{name} eq 'RCURLY_SCOPE' || $lexemeHashp->{name} eq 'RPAREN_SCOPE') {
+      if ($self->{_scope}->parseScopeLevel == 1) {
+        $log->debugf('[%s] $lexemeFormatString: delay leaving scope.', whoami(__PACKAGE__), @lexemeCommonInfo);
+        $self->{_scope}->parseExitScope(0);
+      } else {
+        $log->debugf('[%s] $lexemeFormatString: immediate leaving scope.', whoami(__PACKAGE__), @lexemeCommonInfo);
+        $self->{_scope}->parseExitScope(1);
+      }
+    } else {
+      $log->debugf('[%s] $lexemeFormatString.', whoami(__PACKAGE__), @lexemeCommonInfo);
+      if ($self->{_scope}->parseScopeLevel == 1 && $self->{_scope}->parseDelay) {
+        if (defined($self->{_callbackEvents}->topic_fired_data('reenterScope')) &&
+            $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0]) {
+          $log->debugf('[%s] reenterScope flag is on at scope 1.', whoami(__PACKAGE__));
+          $self->{_scope}->parseReenterScope();
+          $log->debugf('[%s] Unflagging reenterScope.', whoami(__PACKAGE__));
+          $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 0;
+        } else {
+          $log->debugf('[%s] reenterScope flag is off at scope 1.', whoami(__PACKAGE__));
+          $self->{_scope}->doExitScope();
+        }
+      }
+    }
+  }
+}
+# ----------------------------------------------------------------------------------------
+sub _doPauseAfterLexeme {
+  my ($self, $lexemeHashp) = @_;
+
+  #
+  # Get paused lexeme
+  #
+  if (exists($lexemeHashp->{name})) {
       #
       # pause start lexemes
       #
-      if ($lexeme eq 'TYPEDEF_NAME' || $lexeme eq 'ENUMERATION_CONSTANT' || $lexeme eq 'IDENTIFIER') {
-	  my ($start, $length) = $self->{_impl}->pause_span();
+      if ($lexemeHashp->{name} eq 'TYPEDEF_NAME' ||
+          $lexemeHashp->{name} eq 'ENUMERATION_CONSTANT' ||
+          $lexemeHashp->{name} eq 'IDENTIFIER') {
 	  my @terminals_expected = @{$self->{_impl}->terminals_expected()};
 	  #
 	  # Determine the correct lexeme
 	  #
-	  my ($line, $column) = $self->{_impl}->line_column($start);
-	  my $lexeme_value = $self->{_impl}->literal($start, $length);
 	  my $newlexeme;
-	  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexeme_value)) {
+	  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
 	      $newlexeme = 'TYPEDEF_NAME';
-	  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexeme_value)) {
+	  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
 	      $newlexeme = 'ENUMERATION_CONSTANT';
 	  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
 	      $newlexeme = 'IDENTIFIER';
 	  } else {
-	      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d', whoami(__PACKAGE__), $lexeme_value, $line, $column);
+	      logCroak('[%s] Lexeme value "%s" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d', whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column});
 	  }
 	  #
 	  # Push the unambiguated lexeme
 	  #
-	  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexeme_value);
-	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $start, $length, $lexeme_value))) {
-	      logCroak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexeme_value, $newlexeme, $line, $column);
+	  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexemeHashp->{value});
+	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexemeHashp->{start}, $lexemeHashp->{length}, $lexemeHashp->{value}))) {
+	      logCroak('[%s] Lexeme value "%s" cannot be associated to lexeme name %s at position %d:%d', whoami(__PACKAGE__), $lexemeHashp->{value}, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column});
 	  }
-	  $lexeme = $newlexeme;
+          $lexemeHashp->{name} = $newlexeme;
 	  #
 	  # A lexeme_read() can generate an event
 	  #
 	  $self->_doEvents();
       }
-      # $log->debugf('[%s] Lexeme: %s', whoami(__PACKAGE__), $lexeme);
   }
 }
 

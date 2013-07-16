@@ -55,7 +55,10 @@ sub new {
 
   my $self  = {
       _typedefPerScope => [ {} ],
-      _enumAnyScope => {}
+      _enumAnyScope => {},
+      _delay => 0,
+      _enterScopeCallback => [],
+      _exitScopeCallback => [],
   };
   bless($self, $class);
 
@@ -71,27 +74,137 @@ Say we enter a scope.
 sub parseEnterScope {
   my ($self) = @_;
 
-  my $scope = $#{$self->{_typedefPerScope}};
+  # $self->condExitScope();
+
+  my $scope = $self->parseScopeLevel;
+  $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
   push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$scope]));
 
-  $log->debugf('[%s] Duplicated scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
+
+  if (@{$self->{_enterScopeCallback}}) {
+      my ($ref, @args) = @{$self->{_enterScopeCallback}};
+      &$ref(@args);
+  }
   
 }
 
-=head2 parseExitScope($self)
+=head2 parseDelay($self, [$value])
 
-Say we leave current scope.
+Returns/Set current delay flag.
+
+=cut
+
+sub parseDelay {
+  my $self = shift;
+  if (@_) {
+    my $scope = $self->parseScopeLevel;
+    my $value = shift;
+    $log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $scope);
+    $self->{_delay} = $value;
+  }
+  return $self->{_delay};
+}
+
+=head2 parseScopeLevel($self)
+
+Returns current scope level, starting at number 0.
+
+=cut
+
+sub parseScopeLevel {
+  my ($self) = @_;
+
+  return $#{$self->{_typedefPerScope}};
+}
+
+=head2 parseEnterScopeCallback($self, $ref, @args)
+
+Callback method when entering a scope.
+
+=cut
+
+sub parseEnterScopeCallback {
+  my ($self, $ref, @args) = @_;
+
+  $self->{_enterScopeCallback} = [ $ref, @args ];
+}
+
+=head2 parseExitScopeCallback($self, $ref, @args)
+
+Callback method when leaving a scope (not the delayed operaiton, the real leave).
+
+=cut
+
+sub parseExitScopeCallback {
+  my ($self, $ref, @args) = @_;
+
+  $self->{_exitScopeCallback} = [ $ref, @args ];
+}
+
+=head2 parseExitScope($self, [$now])
+
+Say we want to leave current scope. The operation is delayed unless $now flag is true.
 
 =cut
 
 sub parseExitScope {
+  my ($self, $now) = @_;
+  $now //= 0;
+
+  if ($now) {
+    $self->doExitScope();
+  } else {
+    $self->parseDelay(1);
+  }
+}
+
+=head2 parseReenterScope($self)
+
+Reenter previous scope.
+
+=cut
+
+sub parseReenterScope {
   my ($self) = @_;
 
-  my $scope = $#{$self->{_typedefPerScope}};
+    my $scope = $self->parseScopeLevel;
+  $log->debugf('[%s] Reenter scope at scope %d', whoami(__PACKAGE__), $scope);
+  $self->parseDelay(0);
+
+}
+
+=head2 condExitScope($self)
+
+Leave current scope if delay flag is setted and not yet done.
+
+=cut
+
+sub condExitScope {
+  my ($self) = @_;
+
+  if ($self->parseDelay) {
+    $self->doExitScope();
+  }
+}
+
+=head2 doExitScope($self)
+
+Leave current scope.
+
+=cut
+
+sub doExitScope {
+  my ($self) = @_;
+
+  my $scope = $self->parseScopeLevel;
+  $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $scope);
   pop(@{$self->{_typedefPerScope}});
 
-  $log->debugf('[%s] Removed scope %d', whoami(__PACKAGE__), $scope);
-
+  if (@{$self->{_exitScopeCallback}}) {
+      my ($ref, @args) = @{$self->{_exitScopeCallback}};
+      &$ref(@args);
+  }
+  $self->parseDelay(0);
 }
 
 =head2 parseEnterTypedef($self, $token)
@@ -103,7 +216,7 @@ Declare a new typedef with name $token, that will be visible until current scope
 sub parseEnterTypedef {
   my ($self, $token) = @_;
 
-  my $scope = $#{$self->{_typedefPerScope}};
+  my $scope = $self->parseScopeLevel;
   $self->{_typedefPerScope}->[$scope]->{$token} = 1;
 
   $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
@@ -119,9 +232,8 @@ sub parseEnterEnum {
   my ($self, $token) = @_;
 
   $self->{_enumAnyScope}->{$token} = 1;
-
-  $log->debugf('[%s] "%s" enum entered', whoami(__PACKAGE__), $token);
-
+  my $scope = $self->parseScopeLevel;
+  $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $scope);
   #
   # Enum wins from now on and forever
   #
@@ -139,7 +251,7 @@ Obscures a typedef named $token.
 sub parseObscureTypedef {
   my ($self, $token, $scope) = @_;
 
-  $scope //= $#{$self->{_typedefPerScope}};
+  $scope //= $self->parseScopeLevel;
   $self->{_typedefPerScope}->[$scope]->{$token} = 0;
 
   $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);
@@ -154,7 +266,7 @@ Return a true value if $token is a typedef.
 sub parseIsTypedef {
   my ($self, $token) = @_;
 
-  my $scope = $#{$self->{_typedefPerScope}};
+  my $scope = $self->parseScopeLevel;
   my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && $self->{_typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
 
   $log->debugf('[%s] "%s" at scope %d is a typedef? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
@@ -173,7 +285,8 @@ sub parseIsEnum {
 
   my $rc = (exists($self->{_enumAnyScope}->{$token}) && $self->{_enumAnyScope}->{$token}) ? 1 : 0;
 
-  $log->debugf('[%s] "%s" is an enum? %s', whoami(__PACKAGE__), $token, $rc ? 'yes' : 'no');
+  my $scope = $self->parseScopeLevel;
+  $log->debugf('[%s] "%s" is an enum at scope %d? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
 
   return($rc);
 }
