@@ -55,9 +55,49 @@ Please note that this module just I<translates> a C source, it does I<not> check
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new($class, $grammarName)
+=head2 new($class, %options)
 
-Instantiate a new object. Takes as parameter an optional base name of a grammar. Default is 'ISO-ANSI-C-2011'.
+Instantiate a new object. Takes as parameter an optional hash of options that can be:
+
+=over
+
+=item grammarName
+
+Name of a grammar. Default is 'ISO-ANSI-C-2011'.
+
+=item lexemeCallback
+
+Array reference containing a CODE ref and optional arguments. This callback will be trigerred like this: &$CODE(@arguments, $lexemeHashp), where $lexemeHashp is a reference to a hash describing current lexeme:
+
+=over
+
+=item name
+
+Name of the lexeme. You have to refer to the grammar used to get its definition, although this is usually self-explanatory.
+
+=item start
+
+G1 (Marpa term) start location.
+
+=item length
+
+Length of the lexeme
+
+=item line
+
+Line number in the source being parsed.
+
+=item column
+
+Column number in the source being parsed.
+
+=item value
+
+String containing lexeme value.
+
+=back
+
+=back
 
 =cut
 
