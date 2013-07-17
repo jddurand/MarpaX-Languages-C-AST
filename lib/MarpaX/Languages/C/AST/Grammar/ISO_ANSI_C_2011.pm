@@ -994,9 +994,7 @@ QUESTION_MARK ~ '?'
 #
 <Cpp style directive start> ~ '#'
 <Cpp style directive interior single line> ~ [^\n]*
-<Cpp style line directive> ~ <Cpp style directive start> 'line' <Cpp style directive interior single line>
-<Cpp style pragma directive> ~ <Cpp style directive start> 'pragma' <Cpp style directive interior single line>
-<Cpp style directive> ~ <Cpp style line directive> | <Cpp style pragma directive>
+<Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
 #
 # Internal tokens added
 #
