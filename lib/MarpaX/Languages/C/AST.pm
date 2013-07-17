@@ -67,6 +67,10 @@ Instantiate a new object. Takes as parameter an optional hash of options that ca
 
 Name of a grammar. Default is 'ISO-ANSI-C-2011'.
 
+=item logInfo
+
+Issue logging with level 'info' for every found lexeme. Default is 0 (i.e. false). Please note that logging is done through Log::Any.
+
 =item lexemeCallback
 
 Array reference containing a CODE ref and optional arguments. This callback will be trigerred like this: &$CODE(@arguments, $lexemeHashp), where $lexemeHashp is a reference to a hash describing current lexeme:
@@ -368,5 +372,11 @@ sub _doPauseAfterLexeme {
       }
   }
 }
+
+=head1 SEE ALSO
+
+L<Log::Any>, L<Marpa::R2>
+
+=cut
 
 1;
