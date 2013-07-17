@@ -8,6 +8,12 @@ use Config;
 use IPC::Run qw/run/;
 use Term::ProgressBar;
 
+# ABSTRACT: C source analysis
+
+# VERSION
+
+# PODNAME: c2ast.pl
+
 my $help = 0;
 my $cpp = 'cpp';
 my @D = ();
