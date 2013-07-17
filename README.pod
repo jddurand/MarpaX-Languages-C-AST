@@ -44,9 +44,11 @@ version 0.10
 
 =head1 DESCRIPTION
 
-This modules translates a C source into an AST tree. The AST consist of blessed objects that map exactly to the C grammar in use. If you want to enable logging, be aware that this module is a Log::Any thingy.
+This module translates C source into an AST tree. To assist further processsing of the AST tree, the nodes of the AST are blessed according to the C grammar you have selected. (The default is 'ISO-ANSI-C-2011'.) If you want to enable logging, be aware that this module is a Log::Any thingy.
 
-Please note that this module just I<translates> a C source, it does I<not> check for its correctness, i.e. the numerous grammar constraints built on top on the C grammar are not implemented, for example constraint on the number of storage class specifiers, uniqueness of labeled statements within a function, etc.. This is left to a compiler, which is not the goal here. So, to state things clearly, this module is addressing the I<ambiguities> of the grammar itself, i.e. the dangling else, the typedef/enum/identifier. And produces an AST of the parse tree value.
+This module implements the full syntax, as well as those specification constraints which are syntactic in nature: Associativity of nested if-then-else statements is according to the C standards, as is the treatment of names as typedefs, enums, or variable identifiers.
+
+The C standards contain many constraints that are non-syntactic. MarpaX::Languages::C::AST does not implement these, leaving them for AST post-processing. One example of a non-syntactic constraint is the requirement that labeled statements within a function be unique. Another is the requirement that declarations include at most one storage class specifier.
 
 =head1 SUBROUTINES/METHODS
 
