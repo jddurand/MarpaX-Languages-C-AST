@@ -63,9 +63,9 @@ Instantiate a new object. Takes as parameter an optional base name of a grammar.
 
 # ----------------------------------------------------------------------------------------
 sub new {
-  my ($class, $grammarName) = @_;
+  my ($class, %opts) = @_;
 
-  $grammarName //= 'ISO-ANSI-C-2011';
+  my $grammarName = $opts{grammarName} || 'ISO-ANSI-C-2011';
 
   my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName);
   my $grammar_option = $grammar->grammar_option();
@@ -73,11 +73,30 @@ sub new {
   $grammar_option->{source} = \$grammar->content();
   my $recce_option = $grammar->recce_option();
 
+  my $lexemeCallback = $opts{lexemeCallback} || '';
+  my @lexemeCallbackArgs = ();
+  if ($opts{lexemeCallback}) {
+      if (ref($opts{lexemeCallback}) ne 'ARRAY') {
+	  croak 'lexemeCallback option must be an ARRAY reference';
+      }
+      if (! @{$opts{lexemeCallback}}) {
+	  croak 'lexemeCallback is a reference to an empty array';
+      }
+      if (ref($opts{lexemeCallback}->[0]) ne 'CODE') {
+	  croak 'lexemeCallback must start with a CODE reference';
+      }
+      @lexemeCallbackArgs = @{$opts{lexemeCallback}};
+      $lexemeCallback = shift(@lexemeCallbackArgs);
+  }
+
   my $self  = {
-               _scope   => MarpaX::Languages::C::AST::Scope->new(),
-               _grammar => $grammar,
-               _impl    => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
-               _sourcep => undef
+               _scope              => MarpaX::Languages::C::AST::Scope->new(),
+               _grammar            => $grammar,
+               _impl               => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
+               _sourcep            => undef,
+	       _lexemeCallback     => $lexemeCallback,
+	       _lexemeCallbackArgs => \@lexemeCallbackArgs,
+	       _logInfo            => $opts{logInfo} || 0
               };
 
   bless($self, $class);
@@ -106,7 +125,8 @@ sub parse {
     $self->_doScope(\%lexeme);
     $self->_doEvents();
     $self->_doPauseAfterLexeme(\%lexeme);
-    $self->_doInfo(\%lexeme);
+    $self->_doLogInfo(\%lexeme);
+    $self->_doLexemeCallback(\%lexeme);
   } while (($pos = $self->{_impl}->resume()) < $max);
 
   return($self->_value($optionalArrayOfValuesb));
@@ -181,11 +201,20 @@ sub _getLexeme {
   }
 }
 # ----------------------------------------------------------------------------------------
-sub _doInfo {
+sub _doLogInfo {
   my ($self, $lexemeHashp) = @_;
 
-  if (exists($lexemeHashp->{name})) {
+  if ($self->{_logInfo} && exists($lexemeHashp->{name})) {
     $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
+  }
+}
+# ----------------------------------------------------------------------------------------
+sub _doLexemeCallback {
+  my ($self, $lexemeHashp) = @_;
+
+  if ($self->{_lexemeCallback} && exists($lexemeHashp->{name})) {
+      my $callback = $self->{_lexemeCallback};
+      &$callback(@{$self->{_lexemeCallbackArgs}}, $lexemeHashp);
   }
 }
 # ----------------------------------------------------------------------------------------
