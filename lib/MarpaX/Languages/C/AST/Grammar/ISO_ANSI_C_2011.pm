@@ -990,11 +990,19 @@ QUESTION_MARK ~ '?'
 <Cplusplus comment interior> ~ [^\n]*
 
 #
-# Discard of some simple preprocessor directive
+# Discard simple preprocessor directives (on one line - cpp output persist to get some of them)
 #
 <Cpp style directive start> ~ '#'
 <Cpp style directive interior single line> ~ [^\n]*
 <Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
+
+#
+# Discard of some simple annotation directives
+#
+<MSVS annotation directive start> ~ '[source_annotation_attribute'
+<MSVS annotation directive interior single line> ~ [^\n]*
+<MSVS annotation directive> ~ <MSVS annotation directive start> <MSVS annotation directive interior single line>
+
 #
 # Internal tokens added
 #
@@ -1012,6 +1020,7 @@ ANYTHING_ELSE   ~ [.]
 :discard ~ <Cplusplus style comment>
 :discard ~ <C style comment>
 :discard ~ <Cpp style directive>
+:discard ~ <MSVS annotation directive>
 :discard ~ WS_many       # whitespace separates tokens
 :discard ~ ANYTHING_ELSE # discard bad characters
 
