@@ -62,6 +62,10 @@ Instantiate a new object. Takes as parameter an optional hash of options that ca
 
 Name of a grammar. Default is 'ISO-ANSI-C-2011'.
 
+=item logInfo
+
+Issue logging with level 'info' for every found lexeme. Default is 0 (i.e. false). Please note that logging is done through Log::Any.
+
 =item lexemeCallback
 
 Array reference containing a CODE ref and optional arguments. This callback will be trigerred like this: &$CODE(@arguments, $lexemeHashp), where $lexemeHashp is a reference to a hash describing current lexeme:
@@ -99,6 +103,10 @@ String containing lexeme value.
 =head2 parse($self, $sourcep, $optionalArrayOfValuesb)
 
 Do the parsing and return the blessed value. Takes as first parameter the reference to a C source code. Takes as optional second parameter a flag saying if the return value should be an array of all values or not. If this flag is false, the module will croak if there more than one parse tree value.
+
+=head1 SEE ALSO
+
+L<Log::Any>, L<Marpa::R2>
 
 =for :stopwords cpan testmatrix url annocpan anno bugtracker rt cpants kwalitee diff irc mailto metadata placeholders metacpan
 
