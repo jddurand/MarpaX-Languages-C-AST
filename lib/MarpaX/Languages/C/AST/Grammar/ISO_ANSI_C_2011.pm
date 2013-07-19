@@ -320,6 +320,7 @@ declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationCheck
 	| staticAssertDeclaration
+        | preprocessorDirective
 
 declarationSpecifiers
 	::= storageClassSpecifier declarationSpecifiers
@@ -400,6 +401,7 @@ structDeclaration
 	::= specifierQualifierList SEMICOLON	# for anonymous struct/union
 	| specifierQualifierList structDeclaratorList SEMICOLON
 	| SEMICOLON                             # GCC extension
+        | preprocessorDirective
 
 specifierQualifierList
 	::= typeSpecifier specifierQualifierList
@@ -591,6 +593,7 @@ statement
 	| jumpStatement
         | msvsAsmStatement
         | gccAsmStatement
+        | preprocessorDirective
 
 labeledStatement
 	::= IDENTIFIER COLON statement
@@ -726,8 +729,8 @@ ES         ~ BS ES_AFTERBS
 WS         ~ [ \t\v\n\f]
 WS_any     ~ WS*
 WS_many    ~ WS+
-# Lexemes
 
+# Lexemes
 :lexeme ~ <AUTO>          priority => -1
 AUTO          ~ 'auto'
 :lexeme ~ <BREAK>         priority => -2
@@ -992,9 +995,9 @@ QUESTION_MARK ~ '?'
 #
 # Discard simple preprocessor directives (on one line - cpp output persist to get some of them)
 #
-<Cpp style directive start> ~ '#'
-<Cpp style directive interior single line> ~ [^\n]*
-<Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
+#<Cpp style directive start> ~ '#'
+#<Cpp style directive interior single line> ~ [^\n]*
+#<Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
 
 #
 # Discard of some simple annotation directives
@@ -1019,7 +1022,7 @@ ANYTHING_ELSE   ~ [.]
 
 :discard ~ <Cplusplus style comment>
 :discard ~ <C style comment>
-:discard ~ <Cpp style directive>
+#:discard ~ <Cpp style directive>
 :discard ~ <MSVS annotation directive>
 :discard ~ WS_many       # whitespace separates tokens
 :discard ~ ANYTHING_ELSE # discard bad characters
@@ -2045,3 +2048,29 @@ msvsAsmGpRegister ::=   MSVS_ASM_AX | MSVS_ASM_EAX | MSVS_ASM_BX | MSVS_ASM_EBX 
 msvsAsmByteRegister ::= MSVS_ASM_AL | MSVS_ASM_AH | MSVS_ASM_BL | MSVS_ASM_BH | MSVS_ASM_CL | MSVS_ASM_CH | MSVS_ASM_DL | MSVS_ASM_DH
 
 msvsAsmConstant ::= I_CONSTANT
+
+#
+# Preprocessor ultra minimal grammar: we keep only what is left AFTER preprocessing, indeed
+#
+PREPROCESSOR_DASH ~ '#'
+PREPROCESSOR_LINE ~ 'line'
+PREPROCESSOR_PRAGMA ~ 'pragma'
+PREPROCESSOR_DIGITS ~ [0-9]+
+PREPROCESSOR_DQUOTE ~ '"'
+PREPROCESSOR_NOTDQUOTE ~ [^"]*
+PREPROCESSOR_WS ~ [ \t]
+PREPROCESSOR_WS_any ~ PREPROCESSOR_WS*
+PREPROCESSOR_WS_many ~ PREPROCESSOR_WS+
+PREPROCESSOR_NOTNEWLINE ~ [^\n]
+PREPROCESSOR_NOTNEWLINE_any ~ PREPROCESSOR_NOTNEWLINE*
+PREPROCESSOR_FILENAME ~ PREPROCESSOR_DQUOTE PREPROCESSOR_NOTDQUOTE PREPROCESSOR_DQUOTE
+
+:lexeme ~ PREPROCESSOR_LINE_DIRECTIVE
+PREPROCESSOR_LINE_DIRECTIVE ~ PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_LINE PREPROCESSOR_WS_many PREPROCESSOR_DIGITS PREPROCESSOR_WS_many PREPROCESSOR_FILENAME PREPROCESSOR_NOTNEWLINE_any
+                            | PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_DIGITS PREPROCESSOR_WS_many PREPROCESSOR_FILENAME PREPROCESSOR_NOTNEWLINE_any
+
+:lexeme ~ PREPROCESSOR_PRAGMA_DIRECTIVE
+PREPROCESSOR_PRAGMA_DIRECTIVE ~ PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_PRAGMA PREPROCESSOR_NOTNEWLINE_any
+
+preprocessorDirective ::= PREPROCESSOR_LINE_DIRECTIVE
+                        | PREPROCESSOR_PRAGMA_DIRECTIVE
