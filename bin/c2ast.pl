@@ -41,6 +41,7 @@ my @I = ();
 my @U = ();
 my $cppfile = '';
 my @lexeme = ();
+my $progress = 0;
 
 if (! GetOptions ('help!' => \$help,
                   'cpp=s' => \@cpp,
@@ -48,7 +49,8 @@ if (! GetOptions ('help!' => \$help,
                   'I=s' => \@I,
                   'U=s' => \@U,
                   'cppfile=s' => \$cppfile,
-                  'lexeme=s' => \@lexeme)) {
+                  'lexeme=s' => \@lexeme,
+                  'progress!' => \$progress)) {
   usage(EXIT_FAILURE);
 }
 
@@ -59,28 +61,33 @@ if ($help || ! @ARGV) {
   usage($help ? EXIT_SUCCESS : EXIT_FAILURE)
 }
 
-#
+# --------------------
 # Run the preprocessor
-#
+# --------------------
 my @cmd = (@cpp, (map {"-D$_"} @D), (map {"-I$_"} @I), (map {"-U$_"} @U), @ARGV);
 my $preprocessedOutput;
 run(\@cmd, \undef, \$preprocessedOutput);
 
-#
-# Number of lines, for Text::ProgressBar
-#
-my $nbLines = ($preprocessedOutput =~tr/\n/\n/ + ! $preprocessedOutput =~ /\n\z/);
-my $progress = Term::ProgressBar->new({name  => $ARGV[-1],
-				       count => $nbLines,
-				       remove => 1,
-				       ETA => 'linear'});
-$progress->minor(0);
-my $next_update = 0;
+# -----------------
+# Callback argument
+# -----------------
+my %lexemeCallbackHash = (file => $cppfile, lexeme => {}, progress => undef, next_progress => 0);
 
-#
+if ($progress) {
+  #
+  # Number of lines, for Text::ProgressBar
+  #
+  my $nbLines = ($preprocessedOutput =~tr/\n/\n/ + ! $preprocessedOutput =~ /\n\z/);
+  $lexemeCallbackHash{progress} = Term::ProgressBar->new({name  => $ARGV[-1],
+                                                          count => $nbLines,
+                                                          remove => 1,
+                                                          ETA => 'linear'});
+  $lexemeCallbackHash{progress}->minor(0);
+}
+
+# -------
 # Parse C
-#
-my %lexemeCallbackHash = (file => $cppfile, lexeme => {});
+# -------
 map {++$lexemeCallbackHash{lexeme}->{$_}} @lexeme;
 my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ]);
 my $bless = $cAstObject->parse(\$preprocessedOutput);
@@ -91,14 +98,14 @@ exit(EXIT_SUCCESS);
 sub lexemeCallback {
     my ($lexemeCallbackHashp, $lexemeHashp) = @_;
 
-    my $line = $lexemeHashp->{line};
-    if ($line >= $next_update) {
-	$next_update = $progress->update($line);
+    if (defined($lexemeCallbackHashp->{progress})) {
+      if ($lexemeHashp->{line} >= $lexemeCallbackHashp->{next_progress}) {
+        $lexemeCallbackHashp->{next_progress} = $lexemeCallbackHashp->{progress}->update($lexemeHashp->{line});
+      }
     }
 
-
     #
-    # We wait until the first #line information: this will give the name of current file -;
+    # We wait until the first #line information: this will give the name of current file
     #
     if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
 	if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
@@ -132,19 +139,20 @@ Usage: $^X $0 options
 
 where options can be:
 
---help              This help
---cpp <argument>    cpp executable. Default is 'cpp'.
-                    If your setup requires additional option, then you should repeat this option as needed.
-                    For example: your cpp setup is "cl -E". Then you say:
-                    --cpp cl --cpp -E
--D <argument>       Preprocessor's -D argument, correponding to #define. Can be be repeated if needed.
--I <argument>       Preprocessor's -I argument, corresponding to include path. Can be be repeated if needed.
--U <argument>       Preprocessor's -D argument, corresponding to #undef. Can be be repeated if needed.
--cppfile <filename> In case the C file in input contains a line like # ... "anotherfilename.c".
-                    Only one instance of such preprocessor directive is supported.
--lexeme <lexeme>    Lexemes of interest. Look to the grammar to have the exhaustive list.
-                    In practice, only IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT are useful.
-                    This option must be repeated for every lexeme of interest.
+--help               This help
+--cpp <argument>     cpp executable. Default is 'cpp'.
+                     If your setup requires additional option, then you should repeat this option as needed.
+                     For example: your cpp setup is "cl -E". Then you say:
+                     --cpp cl --cpp -E
+-D <argument>        Preprocessor's -D argument, correponding to #define. Can be be repeated if needed.
+-I <argument>        Preprocessor's -I argument, corresponding to include path. Can be be repeated if needed.
+-U <argument>        Preprocessor's -D argument, corresponding to #undef. Can be be repeated if needed.
+--cppfile <filename> In case the C file in input contains a line like # ... "anotherfilename.c".
+                     Only one instance of such preprocessor directive is supported.
+--lexeme <lexeme>    Lexemes of interest. Look to the grammar to have the exhaustive list.
+                     In practice, only IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT are useful.
+                     This option must be repeated for every lexeme of interest.
+--progress           Progress bar with ETA information.
 
 Example:
 
