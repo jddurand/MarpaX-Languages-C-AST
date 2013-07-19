@@ -8,10 +8,10 @@ package MarpaX::Languages::C::AST;
 use Log::Any qw/$log/;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Util qw/:all/;
-use MarpaX::Languages::C::AST::Grammar;
-use MarpaX::Languages::C::AST::Impl qw/DOT_COMPLETION DOT_PREDICTION/;
-use MarpaX::Languages::C::AST::Scope;
-use MarpaX::Languages::C::AST::Callback::Events;
+use MarpaX::Languages::C::AST::Grammar qw//;
+use MarpaX::Languages::C::AST::Impl qw//;
+use MarpaX::Languages::C::AST::Scope qw//;
+use MarpaX::Languages::C::AST::Callback::Events qw//;
 
 # VERSION
 
