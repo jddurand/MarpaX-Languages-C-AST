@@ -189,7 +189,8 @@ sub _inventory_condition_tofire {
   my $self = shift;
   my $nbConditionOK = 0;
   my $nbNewTopics = 0;
-  foreach (my $i = 0; $i < $self->ncb; $i++) {
+  my $ncb = $self->ncb;
+  foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $self->prioritized_cb($i);
     my $option = $cb->option;
     my $conditionMode = $option->conditionMode;
@@ -415,7 +416,8 @@ sub _inventory_subscription_tofire {
   #
   my $nbNewTopics = 0;
   my $nbSubscriptionOK = 0;
-  foreach (my $i = 0; $i < $self->ncb; $i++) {
+  my $ncb = $self->ncb;
+  foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $self->prioritized_cb($i);
     my $option = $cb->option;
     #
