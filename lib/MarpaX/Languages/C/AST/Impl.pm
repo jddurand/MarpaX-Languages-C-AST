@@ -5,18 +5,12 @@ package MarpaX::Languages::C::AST::Impl;
 
 # ABSTRACT: Implementation of Marpa's interface
 
-use MarpaX::Languages::C::AST::Util qw/traceAndUnpack/;
-use Marpa::R2 2.061002;
+# use MarpaX::Languages::C::AST::Util qw/traceAndUnpack/;
+use Marpa::R2 2.064000;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Impl::Logger;
-use Log::Any qw/$log/;
-use constant {LATEST_G1_EARLEY_SET_ID => -1};
-use constant {DOT_PREDICTION => 0, DOT_COMPLETION => -1};
-use Exporter 'import';
 
 # VERSION
-
-our @EXPORT_OK = qw/DOT_PREDICTION DOT_COMPLETION LATEST_G1_EARLEY_SET_ID/;
 
 our $MARPA_TRACE_FILE_HANDLE;
 our $MARPA_TRACE_BUFFER;
@@ -52,10 +46,6 @@ This modules implements all needed Marpa calls using its Scanless interface. Ple
     use MarpaX::Languages::C::AST::Impl;
 
     my $marpaImpl = MarpaX::Languages::C::AST::Impl->new();
-
-=head1 EXPORTS
-
-The constants DOT_PREDICTION (0), DOT_COMPLETION (-1) and LATEST_EARLEY_SET_ID (-1) are exported on demand.
 
 =head1 SUBROUTINES/METHODS
 
@@ -96,9 +86,7 @@ Returns Marpa's recognizer's value.
 sub value {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->value();
+  return $self->{recce}->value(@_);
 }
 
 =head2 read($self, $inputp)
@@ -108,13 +96,9 @@ Returns Marpa's recognizer's read. Argument is a reference to input.
 =cut
 
 sub read {
-  my ($self, $inputp) = @_;
-  #
-  # Well, we know that input is a reference to a string, and do not want its dump in the log...
-  #
-  my $args = traceAndUnpack(['inputp'], "$inputp");
+  my $self = shift;
 
-  return $self->{recce}->read($inputp);
+  return $self->{recce}->read(@_);
 }
 
 =head2 resume($self)
@@ -126,9 +110,7 @@ Returns Marpa's recognizer's resume.
 sub resume {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->resume();
+  return $self->{recce}->resume(@_);
 }
 
 =head2 last_completed($self, $symbol)
@@ -140,9 +122,7 @@ Returns Marpa's recognizer's last_completed for symbol $symbol.
 sub last_completed {
   my $self = shift;
 
-  my $args = traceAndUnpack(['symbol'], @_);
-
-  return $self->{recce}->last_completed($args->{symbol});
+  return $self->{recce}->last_completed(@_);
 }
 
 =head2 last_completed_range($self, $symbol)
@@ -154,9 +134,7 @@ Returns Marpa's recognizer's last_completed_range for symbol $symbol.
 sub last_completed_range {
   my $self = shift;
 
-  my $args = traceAndUnpack(['symbol'], @_);
-
-  return $self->{recce}->last_completed_range($args->{symbol});
+  return $self->{recce}->last_completed_range(@_);
 }
 
 =head2 range_to_string($self, $start, $end)
@@ -168,9 +146,7 @@ Returns Marpa's recognizer's range_to_string for a start value of $start and an 
 sub range_to_string {
   my $self = shift;
 
-  my $args = traceAndUnpack(['start', 'end'], @_);
-
-  return $self->{recce}->range_to_string($args->{start}, $args->{end});
+  return $self->{recce}->range_to_string(@_);
 }
 
 =head2 event($self, $eventNumber)
@@ -182,9 +158,7 @@ Returns Marpa's recognizer's event for event number $eventNumber.
 sub event {
   my $self = shift;
 
-  my $args = traceAndUnpack(['eventNumber'], @_);
-
-  return $self->{recce}->event($args->{eventNumber});
+  return $self->{recce}->event(@_);
 }
 
 =head2 pause_lexeme($self)
@@ -196,9 +170,7 @@ Returns Marpa's recognizer's pause_lexeme.
 sub pause_lexeme {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->pause_lexeme();
+  return $self->{recce}->pause_lexeme(@_);
 }
 
 =head2 pause_span($self)
@@ -210,9 +182,7 @@ Returns Marpa's recognizer's pause_span.
 sub pause_span {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->pause_span();
+  return $self->{recce}->pause_span(@_);
 }
 
 =head2 literal($self, $start, $length)
@@ -224,9 +194,7 @@ Returns Marpa's recognizer's literal.
 sub literal {
   my $self = shift;
 
-  my $args = traceAndUnpack(['start', 'length'], @_);
-
-  return $self->{recce}->literal($args->{start}, $args->{length});
+  return $self->{recce}->literal(@_);
 }
 
 =head2 line_column($self, $start)
@@ -238,9 +206,7 @@ Returns Marpa's recognizer's line_column at eventual $start location in the inpu
 sub line_column {
   my $self = shift;
 
-  my $args = traceAndUnpack(['start'], @_);
-
-  return $self->{recce}->line_column($args->{start});
+  return $self->{recce}->line_column(@_);
 }
 
 =head2 substring($self, $start, $length)
@@ -252,9 +218,7 @@ Returns Marpa's recognizer's substring corresponding to g1 span ($start, $length
 sub substring {
   my $self = shift;
 
-  my $args = traceAndUnpack(['start', 'length'], @_);
-
-  return $self->{recce}->substring($args->{start}, $args->{length});
+  return $self->{recce}->substring(@_);
 }
 
 =head2 lexeme_read($self, $lexeme, $start, $length, $value)
@@ -266,9 +230,7 @@ Returns Marpa's recognizer's lexeme_read for lexeme $lexeme, at start position $
 sub lexeme_read {
   my $self = shift;
 
-  my $args = traceAndUnpack(['lexeme', 'start', 'length', 'value'], @_);
-
-  return $self->{recce}->lexeme_read($args->{lexeme}, $args->{start}, $args->{length}, $args->{value});
+  return $self->{recce}->lexeme_read(@_);
 }
 
 =head2 current_g1_location($self)
@@ -280,9 +242,7 @@ Returns Marpa's recognizer's current_g1_location.
 sub current_g1_location {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->current_g1_location();
+  return $self->{recce}->current_g1_location(@_);
 }
 
 =head2 g1_location_to_span($self, $g1)
@@ -294,9 +254,7 @@ Returns Marpa's recognizer's g1_location_to_span for a g1 location $g1.
 sub g1_location_to_span {
   my $self = shift;
 
-  my $args = traceAndUnpack(['g1'], @_);
-
-  return $self->{recce}->g1_location_to_span($args->{g1});
+  return $self->{recce}->g1_location_to_span(@_);
 }
 
 =head2 terminals_expected($self)
@@ -308,9 +266,7 @@ Returns Marpa's recognizer's terminals_expected.
 sub terminals_expected {
   my $self = shift;
 
-  my $args = traceAndUnpack([''], @_);
-
-  return $self->{recce}->terminals_expected();
+  return $self->{recce}->terminals_expected(@_);
 }
 
 1;

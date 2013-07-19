@@ -7,7 +7,6 @@ use parent qw/MarpaX::Languages::C::AST::Callback/;
 
 # ABSTRACT: Events callback when translating a C source to an AST
 
-use Log::Any qw/$log/;
 use Carp qw/croak/;
 use Storable qw/dclone/;
 use SUPER;
@@ -242,7 +241,6 @@ sub _closeAnyScope {
     my ($method, $callback, $eventsp, $scope) = @_;
 
     while ($scope->parseScopeLevel >= 1) {
-      $log->debugf('[%s[%d]] Forcing scope exit', whoami(__PACKAGE__), $callback->currentTopicLevel);
       $scope->doExitScope();
     }
 }
@@ -259,7 +257,6 @@ sub _enumerationConstantIdentifier {
     my ($method, $callback, $eventsp) = @_;
 
     my $enum = lastCompleted($callback->hscratchpad('_impl'), 'enumerationConstantIdentifier');
-    $log->debugf('[%s[%d]] New enum \'%s\' at position %s', whoami(__PACKAGE__), $callback->currentTopicLevel, $enum, lineAndCol($callback->hscratchpad('_impl')));
     $callback->hscratchpad('_scope')->parseEnterEnum($enum);
 }
 # ----------------------------------------------------------------------------------------
@@ -269,8 +266,6 @@ sub _parameterDeclarationCheck {
     # Get the topics data we are interested in
     #
     my $parameterDeclarationdeclarationSpecifiers = $callback->topic_level_fired_data('parameterDeclarationdeclarationSpecifiers$');
-
-    $log->debugf('%s[%s[%d]] parameterDeclarationdeclarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $parameterDeclarationdeclarationSpecifiers);
 
     #
     # By definition parameterDeclarationdeclarationSpecifiers contains only typedefs
@@ -289,9 +284,6 @@ sub _functionDefinitionCheck1 {
     #
     my $functionDefinitionCheck1declarationSpecifiers = $callback->topic_level_fired_data('functionDefinitionCheck1declarationSpecifiers$', -1);
     my $functionDefinitionCheck1declarationList = $callback->topic_fired_data('functionDefinitionCheck1declarationList$');
-
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck1declarationSpecifiers);
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck1declarationList data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck1declarationList);
 
     #
     # By definition functionDefinitionCheck1declarationSpecifiers contains only typedefs
@@ -316,8 +308,6 @@ sub _functionDefinitionCheck2 {
     #
     my $functionDefinitionCheck2declarationSpecifiers = $callback->topic_level_fired_data('functionDefinitionCheck2declarationSpecifiers$', -1);
 
-    $log->debugf('%s[%s[%d]] functionDefinitionCheck2declarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $functionDefinitionCheck2declarationSpecifiers);
-
     #
     # By definition functionDefinitionCheck2declarationSpecifiers contains only typedefs
     #
@@ -336,19 +326,13 @@ sub _declarationCheck {
     #
     my $structContext = $callback->topic_fired_data('structContext') || [0];
     if ($structContext->[0]) {
-	$log->debugf('%s[%s[%d]] structContext is true, doing nothing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
 	return;
-    } else {
-	$log->debugf('%s[%s[%d]] structContext is false, continuing.', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel);
     }
     #
     # Get the topics data we are interested in
     #
     my $declarationCheckdeclarationSpecifiers = $callback->topic_fired_data('declarationCheckdeclarationSpecifiers$');
     my $declarationCheckinitDeclaratorList = $callback->topic_fired_data('declarationCheckinitDeclaratorList$');
-
-    $log->debugf('%s[%s[%d]] declarationCheckdeclarationSpecifiers data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $declarationCheckdeclarationSpecifiers);
-    $log->debugf('%s[%s[%d]] declarationCheckinitDeclaratorList data is: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $declarationCheckinitDeclaratorList);
 
     #
     # By definition declarationCheckdeclarationSpecifiers contains only typedefs
@@ -365,10 +349,7 @@ sub _declarationCheck {
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($line_columnp, $last_completed, %counters)  = @{$_};
-        $log->debugf('%s[%s[%d]] Identifier %s at position %s, counters=%s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp, \%counters);
-        if ($counters{structContext}) {
-          $log->debugf('%s[%s[%d]] Identifier %s at position %s, counters=%s : parse symbol inactive', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, $line_columnp, \%counters);
-        } else {
+        if (! $counters{structContext}) {
           if ($nbTypedef >= 0) {
 	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed);
           } else {
@@ -411,7 +392,7 @@ sub _storage_helper {
 	substr($symbol, -1, 1, '');
 	$rc = [ lineAndCol($callback->hscratchpad('_impl')), lastCompleted($callback->hscratchpad('_impl'), $symbol), %counters ];
     }
-    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', data %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $event, $rc);
+
     return $rc;
 }
 # ----------------------------------------------------------------------------------------
@@ -420,7 +401,6 @@ sub _inc_helper {
 
     my $old_value = $callback->topic_fired_data($topic)->[0] || 0;
     my $new_value = $old_value + $increment;
-    $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', counter %d -> %d', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $topic, $old_value, $new_value);
 
     return $new_value;
 }
@@ -429,7 +409,6 @@ sub _set_helper {
     my ($method, $callback, $eventsp, %topic) = @_;
 
     foreach (keys %topic) {
-      $log->debugf('%s[%s[%d]] Callback \'%s\', topic \'%s\', setting value %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $_, $topic{$_});
       $callback->topic_fired_data($_, [ $topic{$_} ]);
     }
 }
@@ -438,7 +417,6 @@ sub _reset_helper {
     my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
-    $log->debugf('%s[%s[%d]] Callback \'%s\', resetting topics \'%s\' data', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, \@topics);
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
@@ -448,12 +426,10 @@ sub _collect_helper {
     my @rc = ();
     foreach (@topics) {
 	my $topic = $_;
-	$log->debugf('%s[%s[%d]] Callback \'%s\', collecting and resetting topic \'%s\' data: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, $topic, $callback->topic_fired_data($topic));
 	push(@rc, @{$callback->topic_fired_data($topic)});
 	$callback->topic_fired_data($topic, []);
     }
 
-    $log->debugf('%s[%s[%d]] Callback \'%s\', collected data: %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $method->extra_description || $method->description, \@rc);
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
@@ -465,10 +441,8 @@ sub _subFire {
     if (defined($transformEventsp)) {
       my %tmp = ();
       my @transformEvents = grep {++$tmp{$_} == 1} map {$transformEventsp->{$_} || $_} @subEvents;
-      $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, \@transformEvents);
       $subCallback->exec(@transformEvents);
     } else {
-      $log->debugf('%s[%s[%d]] Sub-firing %s callbacks with %s', $callback->log_prefix, whoami(__PACKAGE__), $callback->currentTopicLevel, $lhs, \@subEvents);
       $subCallback->exec(@subEvents);
     }
   }
