@@ -197,6 +197,7 @@ postfixExpression
 argumentExpressionList
 	::= assignmentExpression
 	| argumentExpressionList COMMA assignmentExpression
+	| argumentExpressionList COMMA
 
 gccAlignofExpression ::= GCC_ALIGNOF unaryExpression
                        | GCC_ALIGNOF LPAREN typeName RPAREN
