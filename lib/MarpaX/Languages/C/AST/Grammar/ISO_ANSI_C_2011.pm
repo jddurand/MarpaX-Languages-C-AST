@@ -321,7 +321,6 @@ declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationCheck
 	| staticAssertDeclaration
-        | preprocessorDirective
 
 declarationSpecifiers
 	::= storageClassSpecifier declarationSpecifiers
@@ -646,6 +645,7 @@ event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
 	::= functionDefinition
 	| declaration
+        | preprocessorDirective
 
 compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE                   action => deref_and_bless_compoundStatement
 	                        | LCURLY blockItemList RCURLY_SCOPE     action => deref_and_bless_compoundStatement
