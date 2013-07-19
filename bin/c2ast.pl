@@ -103,7 +103,7 @@ sub lexemeCallback {
 	    $lexemeCallbackHashp->{curline} = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
 	    $lexemeCallbackHashp->{curline_real} = $lexemeHashp->{line};
 	    $lexemeCallbackHashp->{curfile} = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
-	    if (! defined($lexemeCallbackHashp->{file})) {
+	    if (! $lexemeCallbackHashp->{file}) {
 		$lexemeCallbackHashp->{file} = $lexemeCallbackHashp->{curfile};
 	    }
 	    if (! defined($lexemeCallbackHashp->{tryToAlignMax})) {
