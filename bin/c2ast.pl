@@ -55,7 +55,6 @@ if (! GetOptions ('help!' => \$help,
 }
 
 @cpp = ('cpp') if (! @cpp);
-@lexeme = ('IDENTIFIER') if (! @lexeme);
 
 if ($help || ! @ARGV) {
   usage($help ? EXIT_SUCCESS : EXIT_FAILURE)
@@ -77,9 +76,9 @@ if ($progress) {
   #
   # Number of lines, for Text::ProgressBar
   #
-  my $nbLines = ($preprocessedOutput =~tr/\n/\n/ + ! $preprocessedOutput =~ /\n\z/);
+  $lexemeCallbackHash{nbLines} = ($preprocessedOutput =~tr/\n/\n/ + ! $preprocessedOutput =~ /\n\z/);
   $lexemeCallbackHash{progress} = Term::ProgressBar->new({name  => $ARGV[-1],
-                                                          count => $nbLines,
+                                                          count => $lexemeCallbackHash{nbLines},
                                                           remove => 1,
                                                           ETA => 'linear'});
   $lexemeCallbackHash{progress}->minor(0);
@@ -91,6 +90,11 @@ if ($progress) {
 map {++$lexemeCallbackHash{lexeme}->{$_}} @lexeme;
 my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ]);
 my $bless = $cAstObject->parse(\$preprocessedOutput);
+if ($progress) {
+    if ($lexemeCallbackHash{nbLines} > $lexemeCallbackHash{next_progress}) {
+	$lexemeCallbackHash{progress}->update($lexemeCallbackHash{nbLines});
+    }
+}
 
 exit(EXIT_SUCCESS);
 
