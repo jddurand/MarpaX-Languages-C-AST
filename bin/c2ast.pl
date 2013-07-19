@@ -42,13 +42,15 @@ my @U = ();
 my $cppfile = '';
 my @lexeme = ();
 
-GetOptions ('help!' => \$help,
-	    'cpp=s' => \@cpp,
-	    'D=s' => \@D,
-	    'I=s' => \@I,
-	    'U=s' => \@U,
-	    'cppfile=s' => \$cppfile,
-	    'lexeme=s' => \@lexeme);
+if (! GetOptions ('help!' => \$help,
+                  'cpp=s' => \@cpp,
+                  'D=s' => \@D,
+                  'I=s' => \@I,
+                  'U=s' => \@U,
+                  'cppfile=s' => \$cppfile,
+                  'lexeme=s' => \@lexeme)) {
+  usage(EXIT_FAILURE);
+}
 
 @cpp = ('cpp') if (! @cpp);
 @lexeme = ('IDENTIFIER') if (! @lexeme);
