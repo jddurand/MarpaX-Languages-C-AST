@@ -132,6 +132,7 @@ __DATA__
 # Defaults
 #
 :default ::= action => [values] bless => ::lhs
+lexeme default = action => [start,length,value]
 
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
