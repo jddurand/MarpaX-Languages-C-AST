@@ -17,11 +17,11 @@ use MarpaX::Languages::C::AST::Callback::Events qw//;
 
 =head1 DESCRIPTION
 
-This module translates C source into an AST tree. To assist further processsing of the AST tree, the nodes of the AST are blessed according to the C grammar you have selected. (The default is 'ISO-ANSI-C-2011'.) If you want to enable logging, be aware that this module is a Log::Any thingy.
+This module translates C source into an AST tree. To assist further process of the AST tree, the nodes of the AST are blessed according to the C grammar you have selected. (The default is 'ISO-ANSI-C-2011'.) If you want to enable logging, be aware that this module is a Log::Any thingy.
 
 This module implements the full syntax, as well as those specification constraints which are syntactic in nature: Associativity of nested if-then-else statements is according to the C standards, as is the treatment of names as typedefs, enums, or variable identifiers.
 
-The C standards contain many constraints that are non-syntactic. MarpaX::Languages::C::AST does not implement these, leaving them for AST post-processing. One example of a non-syntactic constraint is the requirement that labeled statements within a function be unique. Another is the requirement that declarations include at most one storage class specifier.
+The C standards contain many constraints that are non-syntactic. MarpaX::Languages::C::AST does not implement these, leaving them for AST post-process. One example of a non-syntactic constraint is the requirement that labeled statements within a function be unique. Another is the requirement that declarations include at most one storage class specifier.
 
 =head1 SYNOPSIS
 
