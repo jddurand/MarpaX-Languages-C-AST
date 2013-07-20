@@ -43,12 +43,12 @@ use Carp qw/croak/;
 
 =cut
 
-sub _sort_by_option_priority_desc ($$) {
-  return $_[1]->option->priority <=> $_[0]->option->priority;
+sub _sort_by_option_priority_desc {
+  return $b->option->priority <=> $a->option->priority;
 }
 
-sub _sort_by_numeric_desc ($$) {
-  return $_[1] <=> $_[0];
+sub _sort_by_numeric_desc {
+  return $b <=> $a;
 }
 
 sub register {
