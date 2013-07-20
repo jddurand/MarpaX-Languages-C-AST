@@ -6,7 +6,7 @@ package MarpaX::Languages::C::AST::Impl;
 # ABSTRACT: Implementation of Marpa's interface
 
 # use MarpaX::Languages::C::AST::Util qw/traceAndUnpack/;
-use Marpa::R2 2.064000;
+use Marpa::R2 2.065000;
 use Carp qw/croak/;
 use MarpaX::Languages::C::AST::Impl::Logger;
 
