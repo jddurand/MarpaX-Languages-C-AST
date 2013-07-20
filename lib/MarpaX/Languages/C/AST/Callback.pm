@@ -148,7 +148,7 @@ sub _unregister {
 	splice(@{$self->cb}, $_, 1);
 	$self->ncb($self->ncb - 1);
 	$self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}]);
-	
+
     }
 
 }

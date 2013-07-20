@@ -19,7 +19,7 @@ void incInt(int *y)
 {
     (*y)++;  // Increase the value of 'x', in 'main' below, by one
 }
- 
+
 int main(void)
 {
     int x = 0;

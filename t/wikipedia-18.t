@@ -21,5 +21,5 @@ struct s
     float y;
     char  *z;
 };
- 
+
 struct s pi = { 3, 3.1415, "Pi" };

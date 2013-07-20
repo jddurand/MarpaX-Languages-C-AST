@@ -19,7 +19,7 @@ use constant RESETANYDATA_PRIORITY => -2000;
 
 =head1 DESCRIPTION
 
-This modules implements the Marpa events callback using the very simple framework MarpaX::Languages::C::AST::Callback. it is useful because it shows the FUNCTIONAL things that appear within the events: monitor the TYPEDEFs, introduce/obscure names in name space, apply the few grammar constraints needed at parsing time. And the TECHNICAL things i.e. recursivity of the grammar.
+This modules implements the Marpa events callback using the very simple framework MarpaX::Languages::C::AST::Callback. It is useful because it shows the FUNCTIONAL things that appear within the events: monitor the TYPEDEFs, introduce/obscure names in name space, apply the few grammar constraints needed at parsing time, etc.
 
 =cut
 

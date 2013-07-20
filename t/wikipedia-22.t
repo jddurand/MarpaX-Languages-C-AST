@@ -16,21 +16,21 @@ ok(defined($valuep), 'Output from parse() is ok');
 
 __DATA__
 int (*operation)(int x, int y);
- 
+
 int add(int x, int y)
 {
     return x + y;
 }
- 
+
 int subtract(int x, int y)
 {
     return x - y;
 }
- 
+
 int main(int argc, char* args[])
 {
    int  foo = 1, bar = 1;
- 
+
    operation = add;
    printf("%d + %d = %d\n", foo, bar, operation(foo, bar));
    operation = subtract;

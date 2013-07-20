@@ -12,7 +12,7 @@ use Carp qw/croak/;
 
 =head1 DESCRIPTION
 
-This modules is a minimalist Data::Find targetting the parse tree values after Marpa processing on a C source file.
+This modules is a minimalist Data::Find designed for the parse tree values of Marpa on a C source file.
 
 =head1 SYNOPSIS
 
@@ -59,7 +59,7 @@ Process callback (CODE ref).
 
 Process callback arguments (ARRAY ref). The process callback is called like: &$callback(@{$callbackArgs}, $object) on every object that matched.
 
-=over
+=back
 
 =cut
 

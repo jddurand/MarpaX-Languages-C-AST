@@ -17,12 +17,12 @@ ok(defined($valuep), 'Output from parse() is ok');
 __DATA__
 typedef struct Bert Bert;
 typedef struct Wilma Wilma;
- 
+
 struct Bert
 {
     Wilma *wilma;
 };
- 
+
 struct Wilma
 {
     Bert *bert;

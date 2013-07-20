@@ -30,7 +30,7 @@ A hash of topics. Value must be an integer. Any true value mean the topic is on.
 
 =item topic_persistence
 
-A persistence for the raised topics. Value can be 'any', 'level' or 'none'. 'any' means that if a new level of topics is created, it will inherit all raised topics from this method. 'level' means that the topics raised by this method stay alive but will not be propaged to an eventual new level. 'none' means that a new level of topics will be inherit no topic from this method. Default is 'none'. Eventual topic data will follow the persistence.
+A persistence for the raised topics. Value can be 'any', 'level' or 'none'. 'any' means that if a new level of topics is created, it will inherit all raised topics from this method. 'level' means that the topics raised by this method stay alive but will not be propagated to an eventual new level. 'none' means that a new level of topics will be inherit no topic from this method. Default is 'none'. Eventual topic data will follow the persistence.
 
 =item subscription (to topics)
 
@@ -42,7 +42,7 @@ It can be 'required' or 'optional'. Default is 'required'. When the value is 're
 
 =item condition
 
-An array of [ CODE ref, CODE ref arguments] executed as condition requirements for the callback. CODE ref first argument will be the reference to the callback object associated with these options followed by the eventual CODE ref arguemtns, and the eventual exec() arguments. If there is no condition, the callback can be eligible only via topic subscriptions. It is possible to specifiy the string "auto" instead of a CODE ref; then Callback will do a grep on the exec() arguments and compare it with the callback description. If there is something in the condition array, and if it returns false, callback will never be eligible, regardless if subscription to any topic would return true.
+An array of [ CODE ref, CODE ref arguments] executed as condition requirements for the callback. CODE ref first argument will be the reference to the callback object associated with these options followed by the eventual CODE ref arguments, and the eventual exec() arguments. If there is no condition, the callback can be eligible only via topic subscriptions. It is possible to specify the string "auto" instead of a CODE ref; then Callback will do a grep on the exec() arguments and compare it with the callback description. If there is something in the condition array, and if it returns false, callback will never be eligible, regardless if subscription to any topic would return true.
 
 =item conditionMode
 

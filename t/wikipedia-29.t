@@ -18,7 +18,7 @@ __DATA__
 int main(void)
 {
     int  a, b = 1;
- 
+
     a = b++ + b++;
     printf("%d\n", a);
     return 0;

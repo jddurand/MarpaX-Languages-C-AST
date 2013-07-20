@@ -19,7 +19,7 @@ void setArray(int array[], int index, int value)
 {
     array[index] = value;
 }
- 
+
 int main(void)
 {
     int a[1] = {1};

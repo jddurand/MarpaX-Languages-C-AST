@@ -18,8 +18,6 @@ This modules manages the scopes when translation a C source into an AST tree. Th
 
 I<Resolving Typedefs in a Multipass C Compiler> from I<Journal of C Languages Translation>, Volume 2, Number 4, written by W.M. McKeeman. A online version may be accessed at L<http://www.cs.dartmouth.edu/~mckeeman/references/JCLT/ResolvingTypedefsInAMultipassCCompiler.pdf>.
 
-but has been simplified using Marpa events facility and the Callback framework built with C::AST. Basically there is not more notion od delayed exit scope. Using events is enough to exact scope management in time.
-
 Please note that this module is logging via Log::Any.
 
 =head1 SYNOPSIS
@@ -80,12 +78,11 @@ sub parseEnterScope {
   $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
   push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$scope]));
 
-
   if (@{$self->{_enterScopeCallback}}) {
       my ($ref, @args) = @{$self->{_enterScopeCallback}};
       &$ref(@args);
   }
-  
+
 }
 
 =head2 parseDelay($self, [$value])
@@ -131,7 +128,7 @@ sub parseEnterScopeCallback {
 
 =head2 parseExitScopeCallback($self, $ref, @args)
 
-Callback method when leaving a scope (not the delayed operaiton, the real leave).
+Callback method when leaving a scope (not the delayed operation, the real leave).
 
 =cut
 
@@ -175,7 +172,7 @@ sub parseReenterScope {
 
 =head2 condExitScope($self)
 
-Leave current scope if delay flag is setted and not yet done.
+Leave current scope if delay flag is set and not yet done.
 
 =cut
 

@@ -3,6 +3,16 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions;
 
+# ABSTRACT: ISO ANSI C 2011 grammar actions
+
+# VERSION
+
+=head1 DESCRIPTION
+
+This modules give the actions associated to ISO_ANSI_C_2011 grammar.
+
+=cut
+
 sub new {
     my $class = shift;
     my $self = {};
