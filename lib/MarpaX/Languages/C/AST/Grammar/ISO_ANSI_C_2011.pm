@@ -465,7 +465,7 @@ declarator
 
 event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
-	::= IDENTIFIER          action => deref
+	::= IDENTIFIER
 
 gccAttributeList ::= gccAttribute*
 directDeclarator
