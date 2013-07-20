@@ -32,7 +32,7 @@ This modules is a minimalist Data::Find designed for the parse tree values of Ma
 			  # This object has matched.
 			  #
 	},
-	callbackArgs => [ \%data ],
+	callbackArgs => [ $data ],
 	)->process($data);
 
 =head1 SUBROUTINES/METHODS
