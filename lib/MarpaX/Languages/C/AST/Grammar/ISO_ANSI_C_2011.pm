@@ -1736,30 +1736,25 @@ gccAsmStatement ::= gccAsmExpression SEMICOLON
 typeQualifierMaybe ::= typeQualifier
                      | gccEmptyRule
 
-gccAsmOperandList ::= gccAsmOperand
-                       | COMMA gccAsmOperandList
+gccAsmExpression ::= GCC_ASM typeQualifierMaybe LPAREN expression gccAsmInnerOperandListMaybe RPAREN
 
-gccAsmClobberList ::= gccAsmClobber
-                       | COMMA gccAsmClobber
+gccAsmClobberList ::= gccAsmClobber | gccAsmClobberList COMMA gccAsmClobber
 
-gccAsmClobberExpressionMaybe ::= gccAsmClobberExpression
-                               | gccEmptyRule
+gccAsmOperandList ::= gccAsmOperand | gccAsmOperandList COMMA gccAsmOperand
 
 gccAsmOperandListMaybe ::= gccAsmOperandList | gccEmptyRule
 
-gccAsmOperandExpression ::= COLON gccAsmOperandListMaybe
+gccAsmInnerClobberList ::= COLON gccAsmClobberList
 
-gccAsmClobberExpression ::= COLON gccAsmClobberList
+gccAsmInnerClobberListMaybe ::= gccAsmInnerClobberList | gccEmptyRule
 
-gccAsmOperandInnerExpression ::= gccAsmOperandExpression gccAsmClobberExpressionMaybe
+gccAsmInnerOperandList2 ::= COLON gccAsmOperandListMaybe gccAsmInnerClobberListMaybe
 
-gccAsmOperandInnerExpressionMaybe ::= gccAsmOperandInnerExpression
-                                    | gccEmptyRule
+gccAsmInnerOperandList2Maybe ::= gccAsmInnerOperandList2 | gccEmptyRule
 
-gccAsmInnerExpressionMaybe ::= gccAsmOperandExpression gccAsmOperandInnerExpressionMaybe
-                                 | gccEmptyRule
+gccAsmInnerOperandList ::= COLON gccAsmOperandListMaybe gccAsmInnerOperandList2Maybe
 
-gccAsmExpression ::= GCC_ASM typeQualifierMaybe LPAREN expression gccAsmInnerExpressionMaybe RPAREN
+gccAsmInnerOperandListMaybe ::= gccAsmInnerOperandList | gccEmptyRule
 
 gccAsmOperandPrefix ::= LBRACKET IDENTIFIER RBRACKET
 
