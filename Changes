@@ -1,7 +1,13 @@
 Changelog for MarpaX-Languages-C-AST
 
-v0.11 2013-07-21T09:07:03
+v0.12 2013-07-21T09:40:11
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Force scanning of IDENTIFIER if --check reservedNames and no --lexeme
+   IDENTIFIER
+
+v0.11 2013-07-21T09:08:18
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.11
  - gcc asm test
  - gcc asm grammar fix
  - More about tracing
