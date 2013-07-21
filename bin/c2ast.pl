@@ -285,8 +285,8 @@ where options can be:
   reservedNames      Check IDENTIFIER lexemes v.s. Gnu recommended list of Reserved Names [1].
                      Any check that is not ok will print on STDERR.
 --dump               Dump parse tree value. Always happen eventually as the last post-processing.
---loglevel <level>   Log MarpaX::Languages::C::AST information at this level, using Log::Log4perl. <level> has to be something meaningful for Log::Log4perl, typically WARN, INFO, ERROR, etc.
                      Will print on STDOUT.
+--loglevel <level>   Log::log4perl MarpaX::Languages::C::AST level. <level> has to be something meaningful for Log::Log4perl, typically WARN, INFO, ERROR, etc. Please note that to trace Marpa library itself, ony the environment variable MARPA_TRACE can be used. So, for example, to have the maximum logging possible, you set MARPA_TRACE environment variable to a true value and --loglevel TRACE. Default value is WARN.
 Examples:
 
 Typical usages
