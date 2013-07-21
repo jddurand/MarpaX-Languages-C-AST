@@ -1,7 +1,16 @@
 Changelog for MarpaX-Languages-C-AST
 
-v0.10 2013-07-20T22:23:35
+v0.11 2013-07-21T09:07:03
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - gcc asm test
+ - gcc asm grammar fix
+ - More about tracing
+ - --dump and --loglevel options
+ - Better error reporting
+
+v0.10 2013-07-20T22:24:47
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.10
  - Disable [CheckExtraTests] until I fix them all
  - Perl::Critic
  - Perl::Critic
