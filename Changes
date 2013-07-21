@@ -1,6 +1,6 @@
 Changelog for MarpaX-Languages-C-AST
 
-v0.11 2013-07-21T09:07:03
+0.11 2013-07-21T09:07:03
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - gcc asm test
  - gcc asm grammar fix
@@ -8,7 +8,7 @@ v0.11 2013-07-21T09:07:03
  - --dump and --loglevel options
  - Better error reporting
 
-v0.10 2013-07-20T22:24:47
+0.10 2013-07-20T22:24:47
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.10
  - Disable [CheckExtraTests] until I fix them all
@@ -139,7 +139,7 @@ v0.10 2013-07-20T22:24:47
    
    README changes
 
-v0.09 2013-06-03T18:22:46
+0.09 2013-06-03T18:22:46
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.09
  - v0.09
@@ -176,7 +176,7 @@ v0.09 2013-06-03T18:22:46
    
     - Back to 95% of DAGOLDEN great dist.ini
 
-v0.08 2013-06-02T21:18:03
+0.08 2013-06-02T21:18:03
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.08
    
@@ -190,20 +190,20 @@ v0.08 2013-06-02T21:18:03
  - Enable UploadToCPAN
  - Back to 95% of DAGOLDEN great dist.ini
 
-v0.07 2013-06-02T17:36:58
+0.07 2013-06-02T17:36:58
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - oups back
 
-v0.06 2013-06-02T17:33:00
+0.06 2013-06-02T17:33:00
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Closer to DAGOLDEN
 
-v0.05 2013-06-02T17:12:10
+0.05 2013-06-02T17:12:10
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Removed non needed dzil.sh, this also allow to have a clean tag, but
    Dist::Zilla perturbed a bit the followup of tag v.s. official releases
 
-v0.04 2013-06-02T17:03:14
+0.04 2013-06-02T17:03:14
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Uncommentedd UploadToCPAN
  - Remove dist.ini from allow_dirty, Added back commented [FakeRelease]
@@ -231,7 +231,7 @@ v0.04 2013-06-02T17:03:14
  - Remove given/when: warnings on perl5.18
  - Better readibility
 
-v0.03 2013-05-30T19:12:07
+0.03 2013-05-30T19:12:07
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.03
  - Synopsis made readable
@@ -278,7 +278,7 @@ v0.03 2013-05-30T19:12:07
  - Add ruleid and origin in findinprogress
  - Forgot 0.02 Changes update
 
-v0.02 2013-05-21T22:39:50
+0.02 2013-05-21T22:39:50
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Bumped to version 0.02
  - Fixed synopsis
@@ -286,7 +286,7 @@ v0.02 2013-05-21T22:39:50
  - Say what this module is not
  - Move to Storage (core module) instead of Clone
 
-v0.01 2013-05-21T12:19:33
+0.01 2013-05-21T12:19:33
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Add package tarballs to .gitignore
  - test blessed structure result
