@@ -269,4 +269,16 @@ sub terminals_expected {
   return $self->{recce}->terminals_expected(@_);
 }
 
+=head2 show_progress($self)
+
+Returns Marpa's recognizer's show_progress.
+
+=cut
+
+sub show_progress {
+  my $self = shift;
+
+  return $self->{recce}->show_progress(@_);
+}
+
 1;
