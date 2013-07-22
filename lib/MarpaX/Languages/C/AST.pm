@@ -227,7 +227,7 @@ sub _value {
     }
   } while (defined($valuep));
   if ($#rc != 0 && ! $arrayOfValuesb) {
-    logCroak('Number of parse tree value should be %d', 1);
+    logCroak('Number of parse tree value is %d. Should be 1.', scalar(@rc));
   }
   if ($arrayOfValuesb) {
     return [ @rc ];
