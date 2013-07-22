@@ -249,6 +249,7 @@ sub lexemeCallback {
     if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}}) ||
 	exists($lexemeCallbackHashp->{internalLexeme}->{$lexemeHashp->{name}})) {
 	if (defined($lexemeCallbackHashp->{file}) &&
+	    defined($lexemeCallbackHashp->{curfile}) &&
 	    $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
 	    my $line = $lexemeCallbackHashp->{curline} + ($lexemeHashp->{line} - $lexemeCallbackHashp->{curline_real} - 1);
 	    $lexemeCallbackHashp->{position2line}->{$lexemeHashp->{start}} = $line;
