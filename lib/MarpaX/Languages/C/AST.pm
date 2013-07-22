@@ -157,6 +157,16 @@ Do the parsing and return the blessed value. Takes as first parameter the refere
 =cut
 
 # ----------------------------------------------------------------------------------------
+sub _context {
+    my $self = shift;
+
+    my $context = $log->is_debug() ?
+	sprintf("\n\nContext:\n\n%s", $self->{_impl}->show_progress()) :
+	'';
+
+    return $context;
+}
+# ----------------------------------------------------------------------------------------
 sub parse {
   my ($self, $sourcep, $optionalArrayOfValuesb) = @_;
 
@@ -168,7 +178,7 @@ sub parse {
   eval {$pos = $self->{_impl}->read($sourcep)};
   if ($@) {
       my $line_columnp = lineAndCol($self->{_impl});
-      logCroak("%s\nLast position:\n\n%s\n\nContext:\n\n%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->{_impl}->show_progress());
+      logCroak("%s\nLast position:\n\n%s%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
   }
   do {
     my %lexeme = ();
@@ -181,7 +191,7 @@ sub parse {
     eval {$pos = $self->{_impl}->resume()};
     if ($@) {
 	my $line_columnp = lineAndCol($self->{_impl});
-	logCroak("%s\nLast position:\n\n%s\n\nContext:\n\n%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->{_impl}->show_progress());
+	logCroak("%s\nLast position:\n\n%s%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), , $self->_context());
     }
   } while ($pos < $max);
 
@@ -366,7 +376,7 @@ sub _doPauseAfterLexeme {
 	      $newlexeme = 'IDENTIFIER';
 	  } else {
 	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s\n\nContext:\n\n%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->{_impl}->show_progress());
+	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
 	  }
 	  #
 	  # Push the unambiguated lexeme
@@ -374,7 +384,7 @@ sub _doPauseAfterLexeme {
 	  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexemeHashp->{value});
 	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexemeHashp->{start}, $lexemeHashp->{length}, $lexemeHashp->{value}))) {
 	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s\n\nContext:\n\n%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->{_impl}->show_progress());
+	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
 	  }
           $lexemeHashp->{name} = $newlexeme;
 	  #
