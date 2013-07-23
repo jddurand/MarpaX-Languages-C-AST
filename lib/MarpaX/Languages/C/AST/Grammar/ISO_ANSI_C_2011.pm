@@ -561,6 +561,7 @@ initializer
 initializerList
 	::= designation initializer
 	| initializer
+	| IDENTIFIER COLON initializer
 	| initializerList COMMA designation initializer
 	| initializerList COMMA initializer
 
@@ -1363,10 +1364,10 @@ gccAttributeParameter ::= gccEmptyRule
                         | gccAnyWord
                         | gccAnyWord LPAREN gccAttributeInnerParameter RPAREN
 
-gccAttributeInnerParameter ::= IDENTIFIER
-                             | IDENTIFIER COMMA expression
-                             | expression
-                             | gccEmptyRule
+gccAttributeInnerParameter ::= IDENTIFIER                    rank =>  0
+                             | IDENTIFIER COMMA expression   rank => -1
+                             | expression                    rank => -2
+                             | gccEmptyRule                  rank => -3
 
 gccAnyWord ::= IDENTIFIER
              | storageClassSpecifier
