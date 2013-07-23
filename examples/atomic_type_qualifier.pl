@@ -22,7 +22,6 @@ Log::Any::Adapter->set('Log4perl');
 # Parse C
 #
 my $cSourceCode = do { local $/; <DATA> };
-my $cAstObject = MarpaX::Languages::C::AST->new();
-print Dumper($cAstObject->parse(\$cSourceCode));
+print Dumper(MarpaX::Languages::C::AST->new()->parse(\$cSourceCode)->value());
 __DATA__
 _Atomic int (*f)(int);

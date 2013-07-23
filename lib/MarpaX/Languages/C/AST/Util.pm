@@ -110,7 +110,17 @@ sub logCroak {
 
     my $msg = sprintf($fmt, @arg);
     $log->fatalf($msg);
-    croak $msg;
+    if (! $log->is_fatal()) {
+      #
+      # Logging is not enabled at FATAL level: re do the message in croak
+      #
+      croak $msg;
+    } else {
+      #
+      # Logging is enabled at FATAL level: no new message
+      #
+      croak;
+    }
 }
 
 =head2 showLineAndCol($line, $col, $sourcep)
@@ -125,7 +135,7 @@ sub showLineAndCol {
     my $pointer = ($col > 0 ? '-' x ($col-1) : '') . '^';
     my $content = (split("\n", ${$sourcep}))[$line-1];
     $content =~ s/\t/ /g;
-    return "$content\n$pointer";
+    return "line:column $line:$col\n\n$content\n$pointer";
 }
 
 =head2 lineAndCol($impl, $g1)

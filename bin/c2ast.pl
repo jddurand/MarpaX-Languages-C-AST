@@ -27,30 +27,28 @@ autoflush STDOUT 1;
 
 my $help = 0;
 my @cpp = ();
-my @D = ();
-my @I = ();
-my @U = ();
 my $cppfile = '';
+my $cppdup = '';
 my @lexeme = ();
 my $progress = 0;
 my @check = ();
 my $dump = 0;
+my $dumpfile = '';
+my $allowAmbiguity = 0;
 my $loglevel = 'WARN';
 
-if (! GetOptions ('help!' => \$help,
-                  'cpp=s' => \@cpp,
-                  'D=s' => \@D,
-                  'I=s' => \@I,
-                  'U=s' => \@U,
-                  'cppfile=s' => \$cppfile,
-                  'lexeme=s' => \@lexeme,
-                  'progress!' => \$progress,
-		  'check=s' => \@check,
-		  'dump!' => \$dump,
-		  'loglevel=s' => \$loglevel,
-		  )) {
-  usage(EXIT_FAILURE);
-}
+Getopt::Long::Configure("pass_through");
+GetOptions ('help!' => \$help,
+            'cpp=s' => \@cpp,
+            'cppfile=s' => \$cppfile,
+            'cppdup=s' => \$cppdup,
+            'lexeme=s' => \@lexeme,
+            'progress!' => \$progress,
+            'check=s' => \@check,
+            'dump!' => \$dump,
+            'dumpfile=s' => \$dumpfile,
+            'allowAmbiguity!' => \$allowAmbiguity,
+            'loglevel=s' => \$loglevel);
 
 # ----
 # Init 
@@ -65,18 +63,28 @@ DEFAULT_LOG4PERL_CONF
 Log::Log4perl::init(\$defaultLog4perlConf);
 Log::Any::Adapter->set('Log4perl');
 
-@cpp = ('cpp') if (! @cpp);
-
 if ($help || ! @ARGV) {
   usage($help ? EXIT_SUCCESS : EXIT_FAILURE)
 }
 
-# --------------------
-# Run the preprocessor
-# --------------------
-my @cmd = (@cpp, (map {"-D$_"} @D), (map {"-I$_"} @I), (map {"-U$_"} @U), @ARGV);
 my $preprocessedOutput;
+@cpp = ('cpp') if (! @cpp);
+# ---------------------------------------------------------------
+# Run the preprocessor: any unknown option is passed as-is to cpp
+# ---------------------------------------------------------------
+my @cmd = (@cpp, @ARGV);
+$log->debugf('Executing preprocessor: %s', \@cmd);
 run(\@cmd, \undef, \$preprocessedOutput);
+if ($cppdup) {
+  if (! open(CPP, '>', $cppdup)) {
+    warn "Cannot open $cppdup, $!\n";
+  } else {
+    print CPP $preprocessedOutput;
+    if (! close(CPP)) {
+      warn "Cannot close $cppdup, $!\n";
+    }
+  }
+}
 
 # -----------------
 # Callback argument
@@ -123,13 +131,34 @@ if ($progress) {
 # --------------
 # Postprocessing
 # --------------
-check(\%check, \%lexemeCallbackHash, $bless);
 
 # ----
 # Dump
 # ----
-if ($dump) {
-    print Dumper($bless);
+if ($dump || $dumpfile || %check) {
+  my $value = $cAstObject->value($allowAmbiguity);
+  my $bless = $allowAmbiguity ? $value->[0] : $value;
+
+  if (%check) {
+    check(\%check, \%lexemeCallbackHash, $bless);
+  }
+
+  if ($dump || $dumpfile) {
+    my $dump = Dumper($value);
+    if ($dump) {
+      print Dumper($value);
+    }
+    if ($dumpfile) {
+      if (! open(DUMP, '>', $dumpfile)) {
+        warn "Cannot open $dumpfile, $!\n";
+      } else {
+        print DUMP $dump;
+        if (! close(DUMP)) {
+          warn "Cannot close $dumpfile, $!\n";
+        }
+      }
+    }
+  }
 }
 
 exit(EXIT_SUCCESS);
@@ -222,7 +251,7 @@ sub checkreservedNames {
 sub lexemeCallback {
     my ($lexemeCallbackHashp, $lexemeHashp) = @_;
 
-    if (defined($lexemeCallbackHashp->{progress})) {
+    if (defined($lexemeCallbackHashp->{progress}) && defined($lexemeHashp->{line})) {
       if ($lexemeHashp->{line} >= $lexemeCallbackHashp->{next_progress}) {
         $lexemeCallbackHashp->{next_progress} = $lexemeCallbackHashp->{progress}->update($lexemeHashp->{line});
       }
@@ -244,10 +273,18 @@ sub lexemeCallback {
 		$lexemeCallbackHashp->{tryToAlignMax} = length(sprintf('%s(%d)', $lexemeCallbackHashp->{file}, 1000000)); # a pretty good max -;
 	    }
 	}
+        #
+        # This is an internal lexeme, no problem to change a bit the value. For instance, remove
+        # \s if any.
+        #
+        $lexemeHashp->{value} =~ s/^\s*//g;
+        $lexemeHashp->{value} =~ s/\s*$//g;
+        $lexemeHashp->{value} =~ s/\n/\\n/g;
     }
 
     if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}}) ||
 	exists($lexemeCallbackHashp->{internalLexeme}->{$lexemeHashp->{name}})) {
+
 	if (defined($lexemeCallbackHashp->{file}) &&
 	    defined($lexemeCallbackHashp->{curfile}) &&
 	    $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
@@ -271,43 +308,88 @@ Usage: $^X $0 options
 where options can be:
 
 --help               This help
+
 --cpp <argument>     cpp executable. Default is 'cpp'.
-                     If your setup requires additional option, then you should repeat this option as needed.
-                     For example: your cpp setup is "cl -E". Then you say:
-                     --cpp cl --cpp -E
--D <argument>        Preprocessor's -D argument, correponding to #define. Can be be repeated if needed.
--I <argument>        Preprocessor's -I argument, corresponding to include path. Can be be repeated if needed.
--U <argument>        Preprocessor's -D argument, corresponding to #undef. Can be be repeated if needed.
---cppfile <filename> In case the C file in input contains a line like # ... "anotherfilename.c", then
-                     it is "anotherfilename.c" that will be taken as the file name to trace/check.
-                     Only one instance of such preprocessor directive is supported.
-                     This option is only needed when the real original filename is not the file passed
-                     as argument to c2ast. Typically, this happens when the file passed as argument is
-                     the result of another preprocessing phase.
+
+                     If your setup requires additional option, then you should repeat this option.
+                     For example: your cpp setup is "cl -E". Then you say: --cpp cl --cpp -E
+
+                     Take care: it has been observed that "cpp" output could be different than "compiler -E".
+                     If c2ast complains and the output manifestly reports something that has not been
+                     preprocessed corrected, then retry with: --cpp your_compiler --cpp your_compiler_option
+
+                     This has been observed on Darwin for instance, where one have to say:
+                     --cpp gcc --cpp -E
+
+--cppfile <filename> The output of the preprocessor will contain a lot of lines like '#line "filename"', where
+                     "filename" is guaranteed to be the constant for a given physical location in the filesystem.
+                     The first occurence is always a marker of the source that c2ast sent to the preprocessor.
+                     c2ast will catch it so that the --lexeme tracing phase, or the --check phase, will happen only
+                     on lexemes relevant to the source file given on the command-line, and not polluted by lexemes
+                     coming from any included file.
+
+                     Nevertheless, the source given on the command-line /could/ be the result of another preprocessing phase.
+                     You can use this option to tell c2ast what is the real filename to consider.
+
+                     For example, suppose your .c file has the name: my/generated/source.c. And that the real origin is
+                     my/input/source.w, where my/input/source.w has been preprocessed by you to generate
+                     my/generated/source.c.
+
+                     Then, it is very likely that my/generated/source.c will contain a line like:
+                     # line xxx "my/input/source.c"
+
+                     You will then say --cppfile "my/input/source.c".
+
                      Exemple: the file marpa.c in the build phase of libmarpa: this is the result of
                      a preprocessing on the file marpa.w.
+
+--cppdup <filename>  Save the preprocessed output to this filename. Only useful for debugging c2ast.
+
 --lexeme <lexeme>    Lexemes of interest. Look to the grammar to have the exhaustive list.
                      In practice, only IDENTIFIER, TYPEDEF_NAME and ENUMERATION_CONSTANT are useful.
+                     An internal lexeme, not generated by Marpa itself also exist: PREPROCESSOR_LINE_DIRECTIVE.
                      This option must be repeated for every lexeme of interest.
-                     The output will do to STDOUT.
+                     The output will go to STDOUT.
+
 --progress           Progress bar with ETA information.
+
 --check <checkName>  Perform some hardcoded checks on the code. Supported values for checkName are:
   reservedNames      Check IDENTIFIER lexemes v.s. Gnu recommended list of Reserved Names [1].
+
                      Any check that is not ok will print on STDERR.
---dump               Dump parse tree value. Always happen eventually as the last post-processing.
-                     Will print on STDOUT.
---loglevel <level>   Log::log4perl MarpaX::Languages::C::AST level. <level> has to be something meaningful for Log::Log4perl, typically WARN, INFO, ERROR, etc. Please note that to trace Marpa library itself, ony the environment variable MARPA_TRACE can be used. So, for example, to have the maximum logging possible, you set MARPA_TRACE environment variable to a true value and --loglevel TRACE. Default value is WARN.
+
+--dump               Dump parse tree value on STDOUT.
+--dumpfile <file>    Dump parse tree value to this named file.
+
+                     Take care: dumping the parse tree value can hog your memory and CPU. This will not
+                     be c2ast fault, but the module used to do the dump (currently, Data::Dumper).
+
+--allowAmbiguity     Default is to allow a single parse tree value. Nevertheless, if the grammar in use by
+                     c2ast has a hole, use this option to allow multiple parse tree values. In case of multiple
+                     parse tree values, only the first one will be used in the check phase (option --check).
+
+--loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically WARN, INFO, ERROR, etc.
+                     Default is WARN.
+
+                     Note that tracing Marpa library itself is possible, but only using environment variable MARPA_TRACE /and/ saying --loglevel TRACE.
+
+                     In case of trouble, typical debuggin of c2ast is:
+                     --loglevel INFO
+                     then:
+                     --loglevel DEBUG
+                     then:
+                     --loglevel TRACE
+
 Examples:
 
-Typical usages
-
-$^X $0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c
-$^X $0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --lexeme IDENTIFIER --lexeme TYPEDEF_NAME
-$^X $0 --cpp cl --cpp -E -D MYDEFINE1 -D MYDEFINE2 -I C:/Windows/myIncludeDir C:/Windows/Temp/myfile.c
+$0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c
+$0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --lexeme IDENTIFIER --lexeme TYPEDEF_NAME
+$0 --cpp cl --cpp -E -D MYDEFINE1 -D MYDEFINE2 -I C:/Windows/myIncludeDir C:/Windows/Temp/myfile.c
+$0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --progress --check reservedNames
 
 Less typical usage:
 
-$^X $0 -I libmarpa_build libmarpa_build/marpa.c --cppfile ./marpa.w  --progress --check reservedNames
+$0 -I libmarpa_build libmarpa_build/marpa.c --cppfile ./marpa.w  --progress --check reservedNames
 
 [1] http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html
 USAGE

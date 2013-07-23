@@ -27,5 +27,4 @@ open(FILE, '<', $file) || die "Cannot open $file, $!\n";
 my $cSourceCode = do { local $/; <FILE> };
 close(FILE) || warn "Cannot close $file, $!\n";
 
-my $cAstObject = MarpaX::Languages::C::AST->new(logInfo => 1);
-print Dumper($cAstObject->parse(\$cSourceCode));
+MarpaX::Languages::C::AST->new(logInfo => 1)->parse(\$cSourceCode)->value();

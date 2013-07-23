@@ -304,10 +304,10 @@ declarationSpecifiers
 	| typeQualifier
 	| functionSpecifier declarationSpecifiers
 	| functionSpecifier
-	| gccDeclarationSpecifier declarationSpecifiers
-	| gccDeclarationSpecifier
 	| alignmentSpecifier declarationSpecifiers
 	| alignmentSpecifier
+        | gccDeclarationSpecifier declarationSpecifiers
+	| gccDeclarationSpecifier
 
 initDeclaratorList
 	::= initDeclarator
@@ -358,9 +358,17 @@ event 'structContextEnd[]' = nulled <structContextEnd>
 structContextEnd ::=
 
 structOrUnionSpecifier
-	::= structOrUnion gccAttributeList LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion gccAttributeList IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion gccAttributeList IDENTIFIER
+        # gccAttributeMany just after struct or union keyword
+	::= structOrUnion gccAttributeMany LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	| structOrUnion gccAttributeMany IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	| structOrUnion gccAttributeMany IDENTIFIER
+        # or just after the closing brace
+	| structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY gccAttributeMany <structContextEnd>
+	| structOrUnion IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY gccAttributeMany <structContextEnd>
+        # or nowhere
+	| structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	| structOrUnion IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	| structOrUnion IDENTIFIER
 
 structOrUnion
 	::= STRUCT
@@ -374,14 +382,13 @@ structDeclaration
 	::= specifierQualifierList SEMICOLON	# for anonymous struct/union
 	| specifierQualifierList structDeclaratorList SEMICOLON
 	| SEMICOLON                             # GCC extension
-        | preprocessorDirective
 
 specifierQualifierList
 	::= typeSpecifier specifierQualifierList
 	| typeSpecifier
 	| typeQualifier specifierQualifierList
 	| typeQualifier
-	| gccDeclarationSpecifier specifierQualifierList
+        | gccDeclarationSpecifier specifierQualifierList
 	| gccDeclarationSpecifier
 
 structDeclaratorList
@@ -390,15 +397,27 @@ structDeclaratorList
 
 structDeclarator
 	::= COLON constantExpression
-	| declarator COLON constantExpression gccAttributeList
+	| declarator COLON constantExpression gccAttributeAny
 	| declarator
 
 enumSpecifier
-	::= ENUM gccAttributeList LCURLY enumeratorList RCURLY
-	| ENUM gccAttributeList LCURLY enumeratorList COMMA RCURLY
-	| ENUM gccAttributeList IDENTIFIER LCURLY enumeratorList RCURLY
-	| ENUM gccAttributeList IDENTIFIER LCURLY enumeratorList COMMA RCURLY
-	| ENUM gccAttributeList IDENTIFIER
+        # gccAttributeMany just after ENUM keyword
+	::= ENUM gccAttributeMany LCURLY enumeratorList RCURLY
+	| ENUM gccAttributeMany LCURLY enumeratorList COMMA RCURLY
+	| ENUM gccAttributeMany IDENTIFIER LCURLY enumeratorList RCURLY
+	| ENUM gccAttributeMany IDENTIFIER LCURLY enumeratorList COMMA RCURLY
+	| ENUM gccAttributeMany IDENTIFIER
+        # or after the closing brace
+	| ENUM LCURLY enumeratorList RCURLY gccAttributeMany
+	| ENUM LCURLY enumeratorList COMMA RCURLY gccAttributeMany
+	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY gccAttributeMany
+	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY gccAttributeMany
+        # or nowhere
+	| ENUM LCURLY enumeratorList RCURLY
+	| ENUM LCURLY enumeratorList COMMA RCURLY
+	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY
+	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY
+	| ENUM IDENTIFIER
 
 enumeratorList
 	::= enumerator
@@ -432,17 +451,20 @@ alignmentSpecifier
 msvsAttributeList ::= msvsAttribute*
 
 declarator
-	::= pointer msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeList
-	| msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeList
+	::= pointer msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeAny
+	| msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeAny
 
 event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
 	::= IDENTIFIER
 
-gccAttributeList ::= gccAttribute*
+gccAttributeAny ::= gccAttribute*
+
+gccAttributeMany ::= gccAttribute+
+
 directDeclarator
 	::= directDeclaratorIdentifier
-	| LPAREN gccAttributeList declarator RPAREN
+	| LPAREN gccAttributeAny declarator RPAREN
 	| directDeclarator LBRACKET RBRACKET
 	| directDeclarator LBRACKET STAR RBRACKET
 	| directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
@@ -504,32 +526,32 @@ gccAsmExpressionMaybe ::= gccAsmExpression
                         | gccEmptyRule
 
 abstractDeclarator
-	::= pointer msvsAttributeList directAbstractDeclarator gccAsmExpressionMaybe gccAttributeList
+	::= pointer msvsAttributeList directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
 	| pointer msvsAttributeList
-	| directAbstractDeclarator gccAsmExpressionMaybe gccAttributeList
+	| directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
 
 directAbstractDeclarator
-	::= LPAREN gccAttributeList abstractDeclarator RPAREN
-	| LBRACKET RBRACKET
-	| LBRACKET STAR RBRACKET
-	| LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
-	| LBRACKET STATIC assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList RBRACKET
-	| LBRACKET assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET RBRACKET
-	| directAbstractDeclarator LBRACKET STAR RBRACKET
-	| directAbstractDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
-	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
-	| LPAREN_SCOPE RPAREN_SCOPE
-	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
-	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
-	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	::= LPAREN gccAttributeAny abstractDeclarator RPAREN                                             rank =>   0
+	| LBRACKET RBRACKET                                                                                  rank =>  -1
+	| LBRACKET STAR RBRACKET                                                                             rank =>  -2
+	| LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET                             rank =>  -3
+	| LBRACKET STATIC assignmentExpression RBRACKET                                                      rank =>  -4
+	| LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET                             rank =>  -5
+	| LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET                                    rank =>  -6
+	| LBRACKET gccArrayTypeModifierList RBRACKET                                                         rank =>  -7
+	| LBRACKET assignmentExpression RBRACKET                                                             rank =>  -8
+	| directAbstractDeclarator LBRACKET RBRACKET                                                         rank =>  -9
+	| directAbstractDeclarator LBRACKET STAR RBRACKET                                                    rank => -10
+	| directAbstractDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET    rank => -11
+	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET                             rank => -12
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET           rank => -13
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET    rank => -14
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET                                rank => -15
+	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET                                    rank => -16
+	| LPAREN_SCOPE RPAREN_SCOPE                                                                          rank => -17
+	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE                                                        rank => -18
+	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE                                                 rank => -19
+	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE                               rank => -20
 
 initializer
 	::= LCURLY initializerList RCURLY
@@ -566,10 +588,9 @@ statement
 	| jumpStatement
         | msvsAsmStatement
         | gccAsmStatement
-        | preprocessorDirective
 
 labeledStatement
-	::= IDENTIFIER COLON statement
+	::= IDENTIFIER COLON gccAttributeAny statement
 	| CASE constantExpression COLON statement
 	| DEFAULT COLON statement
 
@@ -618,7 +639,6 @@ event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
 	::= functionDefinition
 	| declaration
-        | preprocessorDirective
 
 compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE                   action => deref_and_bless_compoundStatement
 	                        | LCURLY blockItemList RCURLY_SCOPE     action => deref_and_bless_compoundStatement
@@ -967,13 +987,6 @@ QUESTION_MARK ~ '?'
 <Cplusplus comment interior> ~ [^\n]*
 
 #
-# Discard simple preprocessor directives (on one line - cpp output persist to get some of them)
-#
-#<Cpp style directive start> ~ '#'
-#<Cpp style directive interior single line> ~ [^\n]*
-#<Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
-
-#
 # Discard of some simple annotation directives
 #
 <MSVS annotation directive start> ~ '[source_annotation_attribute'
@@ -996,7 +1009,6 @@ ANYTHING_ELSE   ~ [.]
 
 :discard ~ <Cplusplus style comment>
 :discard ~ <C style comment>
-#:discard ~ <Cpp style directive>
 :discard ~ <MSVS annotation directive>
 :discard ~ WS_many       # whitespace separates tokens
 :discard ~ ANYTHING_ELSE # discard bad characters
@@ -1028,306 +1040,10 @@ GCC_TYPEOF           ~ '__typeof__'
 GCC_BUILTIN_OFFSETOF ~ '__builtin_offsetof'
 :lexeme ~ <GCC_BUILTIN_VA_LIST>      priority => -60
 GCC_BUILTIN_VA_LIST ~ '__builtin_va_list'
-:lexeme ~ <GCC_ALIAS>              priority => -60
-GCC_ALIAS ~ '__alias__'
-GCC_ALIAS ~ 'alias__'
-GCC_ALIAS ~ '__alias'
-GCC_ALIAS ~ 'alias'
-:lexeme ~ <GCC_ALIGNOF>              priority => -60
 GCC_ALIGNOF ~ '__alignof__'
 GCC_ALIGNOF ~ 'alignof__'
 GCC_ALIGNOF ~ '__alignof'
 GCC_ALIGNOF ~ 'alignof'
-:lexeme ~ <GCC_ALIGNED>              priority => -60
-GCC_ALIGNED ~ '__aligned__'
-GCC_ALIGNED ~ 'aligned__'
-GCC_ALIGNED ~ '__aligned'
-GCC_ALIGNED ~ 'aligned'
-:lexeme ~ <GCC_NOTHROW>              priority => -60
-GCC_NOTHROW ~ '__nothrow__'
-GCC_NOTHROW ~ 'nothrow__'
-GCC_NOTHROW ~ '__nothrow'
-GCC_NOTHROW ~ 'nothrow'
-:lexeme ~ <GCC_MAY_ALIAS>            priority => -60
-GCC_MAY_ALIAS ~ '__may_alias__'
-GCC_MAY_ALIAS ~ 'may_alias__'
-GCC_MAY_ALIAS ~ '__may_alias'
-GCC_MAY_ALIAS ~ 'may_alias'
-:lexeme ~ <GCC_TLS_MODEL>            priority => -60
-GCC_TLS_MODEL ~ '__tls_model__'
-GCC_TLS_MODEL ~ 'tls_model__'
-GCC_TLS_MODEL ~ '__tls_model'
-GCC_TLS_MODEL ~ 'tls_model'
-:lexeme ~ <GCC_TLS_MODEL_TYPE>       priority => -60
-GCC_TLS_MODEL_TYPE ~ 'global-dynamic'
-GCC_TLS_MODEL_TYPE ~ 'local-dynamic'
-GCC_TLS_MODEL_TYPE ~ 'initial-exec'
-GCC_TLS_MODEL_TYPE ~ 'local-exec'
-:lexeme ~ <GCC_LEAF>                 priority => -60
-GCC_LEAF ~ '__leaf__'
-GCC_LEAF ~ 'leaf__'
-GCC_LEAF ~ '__leaf'
-GCC_LEAF ~ 'leaf'
-:lexeme ~ <GCC_NONNULL>              priority => -60
-GCC_NONNULL ~ '__nonnull__'
-GCC_NONNULL ~ 'nonnull__'
-GCC_NONNULL ~ '__nonnull'
-GCC_NONNULL ~ 'nonnull'
-:lexeme ~ <GCC_CLEANUP>              priority => -60
-GCC_CLEANUP ~ '__cleanup__'
-GCC_CLEANUP ~ 'cleanup__'
-GCC_CLEANUP ~ '__cleanup'
-GCC_CLEANUP ~ 'cleanup'
-:lexeme ~ <GCC_NEAR>                 priority => -60
-GCC_NEAR ~ '__near__'
-GCC_NEAR ~ '__near'
-GCC_NEAR ~ 'near__'
-GCC_NEAR ~ 'near'
-:lexeme ~ <GCC_DLLEXPORT>                 priority => -60
-GCC_DLLEXPORT ~ '__dllexport__'
-GCC_DLLEXPORT ~ '__dllexport'
-GCC_DLLEXPORT ~ 'dllexport__'
-GCC_DLLEXPORT ~ 'dllexport'
-:lexeme ~ <GCC_USED>                 priority => -60
-GCC_USED ~ '__used__'
-GCC_USED ~ '__used'
-GCC_USED ~ 'used__'
-GCC_USED ~ 'used'
-:lexeme ~ <GCC_FAR>                  priority => -60
-GCC_FAR ~ '__far__'
-GCC_FAR ~ '__far'
-GCC_FAR ~ 'far__'
-GCC_FAR ~ 'far'
-:lexeme ~ <GCC_VISIBILITY>           priority => -60
-GCC_VISIBILITY ~ '__visibility__'
-GCC_VISIBILITY ~ '__visibility'
-GCC_VISIBILITY ~ 'visibility__'
-GCC_VISIBILITY ~ 'visibility'
-:lexeme ~ <GCC_WEAK>           priority => -60
-GCC_WEAK ~ '__weak__'
-GCC_WEAK ~ '__weak'
-GCC_WEAK ~ 'weak__'
-GCC_WEAK ~ 'weak'
-:lexeme ~ <GCC_ALWAYS_INLINE>           priority => -60
-GCC_ALWAYS_INLINE ~ '__always_inline__'
-GCC_ALWAYS_INLINE ~ '__always_inline'
-GCC_ALWAYS_INLINE ~ 'always_inline__'
-GCC_ALWAYS_INLINE ~ 'always_inline'
-:lexeme ~ <GCC_NOINLINE>           priority => -60
-GCC_NOINLINE ~ '__noinline__'
-GCC_NOINLINE ~ '__noinline'
-GCC_NOINLINE ~ 'noinline__'
-GCC_NOINLINE ~ 'noinline'
-:lexeme ~ <GCC_VECTOR_SIZE>           priority => -60
-GCC_VECTOR_SIZE ~ '__vector_size__'
-GCC_VECTOR_SIZE ~ '__vector_size'
-GCC_VECTOR_SIZE ~ 'vector_size__'
-GCC_VECTOR_SIZE ~ 'vector_size'
-:lexeme ~ <GCC_DEPRECATED>           priority => -60
-GCC_DEPRECATED ~ '__deprecated__'
-GCC_DEPRECATED ~ '__deprecated'
-GCC_DEPRECATED ~ 'deprecated__'
-GCC_DEPRECATED ~ 'deprecated'
-:lexeme ~ <GCC_NO_CHECK_MEMORY_USAGE>           priority => -60
-GCC_NO_CHECK_MEMORY_USAGE ~ '__no_check_memory_usage__'
-GCC_NO_CHECK_MEMORY_USAGE ~ '__no_check_memory_usage'
-GCC_NO_CHECK_MEMORY_USAGE ~ 'no_check_memory_usage__'
-GCC_NO_CHECK_MEMORY_USAGE ~ 'no_check_memory_usage'
-:lexeme ~ <GCC_REGPARM>           priority => -60
-GCC_REGPARM ~ '__regparm__'
-GCC_REGPARM ~ '__regparm'
-GCC_REGPARM ~ 'regparm__'
-GCC_REGPARM ~ 'regparm'
-:lexeme ~ <GCC_STDCALL>           priority => -60
-GCC_STDCALL ~ '__stdcall__'
-GCC_STDCALL ~ '__stdcall'
-GCC_STDCALL ~ 'stdcall__'
-GCC_STDCALL ~ 'stdcall'
-:lexeme ~ <GCC_CDECL>           priority => -60
-GCC_CDECL ~ '__cdecl__'
-GCC_CDECL ~ '__cdecl'
-GCC_CDECL ~ 'cdecl__'
-GCC_CDECL ~ 'cdecl'
-:lexeme ~ <GCC_LONG_CALL>           priority => -60
-GCC_LONG_CALL ~ '__long_call__'
-GCC_LONG_CALL ~ '__long_call'
-GCC_LONG_CALL ~ 'long_call__'
-GCC_LONG_CALL ~ 'long_call'
-:lexeme ~ <GCC_LONGCALL>           priority => -60
-GCC_LONGCALL ~ '__longcall__'
-GCC_LONGCALL ~ '__longcall'
-GCC_LONGCALL ~ 'longcall__'
-GCC_LONGCALL ~ 'longcall'
-:lexeme ~ <GCC_SHORT_CALL>           priority => -60
-GCC_SHORT_CALL ~ '__short_call__'
-GCC_SHORT_CALL ~ '__short_call'
-GCC_SHORT_CALL ~ 'short_call__'
-GCC_SHORT_CALL ~ 'short_call'
-:lexeme ~ <GCC_DLLIMPORT>           priority => -60
-GCC_DLLIMPORT ~ '__dllimport__'
-GCC_DLLIMPORT ~ '__dllimport'
-GCC_DLLIMPORT ~ 'dllimport__'
-GCC_DLLIMPORT ~ 'dllimport'
-:lexeme ~ <GCC_EXCEPTION>           priority => -60
-GCC_EXCEPTION ~ '__exception__'
-GCC_EXCEPTION ~ '__exception'
-GCC_EXCEPTION ~ 'exception__'
-GCC_EXCEPTION ~ 'exception'
-:lexeme ~ <GCC_FUNCTION_VECTOR>           priority => -60
-GCC_FUNCTION_VECTOR ~ '__function_vector__'
-GCC_FUNCTION_VECTOR ~ '__function_vector'
-GCC_FUNCTION_VECTOR ~ 'function_vector__'
-GCC_FUNCTION_VECTOR ~ 'function_vector'
-:lexeme ~ <GCC_INTERRUPT>           priority => -60
-GCC_INTERRUPT ~ '__interrupt__'
-GCC_INTERRUPT ~ '__interrupt'
-GCC_INTERRUPT ~ 'interrupt__'
-GCC_INTERRUPT ~ 'interrupt'
-:lexeme ~ <GCC_INTERRUPT_HANDLER>           priority => -60
-GCC_INTERRUPT_HANDLER ~ '__interrupt_handler__'
-GCC_INTERRUPT_HANDLER ~ '__interrupt_handler'
-GCC_INTERRUPT_HANDLER ~ 'interrupt_handler__'
-GCC_INTERRUPT_HANDLER ~ 'interrupt_handler'
-:lexeme ~ <GCC_SP_SWITCH>           priority => -60
-GCC_SP_SWITCH ~ '__sp_switch__'
-GCC_SP_SWITCH ~ '__sp_switch'
-GCC_SP_SWITCH ~ 'sp_switch__'
-GCC_SP_SWITCH ~ 'sp_switch'
-:lexeme ~ <GCC_TRAP_EXIT>           priority => -60
-GCC_TRAP_EXIT ~ '__trap_exit__'
-GCC_TRAP_EXIT ~ '__trap_exit'
-GCC_TRAP_EXIT ~ 'trap_exit__'
-GCC_TRAP_EXIT ~ 'trap_exit'
-:lexeme ~ <GCC_EIGHTBIT_DATA>           priority => -60
-GCC_EIGHTBIT_DATA ~ '__eightbit_data__'
-GCC_EIGHTBIT_DATA ~ '__eightbit_data'
-GCC_EIGHTBIT_DATA ~ 'eightbit_data__'
-GCC_EIGHTBIT_DATA ~ 'eightbit_data'
-:lexeme ~ <GCC_FORMAT>           priority => -60
-GCC_FORMAT ~ '__format__'
-GCC_FORMAT ~ '__format'
-GCC_FORMAT ~ 'format__'
-GCC_FORMAT ~ 'format'
-:lexeme ~ <GCC_FORMAT_ARG>           priority => -60
-GCC_FORMAT_ARG ~ '__format_arg__'
-GCC_FORMAT_ARG ~ '__format_arg'
-GCC_FORMAT_ARG ~ 'format_arg__'
-GCC_FORMAT_ARG ~ 'format_arg'
-:lexeme ~ <GCC_TINY_DATA>           priority => -60
-GCC_TINY_DATA ~ '__tiny_data__'
-GCC_TINY_DATA ~ '__tiny_data'
-GCC_TINY_DATA ~ 'tiny_data__'
-GCC_TINY_DATA ~ 'tiny_data'
-:lexeme ~ <GCC_SIGNAL>           priority => -60
-GCC_SIGNAL ~ '__signal__'
-GCC_SIGNAL ~ '__signal'
-GCC_SIGNAL ~ 'signal__'
-GCC_SIGNAL ~ 'signal'
-:lexeme ~ <GCC_NAKED>           priority => -60
-GCC_NAKED ~ '__naked__'
-GCC_NAKED ~ '__naked'
-GCC_NAKED ~ 'naked__'
-GCC_NAKED ~ 'naked'
-:lexeme ~ <GCC_MODEL>           priority => -60
-GCC_MODEL ~ '__model__'
-GCC_MODEL ~ '__model'
-GCC_MODEL ~ 'model__'
-GCC_MODEL ~ 'model'
-:lexeme ~ <GCC_MODEL_NAME>           priority => -60
-GCC_MODEL_NAME ~ '__small__'
-GCC_MODEL_NAME ~ '__small'
-GCC_MODEL_NAME ~ 'small__'
-GCC_MODEL_NAME ~ 'small'
-GCC_MODEL_NAME ~ '__medium__'
-GCC_MODEL_NAME ~ '__medium'
-GCC_MODEL_NAME ~ 'medium__'
-GCC_MODEL_NAME ~ 'medium'
-GCC_MODEL_NAME ~ '__large__'
-GCC_MODEL_NAME ~ '__large'
-GCC_MODEL_NAME ~ 'large__'
-GCC_MODEL_NAME ~ 'large'
-:lexeme ~ <GCC_NOCOMMON>           priority => -60
-GCC_NOCOMMON ~ '__nocommon__'
-GCC_NOCOMMON ~ '__nocommon'
-GCC_NOCOMMON ~ 'nocommon__'
-GCC_NOCOMMON ~ 'nocommon'
-:lexeme ~ <GCC_SHARED>           priority => -60
-GCC_SHARED ~ '__shared__'
-GCC_SHARED ~ '__shared'
-GCC_SHARED ~ 'shared__'
-GCC_SHARED ~ 'shared'
-:lexeme ~ <GCC_MALLOC>           priority => -60
-GCC_MALLOC ~ '__malloc__'
-GCC_MALLOC ~ '__malloc'
-GCC_MALLOC ~ 'malloc__'
-GCC_MALLOC ~ 'malloc'
-:lexeme ~ <GCC_FORMAT_ARCHETYPE>           priority => -60
-GCC_FORMAT_ARCHETYPE ~ '__printf__'
-GCC_FORMAT_ARCHETYPE ~ '__printf'
-GCC_FORMAT_ARCHETYPE ~ 'printf__'
-GCC_FORMAT_ARCHETYPE ~ 'printf'
-GCC_FORMAT_ARCHETYPE ~ '__scanf__'
-GCC_FORMAT_ARCHETYPE ~ '__scanf'
-GCC_FORMAT_ARCHETYPE ~ 'scanf__'
-GCC_FORMAT_ARCHETYPE ~ 'scanf'
-GCC_FORMAT_ARCHETYPE ~ '__strftime__'
-GCC_FORMAT_ARCHETYPE ~ '__strftime'
-GCC_FORMAT_ARCHETYPE ~ 'strftime__'
-GCC_FORMAT_ARCHETYPE ~ 'strftime'
-GCC_FORMAT_ARCHETYPE ~ '__strfmon__'
-GCC_FORMAT_ARCHETYPE ~ '__strfmon'
-GCC_FORMAT_ARCHETYPE ~ 'strfmon__'
-GCC_FORMAT_ARCHETYPE ~ 'strfmon'
-:lexeme ~ <GCC_NORETURN>           priority => -60
-GCC_NORETURN ~ '__noreturn__'
-GCC_NORETURN ~ '__noreturn'
-GCC_NORETURN ~ 'noreturn__'
-GCC_NORETURN ~ 'noreturn'
-:lexeme ~ <GCC_PURE>           priority => -60
-GCC_PURE ~ '__pure__'
-GCC_PURE ~ '__pure'
-GCC_PURE ~ 'pure__'
-GCC_PURE ~ 'pure'
-:lexeme ~ <GCC_TRANSPARENT_UNION>           priority => -60
-GCC_TRANSPARENT_UNION ~ '__transparent_union__'
-GCC_TRANSPARENT_UNION ~ '__transparent_union'
-GCC_TRANSPARENT_UNION ~ 'transparent_union__'
-GCC_TRANSPARENT_UNION ~ 'transparent_union'
-:lexeme ~ <GCC_UNUSED>           priority => -60
-GCC_UNUSED ~ '__unused__'
-GCC_UNUSED ~ '__unused'
-GCC_UNUSED ~ 'unused__'
-GCC_UNUSED ~ 'unused'
-:lexeme ~ <GCC_PACKED>           priority => -60
-GCC_PACKED ~ '__packed__'
-GCC_PACKED ~ '__packed'
-GCC_PACKED ~ 'packed__'
-GCC_PACKED ~ 'packed'
-:lexeme ~ <GCC_NO_INSTRUMENT_FUNCTION>           priority => -60
-GCC_NO_INSTRUMENT_FUNCTION ~ '__no_instrument_function__'
-GCC_NO_INSTRUMENT_FUNCTION ~ '__no_instrument_function'
-GCC_NO_INSTRUMENT_FUNCTION ~ 'no_instrument_function__'
-GCC_NO_INSTRUMENT_FUNCTION ~ 'no_instrument_function'
-:lexeme ~ <GCC_SECTION>           priority => -60
-GCC_SECTION ~ '__section__'
-GCC_SECTION ~ '__section'
-GCC_SECTION ~ 'section__'
-GCC_SECTION ~ 'section'
-:lexeme ~ <GCC_CONSTRUCTOR>           priority => -60
-GCC_CONSTRUCTOR ~ '__constructor__'
-GCC_CONSTRUCTOR ~ '__constructor'
-GCC_CONSTRUCTOR ~ 'constructor__'
-GCC_CONSTRUCTOR ~ 'constructor'
-:lexeme ~ <GCC_DESTRUCTOR>           priority => -60
-GCC_DESTRUCTOR ~ '__destructor__'
-GCC_DESTRUCTOR ~ '__destructor'
-GCC_DESTRUCTOR ~ 'destructor__'
-GCC_DESTRUCTOR ~ 'destructor'
-:lexeme ~ <GCC_VISIBILITY_TYPE>      priority => -60
-GCC_VISIBILITY_TYPE ~ 'default'
-GCC_VISIBILITY_TYPE ~ 'hidden'
-GCC_VISIBILITY_TYPE ~ 'protected'
-GCC_VISIBILITY_TYPE ~ 'internal'
 
 #
 # MSVS C LEXEMES
@@ -1630,104 +1346,33 @@ gccBuiltinType ::= gccTypeof
 gccDeclarationSpecifier ::= gccAttribute
                           | gccExtensionSpecifier
 
-gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN gccAttributeParameterList RPAREN RPAREN
+gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN RPAREN RPAREN
+               | GCC_ATTRIBUTE LPAREN LPAREN gccAttributeParameterList RPAREN RPAREN
+
+# gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN gccAttributeExtensionList RPAREN RPAREN
 
 gccAttributeParameterList ::= gccAttributeParameter
                             | gccAttributeParameterList COMMA gccAttributeParameter
 
+# gccAttributeExtensionList ::= gccAttributeExtension
+#                             | gccAttributeExtensionList COMMA gccAttributeExtension
+
 gccEmptyRule ::=
 
-gccAttributeParameter ::= gccAnyWord
-                        | gccAnyWord LPAREN RPAREN
-                        | gccAnyWord LPAREN expression RPAREN
-                        | gccEmptyRule
-                        | gccAttributeExtension
+gccAttributeParameter ::= gccEmptyRule
+                        | gccAnyWord
+                        | gccAnyWord LPAREN gccAttributeInnerParameter RPAREN
+
+gccAttributeInnerParameter ::= IDENTIFIER
+                             | IDENTIFIER COMMA expression
+                             | expression
+                             | gccEmptyRule
 
 gccAnyWord ::= IDENTIFIER
              | storageClassSpecifier
              | typeSpecifier
              | typeQualifier
              | functionSpecifier
-
-gccExceptionFunction ::= STRING_LITERAL | IDENTIFIER
-
-gccAttributeExtension ::=
-        GCC_ALIAS LPAREN string RPAREN
-        GCC_ALIGNED
-        GCC_ALIGNED LPAREN gccTaggedAttributeNumber RPAREN
-        GCC_ALIGNED LPAREN gccAlignofExpression RPAREN
-        GCC_ALWAYS_INLINE
-        GCC_CDECL
-        GCC_CLEANUP LPAREN gccTaggedAttributeId RPAREN
-        CONST
-        GCC_CONSTRUCTOR
-        GCC_DEPRECATED
-        GCC_DESTRUCTOR
-        GCC_DLLEXPORT
-        GCC_DLLIMPORT
-        GCC_EIGHTBIT_DATA
-        GCC_EXCEPTION LPAREN gccExceptionFunction gccExceptionArgList RPAREN
-        GCC_EXCEPTION LPAREN gccExceptionFunction RPAREN
-        GCC_FAR
-        GCC_FUNCTION_VECTOR
-        GCC_FORMAT LPAREN GCC_FORMAT_ARCHETYPE COMMA gccTaggedAttributeNumber COMMA gccTaggedAttributeNumber RPAREN
-        GCC_FORMAT_ARG LPAREN gccTaggedAttributeNumber RPAREN
-        GCC_INTERRUPT
-        GCC_INTERRUPT LPAREN string RPAREN
-        GCC_INTERRUPT_HANDLER
-        GCC_INTERRUPT_HANDLER LPAREN string RPAREN
-        GCC_LONGCALL
-        GCC_LONG_CALL
-        GCC_MALLOC
-        GCC_MAY_ALIAS
-        GCC_MODEL LPAREN gccTaggedAttributeId RPAREN
-        GCC_MODEL LPAREN GCC_MODEL_NAME RPAREN
-        GCC_NAKED
-        GCC_NEAR
-        GCC_NO_CHECK_MEMORY_USAGE
-        GCC_NO_INSTRUMENT_FUNCTION
-        GCC_NOCOMMON
-        GCC_NOINLINE
-        GCC_NONNULL
-        GCC_NONNULL LPAREN gccTaggedAttributeNumberList RPAREN
-        GCC_NORETURN
-        GCC_LEAF
-        GCC_NOTHROW
-        GCC_PACKED
-        GCC_PURE
-        GCC_REGPARM LPAREN gccTaggedAttributeNumber RPAREN
-        GCC_SECTION LPAREN string RPAREN
-        GCC_SHARED
-        GCC_SHORT_CALL
-        GCC_SIGNAL LPAREN string RPAREN
-        GCC_SP_SWITCH LPAREN string RPAREN
-        GCC_STDCALL
-        GCC_TINY_DATA
-        GCC_TLS_MODEL LPAREN GCC_TLS_MODEL_TYPE RPAREN
-        GCC_TRANSPARENT_UNION
-        GCC_TRAP_EXIT LPAREN gccTaggedAttributeNumber RPAREN
-        GCC_USED
-        GCC_UNUSED
-        GCC_VECTOR_SIZE LPAREN gccTaggedAttributeNumber RPAREN
-        GCC_VISIBILITY LPAREN GCC_VISIBILITY_TYPE RPAREN
-        GCC_WEAK
-
-#gccAttributeExtension ::= GCC_NOTHROW
-#                        | GCC_LEAF
-#                        | GCC_NONNULL LPAREN gccTaggedAttributeNumberList RPAREN
-
-gccExceptionArgUnit ::= STRING_LITERAL
-                      | IDENTIFIER
-
-gccExceptionArgList ::= gccExceptionArgUnit
-                      | gccExceptionArgList COMMA gccExceptionArgUnit
-
-gccTaggedAttributeNumber ::= I_CONSTANT
-
-gccTaggedAttributeId ::= IDENTIFIER
-
-gccTaggedAttributeNumberList ::= gccTaggedAttributeNumber
-                               | gccTaggedAttributeNumberList COMMA gccTaggedAttributeNumber
 
 gccExtensionSpecifier ::= GCC_EXTENSION
 
@@ -2019,31 +1664,10 @@ msvsAsmByteRegister ::= MSVS_ASM_AL | MSVS_ASM_AH | MSVS_ASM_BL | MSVS_ASM_BH | 
 msvsAsmConstant ::= I_CONSTANT
 
 #
-# Preprocessor ultra minimal grammar: we keep only what is left AFTER preprocessing, indeed
+# Discard simple preprocessor directives (on one line - cpp output persist to get some of them)
+# Too bad if AST.pm did not catched it after a pause lexeme
 #
-PREPROCESSOR_DASH ~ '#'
-PREPROCESSOR_LINE ~ 'line'
-PREPROCESSOR_PRAGMA ~ 'pragma'
-PREPROCESSOR_DIGITS ~ [0-9]+
-PREPROCESSOR_DQUOTE ~ '"'
-PREPROCESSOR_NOTDQUOTE ~ [^"]*
-PREPROCESSOR_WS ~ [ \t]
-PREPROCESSOR_WS_any ~ PREPROCESSOR_WS*
-PREPROCESSOR_WS_many ~ PREPROCESSOR_WS+
-PREPROCESSOR_NOTNEWLINE ~ [^\n]
-PREPROCESSOR_NOTNEWLINE_any ~ PREPROCESSOR_NOTNEWLINE*
-PREPROCESSOR_FILENAME ~ PREPROCESSOR_DQUOTE PREPROCESSOR_NOTDQUOTE PREPROCESSOR_DQUOTE
-
-:lexeme ~ PREPROCESSOR_LINE_DIRECTIVE
-PREPROCESSOR_LINE_DIRECTIVE ~ PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_LINE PREPROCESSOR_WS_many PREPROCESSOR_DIGITS PREPROCESSOR_WS_many PREPROCESSOR_FILENAME PREPROCESSOR_NOTNEWLINE_any
-                            | PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_DIGITS PREPROCESSOR_WS_many PREPROCESSOR_FILENAME PREPROCESSOR_NOTNEWLINE_any
-
-:lexeme ~ PREPROCESSOR_PRAGMA_DIRECTIVE
-PREPROCESSOR_PRAGMA_DIRECTIVE ~ PREPROCESSOR_DASH PREPROCESSOR_WS_any PREPROCESSOR_PRAGMA PREPROCESSOR_NOTNEWLINE_any
-
-preprocessorLineDirective ::= PREPROCESSOR_LINE_DIRECTIVE
-
-preprocessorPragmaDirective ::= PREPROCESSOR_PRAGMA_DIRECTIVE
-
-preprocessorDirective ::= preprocessorLineDirective
-                        | preprocessorPragmaDirective
+<Cpp style directive start> ~ '#'
+<Cpp style directive interior single line> ~ [^\n]*
+<Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
+:discard ~ <Cpp style directive>
