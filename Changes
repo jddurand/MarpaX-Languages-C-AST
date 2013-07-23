@@ -1,7 +1,18 @@
 Changelog for MarpaX-Languages-C-AST
 
-v0.12 2013-07-21T09:40:11
+v0.13 2013-07-23T22:55:02
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Revival of 'IDENTIFIER COLON initializer' old style coding, use rank to
+   bypass gccAttributeInnerParameter generating multiple parse values
+ - Another way to handle preprocessing
+ - Say how many parse trees were found
+ - Tiny protection
+ - show context on error only if >= debug
+ - G1 distinction between #line and #pragma directives
+
+v0.12 2013-07-21T09:41:16
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.12
  - Force scanning of IDENTIFIER if --check reservedNames and no --lexeme
    IDENTIFIER
 
