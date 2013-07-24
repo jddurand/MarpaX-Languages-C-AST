@@ -138,7 +138,7 @@ if ($progress) {
 # Parse C
 # -------
 map {++$lexemeCallbackHash{lexeme}->{$_}} @lexeme;
-my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ], logInfo => $log->is_info());
+my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ], logInfo => \@lexeme);
 my $bless = $cAstObject->parse(\$preprocessedOutput);
 if ($progress) {
     if ($lexemeCallbackHash{nbLines} > $lexemeCallbackHash{next_progress}) {
