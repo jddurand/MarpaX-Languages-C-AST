@@ -1,7 +1,17 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.14 2013-07-24T18:59:42
+0.15 2013-07-24T19:06:49
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Lasy commit just to have git cached connection for dzil release
+ - v0.14
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - Limit calls to last_completed
+    - Fix format pull request #2
+    - Ambiguity because of gcc
+    - Optimization bis
+    - Doc update
+    - Optimisations
  - Limit calls to last_completed
  - Fix format pull request #2
  - Ambiguity because of gcc
