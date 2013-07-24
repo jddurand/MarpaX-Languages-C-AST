@@ -1,7 +1,17 @@
 Changelog for MarpaX-Languages-C-AST
 
-v0.13 2013-07-23T22:55:02
+0.14 2013-07-24T18:59:42
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Limit calls to last_completed
+ - Fix format pull request #2
+ - Ambiguity because of gcc
+ - Optimization bis
+ - Doc update
+ - Optimisations
+
+v0.13 2013-07-23T22:56:11
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.13
  - Revival of 'IDENTIFIER COLON initializer' old style coding, use rank to
    bypass gccAttributeInnerParameter generating multiple parse values
  - Another way to handle preprocessing
