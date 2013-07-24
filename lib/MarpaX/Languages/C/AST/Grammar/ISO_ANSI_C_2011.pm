@@ -3,6 +3,7 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions;
+use Carp qw/croak/;
 
 # ABSTRACT: ISO ANSI C 2011 grammar written in Marpa BNF
 
@@ -26,30 +27,56 @@ This modules returns describes the ISO ANSI C 2011 C grammar written in Marpa BN
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new()
+=head2 new([$pausep])
 
-Instance a new object. Takes no argument.
+Instance a new object. Takes a reference to a HASH for lexemes for which a pause after is requested.
 
 =cut
 
+our %DEFAULT_PAUSE = (
+    TYPEDEF_NAME         => 'before',
+    ENUMERATION_CONSTANT => 'before',
+    IDENTIFIER           => 'before',
+    SEMICOLON            => 'after',
+    LCURLY_SCOPE         => 'after',
+    RCURLY_SCOPE         => 'after',
+    COMMA                => 'after',
+    EQUAL                => 'after',
+    LPAREN_SCOPE         => 'after',
+    RPAREN_SCOPE         => 'after',
+);
+
 sub new {
-  my ($class) = @_;
+  my ($class, $pausep) = @_;
 
   my $self  = {
     _grammar_option => {action_object  => sprintf('%s::%s', __PACKAGE__, 'Actions')},
     _recce_option => {ranking_method => 'high_rule_only'},
   };
   #
-  # Rework the grammar to have a systematic pause on EVERY lexeme.
-  # This is needed for scopes.
-  # And this will allow to do a tracing for the c2ast command-line -;
+  # Rework the grammar to have the pauses:
+  # Those in %DEFAULT_PAUSE cannot be altered.
+  # The other lexemes given in argument will get a pause => after eventually
   #
+  my %pause = ();
+  if (defined($pausep)) {
+      if (ref($pausep) ne 'HASH') {
+	  croak 'pausep must be a reference to HASH';
+      }
+      map {$pause{$_} = 'after'} keys %{$pausep};
+  }
+  map {$pause{$_} = $DEFAULT_PAUSE{$_}} keys %DEFAULT_PAUSE;
+
   $self->{_content} = '';
   while (defined($_ = <DATA>)) {
-      if (/^\s*:lexeme\b/ && ! /\bpause\b/) {
-	  substr($_, -1, 1) = " pause => after\n";
+      my $line = $_;
+      if ($line =~ /^\s*:lexeme\s*~\s*<(\w+)>/) {
+	  my $lexeme = substr($line, $-[1], $+[1] - $-[1]);
+	  if (exists($pause{$lexeme}) && ! ($line =~ /\bpause\b/)) {
+	      substr($line, -1, 1) = " pause => $pause{$lexeme}\n";
+	  }
       }
-      $self->{_content} .= $_;
+      $self->{_content} .= $line;
   }
 
   bless($self, $class);
@@ -734,7 +761,7 @@ BREAK         ~ 'break'
 CASE          ~ 'case'
 :lexeme ~ <CHAR>          priority => -4
 CHAR          ~ 'char'
-:lexeme ~ <CONST>         priority => -5 pause => after
+:lexeme ~ <CONST>         priority => -5
 CONST         ~ 'const'
 CONST         ~ '__const'
 CONST         ~ 'const__'
@@ -841,9 +868,9 @@ FUNC_NAME     ~ '__func__'
 #
 ## DETERMINED AT RUN TIME
 #
-:lexeme ~ <TYPEDEF_NAME>         priority => -100 pause => before
-:lexeme ~ <ENUMERATION_CONSTANT> priority => -100 pause => before
-:lexeme ~ <IDENTIFIER>           priority => -100 pause => before
+:lexeme ~ <TYPEDEF_NAME>         priority => -100
+:lexeme ~ <ENUMERATION_CONSTANT> priority => -100
+:lexeme ~ <IDENTIFIER>           priority => -100
 TYPEDEF_NAME         ~ L A_any
 ENUMERATION_CONSTANT ~ L A_any
 IDENTIFIER           ~ L A_any

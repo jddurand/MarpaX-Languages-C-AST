@@ -30,20 +30,21 @@ ISO-ANSI-C-2011. The ISO grammar of ANSI C 2011, as of L<http://www.quut.com/c/A
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new()
+=head2 new($grammarName, ...)
 
-Instance a new object. Takes the name of the grammar as argument.
+Instance a new object. Takes the name of the grammar as argument. Remaining arguments are passed to the sub grammar method.
 
 =cut
 
 sub new {
-  my ($class, $grammarName) = @_;
+  my $class = shift;
+  my $grammarName = shift;
 
   my $self = {};
   if (! defined($grammarName)) {
     croak 'Usage: new($grammar_Name)';
   } elsif ($grammarName eq 'ISO-ANSI-C-2011') {
-    $self->{_grammar} = MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011->new();
+    $self->{_grammar} = MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011->new(@_);
   } else {
     croak "Unsupported grammar name $grammarName";
   }
