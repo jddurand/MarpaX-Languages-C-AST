@@ -510,9 +510,9 @@ event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
 parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator action => deref
 
 parameterDeclaration
-	::= parameterDeclarationCheck
-	| declarationSpecifiers abstractDeclarator
-	| declarationSpecifiers
+	::= parameterDeclarationCheck               rank =>  0
+	| declarationSpecifiers abstractDeclarator  rank => -1
+	| declarationSpecifiers                     rank => -2
 
 identifierList
 	::= IDENTIFIER
