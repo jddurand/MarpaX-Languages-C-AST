@@ -25,6 +25,24 @@ autoflush STDOUT 1;
 
 # PODNAME: c2ast.pl
 
+=head1 DESCRIPTION
+
+This script will use Marpa::R2 to analyse the file given in argument.
+
+=over
+
+=item A first phase will always call the preprocessor, so you need to have one on your machine. Default is 'cpp', and be overwriten on the command-line.
+
+=item Then the output of the preprocessor goes through a lexing phase, using an 2011 ISO ANSI C compliant grammar.
+
+=item Finally, if you ask via the command-line to have a dump of the parse tree value(s), or to perform some checks on the your code, the parse tree is evaluated.
+
+=back
+
+Please say --help on the command-line to have the full list of options, and examples.
+
+=cut
+
 my $help = 0;
 my @cpp = ();
 my $cppfile = '';
@@ -351,7 +369,9 @@ where options can be:
                      This option must be repeated for every lexeme of interest.
                      The output will go to STDOUT.
 
---progress           Progress bar with ETA information.
+--progress           Progress bar with ETA information. The "name" associated with the progress bar will the last
+                     of the arguments unknown to c2ast. So it is quite strongly suggested to always end your
+                     command-line with the file you want to analyse.
 
 --check <checkName>  Perform some hardcoded checks on the code. Supported values for checkName are:
   reservedNames      Check IDENTIFIER lexemes v.s. Gnu recommended list of Reserved Names [1].
@@ -389,7 +409,7 @@ $0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir       
 
 Less typical usage:
 
-$0 -I libmarpa_build libmarpa_build/marpa.c --cppfile ./marpa.w  --progress --check reservedNames
+$0 -I libmarpa_build --cpp gcc --cpp -E --cppfile ./marpa.w  --progress --check reservedNames libmarpa_build/marpa.c
 
 [1] http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html
 USAGE
