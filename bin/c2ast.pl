@@ -39,7 +39,7 @@ This script will use Marpa::R2 to analyse the file given in argument.
 
 =back
 
-Please say --help on the command-line to have the full list of options, and examples.
+Say --help on the command-line to have the full list of options, and examples.
 
 =cut
 
