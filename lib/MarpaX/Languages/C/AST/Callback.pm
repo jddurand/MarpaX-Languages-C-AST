@@ -190,8 +190,10 @@ sub _inventory_condition_tofire {
   my $nbConditionOK = 0;
   my $nbNewTopics = 0;
   my $ncb = $self->ncb;
+  my $prioritized_cbp = $self->prioritized_cb;
+  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
   foreach (my $i = 0; $i < $ncb; $i++) {
-    my $cb = $self->prioritized_cb($i);
+    my $cb = $prioritized_cbp->[$i];
     my $option = $cb->option;
     my $conditionMode = $option->conditionMode;
 
@@ -222,7 +224,7 @@ sub _inventory_condition_tofire {
       }
     }
     if ($condition) {
-      $self->prioritized_cb_tofire($i, 1);
+      $prioritized_cb_tofirep->[$i] = 1;
       #
       # Initialize the associated topics if needed
       #
@@ -241,7 +243,7 @@ sub _inventory_condition_tofire {
       ++$nbConditionOK;
     } else {
       if (@condition) {
-        $self->prioritized_cb_tofire($i, -1);
+        $prioritized_cb_tofirep->[$i] = -1;
       }
     }
   }
@@ -261,25 +263,25 @@ sub _fire {
   # This mean that nay on-the-flu registration/unregistration will happend at NEXT round.
   #
   my $ncb = $self->ncb;
-  my @prioritized_cb_tofire = @{$self->prioritized_cb_tofire};
-  my @prioritized_cb_fired = @{$self->prioritized_cb_fired};
-  my @prioritized_cb = @{$self->prioritized_cb};
+  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
+  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
+  my $prioritized_cbp = $self->prioritized_cb;
   foreach (my $i = 0; $i < $ncb; $i++) {
-    if ($prioritized_cb_tofire[$i] <= 0) {
+    if ($prioritized_cb_tofirep->[$i] <= 0) {
       # -1: Condition KO
       # -2: Condition NA and Subscription NA
       # -3: Subscription KO
       next;
     }
-    my $cb = $prioritized_cb[$i];
-    if ($prioritized_cb_fired[$i]) {
+    my $cb = $prioritized_cbp->[$i];
+    if ($prioritized_cb_firedp->[$i]) {
       # already fired
       next;
     }
     #
     # Fire the callback (if there is a method)
     #
-    $self->prioritized_cb_fired($i, 1);
+    $prioritized_cb_firedp->[$i] = 1;
     if (defined($cb->method)) {
       my @rc;
       if (ref($cb->method) eq 'ARRAY') {
@@ -372,15 +374,19 @@ sub _inventory_initialize_topic {
 
 sub _inventory_initialize_tofire {
   my $self = shift;
-  foreach (my $i = 0; $i < $self->ncb; $i++) {
-      $self->prioritized_cb_tofire($i, 0);
+  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
+  my $ncb = $self->ncb;
+  foreach (my $i = 0; $i < $ncb; $i++) {
+      $prioritized_cb_tofirep->[$i] = 0;
   }
 }
 
 sub _inventory_initialize_fired {
   my $self = shift;
-  foreach (my $i = 0; $i < $self->ncb; $i++) {
-      $self->prioritized_cb_fired($i, 0);
+  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
+  my $ncb = $self->ncb;
+  foreach (my $i = 0; $i < $ncb; $i++) {
+      $prioritized_cb_firedp->[$i] = 0;
   }
 }
 
@@ -417,15 +423,17 @@ sub _inventory_subscription_tofire {
   my $nbNewTopics = 0;
   my $nbSubscriptionOK = 0;
   my $ncb = $self->ncb;
+  my $prioritized_cbp = $self->prioritized_cb;
+  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
   foreach (my $i = 0; $i < $ncb; $i++) {
-    my $cb = $self->prioritized_cb($i);
+    my $cb = $prioritized_cbp->[$i];
     my $option = $cb->option;
     #
     # Here the values can be:
     # -1: condition KO
     #  0: no condition applied
     #  1: condition OK
-    next if ($self->prioritized_cb_tofire($i) < 0);
+    next if ($prioritized_cb_tofirep->[$i] < 0);
 
     my %subscribed = ();
     my $nbSubscription = 0;
@@ -448,11 +456,11 @@ sub _inventory_subscription_tofire {
       }
     }
 
-    if ($self->prioritized_cb_tofire($i) == 0 && ! keys %subscribed) {
+    if ($prioritized_cb_tofirep->[$i] == 0 && ! %subscribed) {
       #
       # no condition was setted and no subscription is raised
       #
-      $self->prioritized_cb_tofire($i, -2);
+      $prioritized_cb_tofirep->[$i] = -2;
       next;
     }
 
@@ -460,15 +468,15 @@ sub _inventory_subscription_tofire {
       #
       # There are active subscription not raised, and subscriptionMode is 'required'
       #
-      $self->prioritized_cb_tofire($i, -3);
+      $prioritized_cb_tofirep->[$i] = -3;
       next;
     }
 
-    if ($self->prioritized_cb_tofire($i) == 0) {
+    if ($prioritized_cb_tofirep->[$i] == 0) {
       #
       # There must have been topic subscription being raised
       #
-      $self->prioritized_cb_tofire($i, 1);
+      $prioritized_cb_tofirep->[$i] = 1;
       ++$nbSubscriptionOK;
     }
 
