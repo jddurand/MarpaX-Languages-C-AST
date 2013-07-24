@@ -234,6 +234,14 @@ sub new {
 		    )
 	);
 
+    #
+    # We are not going to register/unregister/unsubscribe/change topics etc... we can say to Callback that it can
+    # can cache everything that is intensive. Take care, any configuration data to Callback becomes then static.
+    #
+    foreach ($self, @callbacks) {
+      $_->cache();
+    }
+
     return $self;
 }
 # ----------------------------------------------------------------------------------------
