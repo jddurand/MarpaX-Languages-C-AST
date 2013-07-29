@@ -192,7 +192,6 @@ sub exec {
 
 sub _inventory_condition_tofire {
   my $self = shift;
-  my $nbConditionOK = 0;
   my $nbNewTopics = 0;
   my $ncb = $self->ncb;
   my $prioritized_cbp = $self->prioritized_cb;
@@ -210,7 +209,7 @@ sub _inventory_condition_tofire {
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
     my $option = $cache ? $cacheOptionp->[$i] : $cb->option;
-    my $conditionMode = $cache ? $cacheOptionConditionModep->[$i] : $option->conditionMode;
+    my $conditionMode = (($cache ? $cacheOptionConditionModep->[$i] : $option->conditionMode) eq 'and') ? 1 : 0;
 
     my @condition = ();
     my $description = $cache ? $cacheCbDescriptionp->[$i] : $cb->description;
@@ -219,6 +218,9 @@ sub _inventory_condition_tofire {
 	if (ref($coderef) eq 'CODE') {
 	    push(@condition, &$coderef($cb, $self, $selfArguments, @arguments) ? 1 :0);
 	} elsif (defined($description)) {
+	    #
+	    # Per def condition is the string 'auto'
+	    #
 	    push(@condition, (grep {$_ eq $description} @{$selfArguments}) ? 1 :0);
 	}
     }
@@ -229,11 +231,17 @@ sub _inventory_condition_tofire {
     my $condition = 0;
     if (@condition) {
       $condition = shift(@condition);
-      if ($conditionMode eq 'and') {
+      if ($conditionMode) {
+	  #
+	  # Per def, this is 'and'
+	  #
         foreach (@condition) {
           $condition &&= $_;
         }
-      } elsif ($conditionMode eq 'or') {
+      } else {
+	  #
+	  # Per def, this is 'or'
+	  #
         foreach (@condition) {
           $condition ||= $_;
         }
@@ -256,7 +264,6 @@ sub _inventory_condition_tofire {
           }
         }
       }
-      ++$nbConditionOK;
     } else {
       if (@condition) {
         $prioritized_cb_tofirep->[$i] = -1;
@@ -362,6 +369,9 @@ sub _fire {
 	if (ref($method) eq 'CODE') {
 	    @rc = &$method($cb, $self, $selfArguments, @arguments);
 	} else {
+	    #
+	    # Per def method is the string 'auto'
+	    #
 	    @rc = $self->topic_fired_data($cb->description) || [];
 	}
       }

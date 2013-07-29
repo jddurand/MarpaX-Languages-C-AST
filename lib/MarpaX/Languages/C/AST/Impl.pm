@@ -84,9 +84,7 @@ Returns Marpa's recognizer's value.
 =cut
 
 sub value {
-  my $self = shift;
-
-  return $self->{recce}->value(@_);
+  return $_[0]->{recce}->value(@_[1..$#_]);
 }
 
 =head2 read($self, $inputp)
@@ -96,9 +94,7 @@ Returns Marpa's recognizer's read. Argument is a reference to input.
 =cut
 
 sub read {
-  my $self = shift;
-
-  return $self->{recce}->read(@_);
+  return $_[0]->{recce}->read(@_[1..$#_]);
 }
 
 =head2 resume($self)
@@ -108,9 +104,7 @@ Returns Marpa's recognizer's resume.
 =cut
 
 sub resume {
-  my $self = shift;
-
-  return $self->{recce}->resume(@_);
+  return $_[0]->{recce}->resume(@_[1..$#_]);
 }
 
 =head2 last_completed($self, $symbol)
@@ -120,9 +114,7 @@ Returns Marpa's recognizer's last_completed for symbol $symbol.
 =cut
 
 sub last_completed {
-  my $self = shift;
-
-  return $self->{recce}->last_completed(@_);
+  return $_[0]->{recce}->last_completed(@_[1..$#_]);
 }
 
 =head2 last_completed_range($self, $symbol)
@@ -132,9 +124,7 @@ Returns Marpa's recognizer's last_completed_range for symbol $symbol.
 =cut
 
 sub last_completed_range {
-  my $self = shift;
-
-  return $self->{recce}->last_completed_range(@_);
+  return $_[0]->{recce}->last_completed_range(@_[1..$#_]);
 }
 
 =head2 range_to_string($self, $start, $end)
@@ -144,9 +134,7 @@ Returns Marpa's recognizer's range_to_string for a start value of $start and an 
 =cut
 
 sub range_to_string {
-  my $self = shift;
-
-  return $self->{recce}->range_to_string(@_);
+  return $_[0]->{recce}->range_to_string(@_[1..$#_]);
 }
 
 =head2 event($self, $eventNumber)
@@ -156,9 +144,7 @@ Returns Marpa's recognizer's event for event number $eventNumber.
 =cut
 
 sub event {
-  my $self = shift;
-
-  return $self->{recce}->event(@_);
+  return $_[0]->{recce}->event(@_[1..$#_]);
 }
 
 =head2 pause_lexeme($self)
@@ -168,9 +154,7 @@ Returns Marpa's recognizer's pause_lexeme.
 =cut
 
 sub pause_lexeme {
-  my $self = shift;
-
-  return $self->{recce}->pause_lexeme(@_);
+  return $_[0]->{recce}->pause_lexeme(@_[1..$#_]);
 }
 
 =head2 pause_span($self)
@@ -180,9 +164,7 @@ Returns Marpa's recognizer's pause_span.
 =cut
 
 sub pause_span {
-  my $self = shift;
-
-  return $self->{recce}->pause_span(@_);
+  return $_[0]->{recce}->pause_span(@_[1..$#_]);
 }
 
 =head2 literal($self, $start, $length)
@@ -192,9 +174,7 @@ Returns Marpa's recognizer's literal.
 =cut
 
 sub literal {
-  my $self = shift;
-
-  return $self->{recce}->literal(@_);
+  return $_[0]->{recce}->literal(@_[1..$#_]);
 }
 
 =head2 line_column($self, $start)
@@ -204,9 +184,7 @@ Returns Marpa's recognizer's line_column at eventual $start location in the inpu
 =cut
 
 sub line_column {
-  my $self = shift;
-
-  return $self->{recce}->line_column(@_);
+  return $_[0]->{recce}->line_column(@_[1..$#_]);
 }
 
 =head2 substring($self, $start, $length)
@@ -216,9 +194,7 @@ Returns Marpa's recognizer's substring corresponding to g1 span ($start, $length
 =cut
 
 sub substring {
-  my $self = shift;
-
-  return $self->{recce}->substring(@_);
+  return $_[0]->{recce}->substring(@_[1..$#_]);
 }
 
 =head2 lexeme_read($self, $lexeme, $start, $length, $value)
@@ -228,9 +204,7 @@ Returns Marpa's recognizer's lexeme_read for lexeme $lexeme, at start position $
 =cut
 
 sub lexeme_read {
-  my $self = shift;
-
-  return $self->{recce}->lexeme_read(@_);
+  return $_[0]->{recce}->lexeme_read(@_[1..$#_]);
 }
 
 =head2 current_g1_location($self)
@@ -240,9 +214,7 @@ Returns Marpa's recognizer's current_g1_location.
 =cut
 
 sub current_g1_location {
-  my $self = shift;
-
-  return $self->{recce}->current_g1_location(@_);
+  return $_[0]->{recce}->current_g1_location(@_[1..$#_]);
 }
 
 =head2 g1_location_to_span($self, $g1)
@@ -252,9 +224,7 @@ Returns Marpa's recognizer's g1_location_to_span for a g1 location $g1.
 =cut
 
 sub g1_location_to_span {
-  my $self = shift;
-
-  return $self->{recce}->g1_location_to_span(@_);
+  return $_[0]->{recce}->g1_location_to_span(@_[1..$#_]);
 }
 
 =head2 terminals_expected($self)
@@ -264,9 +234,7 @@ Returns Marpa's recognizer's terminals_expected.
 =cut
 
 sub terminals_expected {
-  my $self = shift;
-
-  return $self->{recce}->terminals_expected(@_);
+  return $_[0]->{recce}->terminals_expected(@_[1..$#_]);
 }
 
 =head2 show_progress($self)
@@ -276,9 +244,7 @@ Returns Marpa's recognizer's show_progress.
 =cut
 
 sub show_progress {
-  my $self = shift;
-
-  return $self->{recce}->show_progress(@_);
+  return $_[0]->{recce}->show_progress(@_[1..$#_]);
 }
 
 1;
