@@ -27,4 +27,4 @@ open(FILE, '<', $file) || die "Cannot open $file, $!\n";
 my $cSourceCode = do { local $/; <FILE> };
 close(FILE) || warn "Cannot close $file, $!\n";
 
-MarpaX::Languages::C::AST->new(logInfo => 1)->parse(\$cSourceCode)->value();
+MarpaX::Languages::C::AST->new(logInfo => ['IDENTIFIER'])->parse(\$cSourceCode)->value();
