@@ -53,6 +53,7 @@ my $dump = 0;
 my $dumpfile = '';
 my $allowAmbiguity = 0;
 my $loglevel = 'WARN';
+my $logstderr = 0;
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
@@ -65,7 +66,8 @@ GetOptions ('help!' => \$help,
             'dump!' => \$dump,
             'dumpfile=s' => \$dumpfile,
             'allowAmbiguity!' => \$allowAmbiguity,
-            'loglevel=s' => \$loglevel);
+            'loglevel=s' => \$loglevel,
+            'logstderr!' => \$logstderr);
 
 # ----
 # Init 
@@ -73,7 +75,7 @@ GetOptions ('help!' => \$help,
 my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = $loglevel, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
-log4perl.appender.Screen.stderr  = 0
+log4perl.appender.Screen.stderr  = $logstderr
 log4perl.appender.Screen.layout  = PatternLayout
 log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
 DEFAULT_LOG4PERL_CONF
@@ -398,6 +400,8 @@ where options can be:
                      --loglevel DEBUG
                      then:
                      --loglevel TRACE
+
+--logstderr          Logs to stderr or not. Default is $logstderr.
 
 Examples:
 
