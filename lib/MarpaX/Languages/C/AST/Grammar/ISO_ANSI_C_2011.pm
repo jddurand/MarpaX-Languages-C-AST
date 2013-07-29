@@ -163,8 +163,10 @@ enumerationConstantIdentifier  # before it has been defined as such
 enumerationConstant            # before it has been defined as such
 	::= enumerationConstantIdentifier
 
+stringLiteral ::= STRING_LITERAL_UNIT+
+
 string
-	::= STRING_LITERAL
+	::= stringLiteral
 	| FUNC_NAME
 
 genericSelection
@@ -605,7 +607,7 @@ designator
         | LBRACKET constantExpression ELLIPSIS constantExpression RBRACKET # GCC Extension
 
 staticAssertDeclaration
-	::= STATIC_ASSERT LPAREN constantExpression COMMA STRING_LITERAL RPAREN SEMICOLON
+	::= STATIC_ASSERT LPAREN constantExpression COMMA stringLiteral RPAREN SEMICOLON
 
 statement
 	::= labeledStatement
@@ -889,9 +891,11 @@ F_CONSTANT ~ D_many E FS_maybe
            | HP H_any '.' H_many P FS_maybe
            | HP H_many '.' P FS_maybe
 
-:lexeme ~ <STRING_LITERAL>         priority => -103
-STRING_LITERAL ~ STRING_LITERAL_UNIT+
-
+:lexeme ~ <STRING_LITERAL_UNIT>    priority => -103
+STRING_LITERAL_INSIDE ~ [^"\\\n]
+STRING_LITERAL_INSIDE ~ ES
+STRING_LITERAL_INSIDE_any ~ STRING_LITERAL_INSIDE*
+STRING_LITERAL_UNIT ~ SP_maybe '"' STRING_LITERAL_INSIDE_any '"' WS_any
 :lexeme ~ <ELLIPSIS>      priority => -104
 ELLIPSIS     ~ '...'
 :lexeme ~ <RIGHT_ASSIGN>  priority => -105
@@ -1028,10 +1032,6 @@ QUOTE     ~ [']
 I_CONSTANT_INSIDE ~ [^'\\\n]
 I_CONSTANT_INSIDE ~ ES
 I_CONSTANT_INSIDE_many ~ I_CONSTANT_INSIDE+
-STRING_LITERAL_INSIDE ~ [^"\\\n]
-STRING_LITERAL_INSIDE ~ ES
-STRING_LITERAL_INSIDE_any ~ STRING_LITERAL_INSIDE*
-STRING_LITERAL_UNIT ~ SP_maybe '"' STRING_LITERAL_INSIDE_any '"' WS_any
 BS         ~ '\'
 ANYTHING_ELSE   ~ [.]
 
