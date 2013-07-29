@@ -1,8 +1,108 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.17 2013-07-25T07:56:13
+0.18 2013-07-29T18:09:04
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - c2ast cc replacement example
+ - stack based version as per jeffreykegler
+ - Tiny optimisations
+ - Tiny optimisation
+ - --logstderr option
+ - Fix doc
+ - Remove non-needed use Config
+ - Promote STRING_LITERAL_UNIT as lexeme
+ - Remember logInfo parameter so that we do not log more than was it
+   requested
+ - Fix logInfo parameter
+ - Trying to fix Changes content, some dirty things will lay out forever it
+   seems
+
+0.17 2013-07-25T07:57:31
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.17
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - c2ast.pl: typo in regexp
+    - v0.16
+   
+       [Jean-Damien Durand <jeandamiendurand@free.fr>]
+       - Optimisations (ter)
+       - Optimisations (ter)
+       - v0.15
+   
+	  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+	  - Lasy commit just to have git cached connection for dzil release
+	  - v0.14
+   
+	     [Jean-Damien Durand <jeandamiendurand@free.fr>]
+	     - Limit calls to last_completed
+	     - Fix format pull request #2
+	     - Ambiguity because of gcc
+	     - Optimization bis
+	     - Doc update
+	     - Optimisations
+	  - Limit calls to last_completed
+	  - Fix format pull request #2
+	  - Ambiguity because of gcc
+	  - Optimization bis
+	  - Doc update
+	  - Optimisations
+       - Lasy commit just to have git cached connection for dzil release
+       - v0.14
+   
+	  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+	  - Limit calls to last_completed
+	  - Fix format pull request #2
+	  - Ambiguity because of gcc
+	  - Optimization bis
+	  - Doc update
+	  - Optimisations
+       - Limit calls to last_completed
+       - Fix format pull request #2
+       - Ambiguity because of gcc
+       - Optimization bis
+       - Doc update
+       - Optimisations
+    - Optimisations (ter)
+    - Optimisations (ter)
+    - v0.15
+   
+       [Jean-Damien Durand <jeandamiendurand@free.fr>]
+       - Lasy commit just to have git cached connection for dzil release
+       - v0.14
+   
+	  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+	  - Limit calls to last_completed
+	  - Fix format pull request #2
+	  - Ambiguity because of gcc
+	  - Optimization bis
+	  - Doc update
+	  - Optimisations
+       - Limit calls to last_completed
+       - Fix format pull request #2
+       - Ambiguity because of gcc
+       - Optimization bis
+       - Doc update
+       - Optimisations
+    - Lasy commit just to have git cached connection for dzil release
+    - v0.14
+   
+       [Jean-Damien Durand <jeandamiendurand@free.fr>]
+       - Limit calls to last_completed
+       - Fix format pull request #2
+       - Ambiguity because of gcc
+       - Optimization bis
+       - Doc update
+       - Optimisations
+    - Limit calls to last_completed
+    - Fix format pull request #2
+    - Ambiguity because of gcc
+    - Optimization bis
+    - Doc update
+    - Optimisations
  - c2ast.pl: typo in regexp
+
+0.16 2013-07-24T20:51:24
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.16
    
     [Jean-Damien Durand <jeandamiendurand@free.fr>]
@@ -45,6 +145,9 @@ Changelog for MarpaX-Languages-C-AST
     - Optimisations
  - Optimisations (ter)
  - Optimisations (ter)
+
+0.15 2013-07-24T19:07:52
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.15
    
     [Jean-Damien Durand <jeandamiendurand@free.fr>]
@@ -65,6 +168,9 @@ Changelog for MarpaX-Languages-C-AST
     - Doc update
     - Optimisations
  - Lasy commit just to have git cached connection for dzil release
+
+0.14 2013-07-24T19:00:43
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - v0.14
    
     [Jean-Damien Durand <jeandamiendurand@free.fr>]
