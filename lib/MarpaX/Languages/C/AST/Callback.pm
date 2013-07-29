@@ -448,20 +448,12 @@ sub _inventory_initialize_topic {
 
 sub _inventory_initialize_tofire {
   my $self = shift;
-  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
-  my $ncb = $self->ncb;
-  foreach (my $i = 0; $i < $ncb; $i++) {
-      $prioritized_cb_tofirep->[$i] = 0;
-  }
+  $self->prioritized_cb_tofire([ (0) x $self->ncb ]);
 }
 
 sub _inventory_initialize_fired {
   my $self = shift;
-  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
-  my $ncb = $self->ncb;
-  foreach (my $i = 0; $i < $ncb; $i++) {
-      $prioritized_cb_firedp->[$i] = 0;
-  }
+  $self->prioritized_cb_fired([ (0) x $self->ncb ]);
 }
 
 sub _inventory_fire {
