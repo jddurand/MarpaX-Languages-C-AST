@@ -4,7 +4,6 @@ use warnings FATAL => 'all';
 use diagnostics;
 use MarpaX::Languages::C::AST;
 use Getopt::Long;
-use Config;
 use IPC::Run qw/run/;
 use Term::ProgressBar;
 use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
