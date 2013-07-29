@@ -78,34 +78,6 @@ sub new {
   return $self;
 }
 
-sub _iter {
-    #
-    # perl will "think" there is a deep recursion
-    #
-    no warnings 'recursion';
-    my ($self, $level, $obj) = @_;
-
-    ++$level;
-    if ($self->{_wanted}(@{$self->{_wantedArgs}}, $obj)) {
-	$self->{_callback}(@{$self->{_callbackArgs}}, $obj);
-    }
-
-    if (blessed($obj)) {
-	#
-	# We are always blessing an array
-	#
-	foreach (@{$obj}) {
-	    $self->_iter($level, $_);
-	}
-    } elsif (ref($obj) eq 'ARRAY') {
-	foreach (@{$obj}) {
-	    $self->_iter($level, $_);
-	}
-    } elsif (ref($obj)) {
-	croak "Unsupported type " . ref($obj) . "\n";
-    }
-}
-
 =head2 new()
 
 Instance a new object. Takes one argument: a parse tree value as returned by Marpa.
@@ -115,7 +87,19 @@ Instance a new object. Takes one argument: a parse tree value as returned by Mar
 sub process {
     my ($self, $value) = @_;
 
-    $self->_iter(-1, $value);
+    my @worklist = ( $value );
+    do {
+	my $obj = shift @worklist;
+	if ($self->{_wanted}(@{$self->{_wantedArgs}}, $obj)) {
+	    $self->{_callback}(@{$self->{_callbackArgs}}, $obj);
+	}
+	my $ref_type = ref $obj;
+	if (blessed($obj) || $ref_type eq 'ARRAY') {
+	    unshift(@worklist, @{$obj});
+	} else {
+	    croak "Unsupported object type $ref_type\n" if $ref_type;
+	}
+  } while (@worklist);
 }
 
 =head1 SEE ALSO
