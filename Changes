@@ -1,7 +1,31 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.18 2013-07-29T18:09:04
+0.19 2013-07-30T20:40:00
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Call log only when its level is ok
+ - Remove useless commented block
+ - Remove non-needed events
+ - Tiny optimization
+
+0.18 2013-07-29T18:10:08
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.18
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - c2ast cc replacement example
+    - stack based version as per jeffreykegler
+    - Tiny optimisations
+    - Tiny optimisation
+    - --logstderr option
+    - Fix doc
+    - Remove non-needed use Config
+    - Promote STRING_LITERAL_UNIT as lexeme
+    - Remember logInfo parameter so that we do not log more than was it
+      requested
+    - Fix logInfo parameter
+    - Trying to fix Changes content, some dirty things will lay out forever
+   it
+      seems
  - c2ast cc replacement example
  - stack based version as per jeffreykegler
  - Tiny optimisations
