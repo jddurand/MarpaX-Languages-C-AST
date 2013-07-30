@@ -693,23 +693,6 @@ sub _register_rule_callbacks {
                    )
                   )
                  );
-  #  $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-  #                 (
-  #                  description => $lhsResetEvent,
-  #                  method => [ \&_subFire, $hashp->{lhs}, $callback, \%lhsResetEvents, {$hashp->{lhs} . '$' => $lhsResetEvent, 'translationUnit$' => $lhsResetEvent} ],
-  #                  option => MarpaX::Languages::C::AST::Callback::Option->new
-  #                  (
-  #                   condition => [
-  #                                 [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
-  #                                         return grep {exists($processEventsp->{$_})} @{$eventsp};
-  #                                       },
-  #                                   \%lhsResetEvents
-  #                                 ]
-  #                                ],
-  #                   priority => $hashp->{reset_priority}
-  #                  )
-  #                 )
-  #                );
 
   return $callback;
 }
