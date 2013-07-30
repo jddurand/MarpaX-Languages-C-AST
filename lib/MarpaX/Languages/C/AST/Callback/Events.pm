@@ -428,7 +428,7 @@ sub _reset_helper {
     return @rc;
 }
 # ----------------------------------------------------------------------------------------
-sub _collect_helper {
+sub _collect_and_reset_helper {
     my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
@@ -535,9 +535,9 @@ sub _register_rule_callbacks {
       } else {
         ($name, $value) = ($_, undef);
       }
-	my $event = $name . '$';
-	++$genomeEvents{$event};
-	++$rshProcessEvents{$event};
+      my $event = $name . '$';
+      ++$genomeEvents{$event};
+      ++$rshProcessEvents{$event};
       $genomeEventValues{$event} = $value;
     }
   }
@@ -588,6 +588,7 @@ sub _register_rule_callbacks {
     }
     #
     # rhs$ event will collect into rhs$ topic all Gx$ topics (created automatically if needed)
+    # and reset them
     #
     my $event = $rhs . '$';
     ++$rshProcessEvents{$event};
@@ -595,7 +596,7 @@ sub _register_rule_callbacks {
 			(
 			 description => $event,
                          extra_description => "$event [process] ",
-			 method =>  [ \&_collect_helper, keys %genomeTopicsNotToUpdate ],
+			 method =>  [ \&_collect_and_reset_helper, keys %genomeTopicsNotToUpdate ],
 			 method_mode => 'push',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
@@ -607,25 +608,6 @@ sub _register_rule_callbacks {
 			 )
 			)
 	);
-    #
-    ## .. and reset them
-    #
-    $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-			(
-			 description => $event,
-                         extra_description => "$event [reset] ",
-			 method =>  [ \&_reset_helper, keys %genomeTopicsToUpdate ],
-			 method_mode => 'replace',
-			 option => MarpaX::Languages::C::AST::Callback::Option->new
-			 (
-			  condition => [ [ 'auto' ] ],  # == match on description
-			  topic => {%genomeTopicsToUpdate},
-			  topic_persistence => 'level',
-			  priority => 0,
-			 )
-			)
-	);
-
   }
 
   #
