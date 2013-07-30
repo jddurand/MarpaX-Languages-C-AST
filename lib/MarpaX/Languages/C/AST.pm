@@ -265,7 +265,9 @@ sub _doEvents {
 
   if (%events) {
     my @events = keys %events;
-    $log->debugf('[%s] Events: %s', whoami(__PACKAGE__), \@events);
+    if ($log->is_debug) {
+	$log->debugf('[%s] Events: %s', whoami(__PACKAGE__), \@events);
+    }
     $self->{_callbackEvents}->exec(@events);
   }
 }
@@ -291,7 +293,9 @@ sub _doLogInfo {
   my ($self, $lexemeHashp) = @_;
 
   if (exists($lexemeHashp->{name}) && exists($self->{_logInfo}->{$lexemeHashp->{name}})) {
-    $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
+      if ($log->is_info) {
+	  $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
+      }
   }
 }
 # ----------------------------------------------------------------------------------------
@@ -335,7 +339,9 @@ sub _doPreprocessing {
 	my $preprocessorDirective = substr(${$self->{_sourcep}}, $-[2], $+[2] - $-[2]);
 	my $directive = substr(${$self->{_sourcep}}, $-[3], $+[3] - $-[3]);
 	my $lastChar = substr(${$self->{_sourcep}}, $-[4], $+[4] - $-[4]);
-	$log->debugf('Preprocessor: %s', $preprocessorDirective);
+	if ($log->is_debug) {
+	    $log->debugf('Preprocessor: %s', $preprocessorDirective);
+	}
 	#
 	# Last char is newline ?
 	#
@@ -384,13 +390,16 @@ sub _doScope {
 
     my $lexemeFormatString = "%s \"%s\" at position %d:%d";
     my @lexemeCommonInfo = ($lexemeHashp->{name}, $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column});
+    my $is_debug = $log->is_debug;
 
     if (defined($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator'))) {
       if ($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] == -1) {
         #
         # This will be for next round.
         #
-        $log->debugf('[%s] fileScopeDeclarator: flagging lookup required at next round.', whoami(__PACKAGE__));
+	  if ($is_debug) {
+	      $log->debugf('[%s] fileScopeDeclarator: flagging lookup required at next round.', whoami(__PACKAGE__));
+	  }
         $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 1;
 
       } elsif ($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] == 1) {
@@ -400,39 +409,57 @@ sub _doScope {
         if ($lexemeHashp->{name} ne 'COMMA' &&
             $lexemeHashp->{name} ne 'SEMICOLON' &&
             $lexemeHashp->{name} ne 'EQUAL') {
-          $log->debugf('[%s] fileScopeDeclarator: next lexeme is %s, flagging reenterScope.', whoami(__PACKAGE__), $lexemeHashp->{name});
+	    if ($is_debug) {
+		$log->debugf('[%s] fileScopeDeclarator: next lexeme is %s, flagging reenterScope.', whoami(__PACKAGE__), $lexemeHashp->{name});
+	    }
           $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 1;
         }
         #
         # Flag lookup done
         #
-        $log->debugf('[%s] fileScopeDeclarator: flagging lookup done.', whoami(__PACKAGE__));
+	if ($is_debug) {
+	    $log->debugf('[%s] fileScopeDeclarator: flagging lookup done.', whoami(__PACKAGE__));
+	}
         $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 0;
       }
     }
 
     if ($lexemeHashp->{name} eq 'LCURLY_SCOPE' || $lexemeHashp->{name} eq 'LPAREN_SCOPE') {
-      $log->debugf("[%s] $lexemeFormatString: entering scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	if ($is_debug) {
+	    $log->debugf("[%s] $lexemeFormatString: entering scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	}
       $self->{_scope}->parseEnterScope();
     } elsif ($lexemeHashp->{name} eq 'RCURLY_SCOPE' || $lexemeHashp->{name} eq 'RPAREN_SCOPE') {
       if ($self->{_scope}->parseScopeLevel == 1) {
-        $log->debugf("[%s] $lexemeFormatString: delay leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	  if ($is_debug) {
+	      $log->debugf("[%s] $lexemeFormatString: delay leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	  }
         $self->{_scope}->parseExitScope(0);
       } else {
-        $log->debugf("[%s] $lexemeFormatString: immediate leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	  if ($is_debug) {
+	      $log->debugf("[%s] $lexemeFormatString: immediate leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	  }
         $self->{_scope}->parseExitScope(1);
       }
     } else {
-      $log->debugf("[%s] $lexemeFormatString.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	if ($is_debug) {
+	    $log->debugf("[%s] $lexemeFormatString.", whoami(__PACKAGE__), @lexemeCommonInfo);
+	}
       if ($self->{_scope}->parseScopeLevel == 1 && $self->{_scope}->parseDelay) {
         if (defined($self->{_callbackEvents}->topic_fired_data('reenterScope')) &&
             $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0]) {
-          $log->debugf('[%s] reenterScope flag is on at scope 1.', whoami(__PACKAGE__));
+	    if ($is_debug) {
+		$log->debugf('[%s] reenterScope flag is on at scope 1.', whoami(__PACKAGE__));
+	    }
           $self->{_scope}->parseReenterScope();
-          $log->debugf('[%s] Unflagging reenterScope.', whoami(__PACKAGE__));
+	    if ($is_debug) {
+		$log->debugf('[%s] Unflagging reenterScope.', whoami(__PACKAGE__));
+	    }
           $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 0;
         } else {
-          $log->debugf('[%s] reenterScope flag is off at scope 1.', whoami(__PACKAGE__));
+	    if ($is_debug) {
+		$log->debugf('[%s] reenterScope flag is off at scope 1.', whoami(__PACKAGE__));
+	    }
           $self->{_scope}->doExitScope();
         }
       }
@@ -473,7 +500,9 @@ sub _doPauseAfterLexeme {
 	  #
 	  # Push the unambiguated lexeme
 	  #
-	  $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexemeHashp->{value});
+	  if ($log->is_debug) {
+	      $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexemeHashp->{value});
+	  }
 	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexemeHashp->{start}, $lexemeHashp->{length}, $lexemeHashp->{value}))) {
 	      my $line_columnp = lineAndCol($self->{_impl});
 	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());

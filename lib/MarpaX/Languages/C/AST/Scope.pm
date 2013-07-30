@@ -75,7 +75,9 @@ sub parseEnterScope {
   # $self->condExitScope();
 
   my $scope = $self->parseScopeLevel;
-  $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
+  if ($log->is_debug) {
+      $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
+  }
   push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$scope]));
 
   if (@{$self->{_enterScopeCallback}}) {
@@ -96,7 +98,9 @@ sub parseDelay {
   if (@_) {
     my $scope = $self->parseScopeLevel;
     my $value = shift;
-    $log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $scope);
+    if ($log->is_debug) {
+	$log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $scope);
+    }
     $self->{_delay} = $value;
   }
   return $self->{_delay};
@@ -164,8 +168,10 @@ Reenter previous scope.
 sub parseReenterScope {
   my ($self) = @_;
 
-    my $scope = $self->parseScopeLevel;
-  $log->debugf('[%s] Reenter scope at scope %d', whoami(__PACKAGE__), $scope);
+  my $scope = $self->parseScopeLevel;
+  if ($log->is_debug) {
+      $log->debugf('[%s] Reenter scope at scope %d', whoami(__PACKAGE__), $scope);
+  }
   $self->parseDelay(0);
 
 }
@@ -194,7 +200,9 @@ sub doExitScope {
   my ($self) = @_;
 
   my $scope = $self->parseScopeLevel;
-  $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $scope);
+  if ($log->is_debug) {
+      $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $scope);
+  }
   pop(@{$self->{_typedefPerScope}});
 
   if (@{$self->{_exitScopeCallback}}) {
@@ -216,7 +224,9 @@ sub parseEnterTypedef {
   my $scope = $self->parseScopeLevel;
   $self->{_typedefPerScope}->[$scope]->{$token} = 1;
 
-  $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+  if ($log->is_debug) {
+      $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+  }
 }
 
 =head2 parseEnterEnum($self, $token)
@@ -230,7 +240,9 @@ sub parseEnterEnum {
 
   $self->{_enumAnyScope}->{$token} = 1;
   my $scope = $self->parseScopeLevel;
-  $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+  if ($log->is_debug) {
+      $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+  }
   #
   # Enum wins from now on and forever
   #
@@ -251,7 +263,9 @@ sub parseObscureTypedef {
   $scope //= $self->parseScopeLevel;
   $self->{_typedefPerScope}->[$scope]->{$token} = 0;
 
-  $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);
+  if ($log->is_debug) {
+      $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);
+  }
 }
 
 =head2 parseIsTypedef($self, $token)
@@ -266,7 +280,9 @@ sub parseIsTypedef {
   my $scope = $self->parseScopeLevel;
   my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && $self->{_typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
 
-  $log->debugf('[%s] "%s" at scope %d is a typedef? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
+  if ($log->is_debug) {
+      $log->debugf('[%s] "%s" at scope %d is a typedef? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
+  }
 
   return($rc);
 }
@@ -283,7 +299,9 @@ sub parseIsEnum {
   my $rc = (exists($self->{_enumAnyScope}->{$token}) && $self->{_enumAnyScope}->{$token}) ? 1 : 0;
 
   my $scope = $self->parseScopeLevel;
-  $log->debugf('[%s] "%s" is an enum at scope %d? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
+  if ($log->is_debug) {
+      $log->debugf('[%s] "%s" is an enum at scope %d? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
+  }
 
   return($rc);
 }
