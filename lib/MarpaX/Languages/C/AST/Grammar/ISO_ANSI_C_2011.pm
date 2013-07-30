@@ -315,7 +315,6 @@ declarationCheckdeclarationSpecifiers ::= declarationSpecifiers action => deref
 event 'declarationCheckinitDeclaratorList$' = completed <declarationCheckinitDeclaratorList>
 declarationCheckinitDeclaratorList    ::= initDeclaratorList    action => deref
 
-event '^declarationCheck' = predicted <declarationCheck>
 event 'declarationCheck$' = completed <declarationCheck>
 declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON action => deref
 
@@ -534,7 +533,6 @@ parameterList
 event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
 parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers action => deref
 
-event '^parameterDeclarationCheck' = predicted <parameterDeclarationCheck>
 event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
 parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator action => deref
 
@@ -680,11 +678,9 @@ functionDefinition
 event 'fileScopeDeclarator$' = completed <fileScopeDeclarator>
 fileScopeDeclarator ::= declarator action => deref_and_bless_declarator
 
-event '^functionDefinitionCheck1' = predicted <functionDefinitionCheck1>
 event 'functionDefinitionCheck1$' = completed <functionDefinitionCheck1>
 functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator functionDefinitionCheck1declarationList compoundStatementReenterScope action => deref
 
-event '^functionDefinitionCheck2' = predicted <functionDefinitionCheck2>
 event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
 functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator                                         compoundStatementReenterScope action => deref
 
