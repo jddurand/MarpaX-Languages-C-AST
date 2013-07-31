@@ -30,9 +30,17 @@ ISO-ANSI-C-2011. The ISO grammar of ANSI C 2011, as of L<http://www.quut.com/c/A
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new($grammarName, ...)
+=head2 new($class, $grammarName)
 
-Instance a new object. Takes the name of the grammar as argument. Remaining arguments are passed to the sub grammar method.
+Instance a new object. Takes the name of the grammar as argument. Remaining arguments are passed to the sub grammar method. Supported grammars are:
+
+=over
+
+=item ISO-ANSI-C-2011
+
+ISO ANSI C 2011, with GNU and MSVS extensions
+
+=back
 
 =cut
 
@@ -53,7 +61,7 @@ sub new {
   return $self;
 }
 
-=head2 content()
+=head2 content($self)
 
 Returns the content of the grammar.
 
@@ -64,7 +72,7 @@ sub content {
     return $self->{_grammar}->content(@_);
 }
 
-=head2 grammar_option()
+=head2 grammar_option($self)
 
 Returns recommended option for Marpa::R2::Scanless::G->new(), returned as a reference to a hash.
 
@@ -75,7 +83,7 @@ sub grammar_option {
     return $self->{_grammar}->grammar_option(@_);
 }
 
-=head2 recce_option()
+=head2 recce_option($self)
 
 Returns recommended option for Marpa::R2::Scanless::R->new(), returned as a reference to a hash.
 
