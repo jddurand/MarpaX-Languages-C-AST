@@ -37,7 +37,7 @@ This modules is a minimalist Data::Find designed for the parse tree values of Ma
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new([%options])
+=head2 new($class, %options)
 
 Instance a new object. Takes as optional argument a hash that may contain the following key/values:
 
@@ -78,9 +78,9 @@ sub new {
   return $self;
 }
 
-=head2 new()
+=head2 process($self, $value)
 
-Instance a new object. Takes one argument: a parse tree value as returned by Marpa.
+Process search on the object $value.
 
 =cut
 
