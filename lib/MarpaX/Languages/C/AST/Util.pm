@@ -38,9 +38,9 @@ The methods whoami(), whowasi() and traceAndUnpack() are exported on demand.
 
 =head1 SUBROUTINES/METHODS
 
-=head2 whoami()
+=head2 whoami($base)
 
-Returns the name of the calling routine.
+Returns the name of the calling routine. Optional $base prefix is removed. Typical usage is whoami(__PACKAGE__).
 
 =cut
 
@@ -56,9 +56,9 @@ sub whoami {
     return _cutbase((caller(1))[3], @_);
 }
 
-=head2 whowasi()
+=head2 whowasi($base)
 
-Returns the name of the parent's calling routine.
+Returns the name of the parent's calling routine. Optional $base prefix is removed. Typical usage is whowasi(__PACKAGE__).
 
 =cut
 
