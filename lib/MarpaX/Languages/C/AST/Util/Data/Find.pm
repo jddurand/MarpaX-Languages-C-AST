@@ -69,7 +69,7 @@ sub new {
   my $self  = {
     _wanted => $options{wanted} || sub {return 1;},
     _wantedArgs => $options{wantedArgs} || [],
-    _callback => $options{callback} || [ sub {} ],
+    _callback => $options{callback} || sub {},
     _callbackArgs => $options{callbackArgs} || []
   };
 
