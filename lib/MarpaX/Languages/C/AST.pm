@@ -210,6 +210,20 @@ sub parse {
 }
 
 # ----------------------------------------------------------------------------------------
+=head2 scope($self)
+
+Returns the MarpaX::Languages::C::AST::Scope object.
+
+=cut
+
+sub scope {
+  my ($self) = @_;
+
+  return $self->{_scope};
+}
+
+
+# ----------------------------------------------------------------------------------------
 sub _show_last_expression {
   my ($self) = @_;
 
