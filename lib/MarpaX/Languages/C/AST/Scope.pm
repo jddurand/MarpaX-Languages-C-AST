@@ -63,6 +63,30 @@ sub new {
   return $self;
 }
 
+=head2 typedefPerScope($self)
+
+Returns the list of known typedefs per scope. At the end of processing a source code, only scope 0 still exist. The output is a reference to an array, file-level scope being at index 0. At each indice, there is a reference to a hash with typedef name as a key, value is useless.
+
+=cut
+
+sub typedefPerScope {
+  my ($self) = @_;
+
+  return $self->{_typedefPerScope};
+}
+
+=head2 enumAnyScope($self)
+
+Returns the list of known enums. Enums has no scope level: as soon as the parser sees an enum, it available at any level. The output is a reference to a hash with enumeration name as a key, value is useless.
+
+=cut
+
+sub enumAnyScope {
+  my ($self) = @_;
+
+  return $self->{_enumAnyScope};
+}
+
 =head2 parseEnterScope($self)
 
 Say we enter a scope.
