@@ -80,17 +80,19 @@ sub new {
 
 =head2 process($self, $value)
 
-Process search on the object $value.
+Process search on the object $value. Returns a true value is something wanted was found.
 
 =cut
 
 sub process {
     my ($self, $value) = @_;
 
-    my @worklist = ( $value );
+    my @worklist = ($value);
+    my $rc = 0;
     do {
 	my $obj = shift @worklist;
 	if ($self->{_wanted}(@{$self->{_wantedArgs}}, $obj)) {
+	    $rc = 1;
 	    $self->{_callback}(@{$self->{_callbackArgs}}, $obj);
 	}
 	my $ref_type = ref $obj;
@@ -100,6 +102,8 @@ sub process {
 	    croak "Unsupported object type $ref_type\n" if $ref_type;
 	}
   } while (@worklist);
+
+  return $rc;
 }
 
 =head1 SEE ALSO
