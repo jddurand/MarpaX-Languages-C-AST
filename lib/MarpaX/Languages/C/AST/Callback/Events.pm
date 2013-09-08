@@ -265,7 +265,7 @@ sub _enumerationConstantIdentifier {
     my ($method, $callback, $eventsp) = @_;
 
     my $enum = lastCompleted($callback->hscratchpad('_impl'), 'enumerationConstantIdentifier');
-    $callback->hscratchpad('_scope')->parseEnterEnum($enum);
+    $callback->hscratchpad('_scope')->parseEnterEnum($enum, startAndLength($callback->hscratchpad('_impl')));
 }
 # ----------------------------------------------------------------------------------------
 sub _parameterDeclarationCheck {
@@ -280,7 +280,7 @@ sub _parameterDeclarationCheck {
     #
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
-	my ($line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
+	my ($start_lengthp, $line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
 	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
@@ -299,13 +299,13 @@ sub _functionDefinitionCheck1 {
     #
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
-	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
+	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
 	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
-	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
+	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
 	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
@@ -321,7 +321,7 @@ sub _functionDefinitionCheck2 {
     #
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
-	my ($line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
+	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
 	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
@@ -352,14 +352,14 @@ sub _declarationCheck {
 	#
 	# Take the second typedef
 	#
-	my ($line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
+	my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
 	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
     foreach (@{$declarationCheckinitDeclaratorList}) {
-	my ($line_columnp, $last_completed, %counters)  = @{$_};
+	my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
         if (! $counters{structContext}) {
           if ($nbTypedef >= 0) {
-	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed);
+	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed, $start_lengthp);
           } else {
 	    $callback->hscratchpad('_scope')->parseObscureTypedef($last_completed);
           }
@@ -395,10 +395,10 @@ sub _storage_helper {
     my $rc;
     if (substr($symbol, 0, 1) eq '^') {
 	substr($symbol, 0, 1, '');
-	$rc = [ lineAndCol($callback->hscratchpad('_impl')), %counters ];
+	$rc = [ startAndLength($callback->hscratchpad('_impl')), lineAndCol($callback->hscratchpad('_impl')), %counters ];
     } elsif (substr($symbol, -1, 1) eq '$') {
 	substr($symbol, -1, 1, '');
-	$rc = [ lineAndCol($callback->hscratchpad('_impl')), $fixedValue || lastCompleted($callback->hscratchpad('_impl'), $symbol), %counters ];
+	$rc = [ startAndLength($callback->hscratchpad('_impl')), lineAndCol($callback->hscratchpad('_impl')), $fixedValue || lastCompleted($callback->hscratchpad('_impl'), $symbol), %counters ];
     }
 
     return $rc;

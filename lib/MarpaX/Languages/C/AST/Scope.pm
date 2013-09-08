@@ -236,17 +236,19 @@ sub doExitScope {
   $self->parseDelay(0);
 }
 
-=head2 parseEnterTypedef($self, $token)
+=head2 parseEnterTypedef($self, $token, $data)
 
-Declare a new typedef with name $token, that will be visible until current scope is left.
+Declare a new typedef with name $token, that will be visible until current scope is left. $data is an optional user-data area, defaulting to 1 if not specified.
 
 =cut
 
 sub parseEnterTypedef {
-  my ($self, $token) = @_;
+  my ($self, $token, $data) = @_;
+
+  $data //= 1;
 
   my $scope = $self->parseScopeLevel;
-  $self->{_typedefPerScope}->[$scope]->{$token} = 1;
+  $self->{_typedefPerScope}->[$scope]->{$token} = $data;
 
   if ($log->is_debug) {
       $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
@@ -255,14 +257,16 @@ sub parseEnterTypedef {
 
 =head2 parseEnterEnum($self, $token)
 
-Declare a new enum with name $token, that will be visible at any scope from now on.
+Declare a new enum with name $token, that will be visible at any scope from now on. $data is an optional user-data area, defaulting to 1 if not specified.
 
 =cut
 
 sub parseEnterEnum {
-  my ($self, $token) = @_;
+  my ($self, $token, $data) = @_;
 
-  $self->{_enumAnyScope}->{$token} = 1;
+  $data //= 1;
+
+  $self->{_enumAnyScope}->{$token} = $data;
   my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
       $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $scope);
@@ -285,7 +289,7 @@ sub parseObscureTypedef {
   my ($self, $token, $scope) = @_;
 
   $scope //= $self->parseScopeLevel;
-  $self->{_typedefPerScope}->[$scope]->{$token} = 0;
+  $self->{_typedefPerScope}->[$scope]->{$token} = undef;
 
   if ($log->is_debug) {
       $log->debugf('[%s] "%s" eventual typedef obscured at scope %d', whoami(__PACKAGE__), $token, $scope);
@@ -302,7 +306,7 @@ sub parseIsTypedef {
   my ($self, $token) = @_;
 
   my $scope = $self->parseScopeLevel;
-  my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && $self->{_typedefPerScope}->[$scope]->{$token}) ? 1 : 0;
+  my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && defined($self->{_typedefPerScope}->[$scope]->{$token})) ? 1 : 0;
 
   if ($log->is_debug) {
       $log->debugf('[%s] "%s" at scope %d is a typedef? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
