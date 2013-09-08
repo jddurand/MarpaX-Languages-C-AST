@@ -13,7 +13,7 @@ use Carp qw/croak/;
 # VERSION
 # CONTRIBUTORS
 
-our @EXPORT_OK = qw/whoami whowasi traceAndUnpack logCroak showLineAndCol lineAndCol lastCompleted/;
+our @EXPORT_OK = qw/whoami whowasi traceAndUnpack logCroak showLineAndCol lineAndCol lastCompleted startAndLength/;
 our %EXPORT_TAGS = ('all' => [ @EXPORT_OK ]);
 
 =head1 DESCRIPTION
@@ -151,6 +151,20 @@ sub lineAndCol {
     my ($start, $length) = $impl->g1_location_to_span($g1);
     my ($line, $column) = $impl->line_column($start);
     return [ $line, $column ];
+}
+
+=head2 startAndLength($impl, $g1)
+
+Returns the output of Marpa's g1_location_to_span at a given $g1 location. Default $g1 is Marpa's current_g1_location().
+
+=cut
+
+sub startAndLength {
+    my ($impl, $g1) = @_;
+
+    $g1 //= $impl->current_g1_location();
+    my ($start, $length) = $impl->g1_location_to_span($g1);
+    return [ $start, $length ];
 }
 
 =head2 lastCompleted($impl, $symbol)
