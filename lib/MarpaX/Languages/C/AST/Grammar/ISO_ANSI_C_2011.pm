@@ -140,7 +140,7 @@ lexeme default = action => [start,length,value]
 
 event 'primaryExpressionIdentifier$' = completed <primaryExpressionIdentifier>
 primaryExpressionIdentifier
-	::= IDENTIFIER         action => deref
+	::= IDENTIFIER
 
 primaryExpression
 	::= primaryExpressionIdentifier
@@ -158,7 +158,7 @@ constant
 
 event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
 enumerationConstantIdentifier  # before it has been defined as such
-	::= IDENTIFIER        action => deref
+	::= IDENTIFIER
 
 enumerationConstant            # before it has been defined as such
 	::= enumerationConstantIdentifier
@@ -310,32 +310,27 @@ constantExpression
 # declaration ::= declarationSpecifiers initDeclaratorList SEMICOLON
 # ###############################################################################################
 event 'declarationCheckdeclarationSpecifiers$' = completed <declarationCheckdeclarationSpecifiers>
-declarationCheckdeclarationSpecifiers ::= declarationSpecifiers action => deref
+declarationCheckdeclarationSpecifiers ::= declarationSpecifiers
 
 event 'declarationCheckinitDeclaratorList$' = completed <declarationCheckinitDeclaratorList>
-declarationCheckinitDeclaratorList    ::= initDeclaratorList    action => deref
+declarationCheckinitDeclaratorList    ::= initDeclaratorList
 
 event 'declarationCheck$' = completed <declarationCheck>
-declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON action => deref
+declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON
 
 declaration
 	::= declarationSpecifiers SEMICOLON
 	| declarationCheck
 	| staticAssertDeclaration
 
-declarationSpecifiers
-	::= storageClassSpecifier declarationSpecifiers
-	| storageClassSpecifier
-	| typeSpecifier declarationSpecifiers
-	| typeSpecifier
-	| typeQualifier declarationSpecifiers
-	| typeQualifier
-	| functionSpecifier declarationSpecifiers
-	| functionSpecifier
-	| alignmentSpecifier declarationSpecifiers
-	| alignmentSpecifier
-        | gccDeclarationSpecifier declarationSpecifiers
-	| gccDeclarationSpecifier
+declarationSpecifiersUnit ::= storageClassSpecifier
+                            | typeSpecifier
+                            | typeQualifier
+                            | functionSpecifier
+                            | alignmentSpecifier
+                            | gccDeclarationSpecifier
+
+declarationSpecifiers ::= declarationSpecifiersUnit+
 
 initDeclaratorList
 	::= initDeclarator
@@ -347,7 +342,7 @@ initDeclarator
 
 event 'storageClassSpecifierTypedef$' = completed <storageClassSpecifierTypedef>
 storageClassSpecifierTypedef
-	::= TYPEDEF            action => deref
+	::= TYPEDEF
 
 storageClassSpecifier
 	::= storageClassSpecifierTypedef # identifiers must be flagged as TYPEDEF_NAME
@@ -402,22 +397,18 @@ structOrUnion
 	::= STRUCT
 	| UNION
 
-structDeclarationList
-	::= structDeclaration
-	| structDeclarationList structDeclaration
+structDeclarationList ::= structDeclaration+
 
 structDeclaration
 	::= specifierQualifierList SEMICOLON	# for anonymous struct/union
 	| specifierQualifierList structDeclaratorList SEMICOLON
 	| SEMICOLON                             # GCC extension
 
-specifierQualifierList
-	::= typeSpecifier specifierQualifierList
-	| typeSpecifier
-	| typeQualifier specifierQualifierList
-	| typeQualifier
-        | gccDeclarationSpecifier specifierQualifierList
-	| gccDeclarationSpecifier
+specifierQualifierListUnit ::= typeSpecifier
+                             | typeQualifier
+                             | gccDeclarationSpecifier
+
+specifierQualifierList ::= specifierQualifierListUnit+
 
 structDeclaratorList
 	::= structDeclarator
@@ -476,11 +467,11 @@ alignmentSpecifier
 	::= ALIGNAS LPAREN typeName RPAREN
 	| ALIGNAS LPAREN constantExpression RPAREN
 
-msvsAttributeList ::= msvsAttribute*
+msvsAttributeAny ::= msvsAttribute*
 
 declarator
-	::= pointer msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeAny
-	| msvsAttributeList directDeclarator gccAsmExpressionMaybe gccAttributeAny
+	::= pointer msvsAttributeAny directDeclarator gccAsmExpressionMaybe gccAttributeAny
+	| msvsAttributeAny directDeclarator gccAsmExpressionMaybe gccAttributeAny
 
 event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
@@ -508,16 +499,16 @@ directDeclarator
 
 pointerQualifier ::= typeQualifier | gccAttribute
 
-pointerQualifierList ::= pointerQualifier
-                       | pointerQualifierList pointerQualifier
-pointer
-	::= msvsAttributeList STAR pointerQualifierList pointer
-	| msvsAttributeList STAR pointerQualifierList
-	| msvsAttributeList STAR pointer
-	| msvsAttributeList STAR
+pointerQualifierList ::= pointerQualifier+
 
-gccArrayTypeModifierList ::= gccArrayTypeModifier
-                           | gccArrayTypeModifierList gccArrayTypeModifier
+pointer
+	::= msvsAttributeAny STAR pointerQualifierList pointer
+	| msvsAttributeAny STAR pointerQualifierList
+	| msvsAttributeAny STAR pointer
+	| msvsAttributeAny STAR
+
+gccArrayTypeModifierList ::= gccArrayTypeModifier+
+
 #typeQualifierList
 #	::= typeQualifier
 #	| typeQualifierList typeQualifier
@@ -531,10 +522,10 @@ parameterList
 	| parameterList COMMA parameterDeclaration
 
 event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
-parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers action => deref
+parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers
 
 event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
-parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator action => deref
+parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator
 
 parameterDeclaration
 	::= parameterDeclarationCheck               rank =>  0
@@ -553,8 +544,8 @@ gccAsmExpressionMaybe ::= gccAsmExpression
                         | gccEmptyRule
 
 abstractDeclarator
-	::= pointer msvsAttributeList directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
-	| pointer msvsAttributeList
+	::= pointer msvsAttributeAny directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
+	| pointer msvsAttributeAny
 	| directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
 
 directAbstractDeclarator
@@ -595,9 +586,7 @@ initializerList
 designation
 	::= designatorList EQUAL
 
-designatorList
-	::= designator
-	| designatorList designator
+designatorList ::= designator+
 
 designator
 	::= LBRACKET constantExpression RBRACKET
@@ -626,9 +615,7 @@ compoundStatement
 	::= LCURLY_SCOPE RCURLY_SCOPE
 	| LCURLY_SCOPE blockItemList RCURLY_SCOPE
 
-blockItemList
-	::= blockItem
-	| blockItemList blockItem
+blockItemList ::= blockItem+
 
 blockItem
 	::= declaration
@@ -659,43 +646,39 @@ jumpStatement
 	| RETURN expression SEMICOLON
 
 event 'translationUnit$' = completed <translationUnit>
-translationUnit
-	::= externalDeclaration
-	| translationUnit externalDeclaration
+translationUnit ::= externalDeclaration+
 
 event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
 	::= functionDefinition
 	| declaration
 
-compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE                   action => deref_and_bless_compoundStatement
-	                        | LCURLY blockItemList RCURLY_SCOPE     action => deref_and_bless_compoundStatement
+compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE
+	                        | LCURLY blockItemList RCURLY_SCOPE
 
 functionDefinition
 	::= functionDefinitionCheck1
 	| functionDefinitionCheck2
 
 event 'fileScopeDeclarator$' = completed <fileScopeDeclarator>
-fileScopeDeclarator ::= declarator action => deref_and_bless_declarator
+fileScopeDeclarator ::= declarator
 
 event 'functionDefinitionCheck1$' = completed <functionDefinitionCheck1>
-functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator functionDefinitionCheck1declarationList compoundStatementReenterScope action => deref
+functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers fileScopeDeclarator functionDefinitionCheck1declarationList compoundStatementReenterScope
 
 event 'functionDefinitionCheck2$' = completed <functionDefinitionCheck2>
-functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator                                         compoundStatementReenterScope action => deref
+functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers fileScopeDeclarator                                         compoundStatementReenterScope
 
 event 'functionDefinitionCheck1declarationSpecifiers$' = completed <functionDefinitionCheck1declarationSpecifiers>
-functionDefinitionCheck1declarationSpecifiers ::= declarationSpecifiers action => deref
+functionDefinitionCheck1declarationSpecifiers ::= declarationSpecifiers
 
 event 'functionDefinitionCheck2declarationSpecifiers$' = completed <functionDefinitionCheck2declarationSpecifiers>
-functionDefinitionCheck2declarationSpecifiers ::= declarationSpecifiers action => deref
+functionDefinitionCheck2declarationSpecifiers ::= declarationSpecifiers
 
 event 'functionDefinitionCheck1declarationList$' = completed <functionDefinitionCheck1declarationList>
-functionDefinitionCheck1declarationList ::= declarationList action => deref
+functionDefinitionCheck1declarationList ::= declarationList
 
-declarationList
-	::= declaration
-	| declarationList declaration
+declarationList ::= declaration+
 
 #
 # G0 (tokens), c.f. http://www.quut.com/c/ANSI-C-grammar-l.html
@@ -1507,6 +1490,7 @@ msvsFunctionSpecifier ::= MSVS_INLINE
                         | MSVS_FORCEINLINE
 
 msvsAsmStatementDirectiveList ::= msvsAsmDirective+
+
 msvsAsmStatement ::= MSVS_ASM msvsAsmDirective
                    | MSVS_ASM
                      LCURLY
