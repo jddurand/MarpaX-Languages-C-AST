@@ -306,7 +306,7 @@ sub _getLexeme {
 sub _doLogInfo {
   my ($self, $lexemeHashp) = @_;
 
-  if (exists($lexemeHashp->{name}) && exists($self->{_logInfo}->{$lexemeHashp->{name}})) {
+  if (exists($lexemeHashp->{name}) && (exists($self->{_logInfo}->{$lexemeHashp->{name}}) || exists($self->{_logInfo}->{__ALL__}))) {
       if ($log->is_info) {
 	  $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
       }
