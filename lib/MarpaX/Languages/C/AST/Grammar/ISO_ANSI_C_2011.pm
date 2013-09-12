@@ -1598,6 +1598,8 @@ msvsExtendedDeclModifier ::=   MSVS_ALLOCATE LPAREN string RPAREN
                            | MSVS_NAKED
                            | MSVS_NORETURN
                            | MSVS_NOALIAS
+                           | MSVS_DEPRECATED
+                           | MSVS_DEPRECATED LPAREN RPAREN
                            | MSVS_DEPRECATED LPAREN string RPAREN
                            | MSVS_RESTRICT
                            | MSVS_NOTHROW
@@ -1802,3 +1804,48 @@ msvsAsmConstant ::= I_CONSTANT
 <Cpp style directive interior single line> ~ [^\n]*
 <Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
 :discard ~ <Cpp style directive>
+
+#
+# Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
+# with the C grammar
+#
+<MSVS pragma identifier> ~ L A_any
+<MSVS pragma number> ~ [\d]+
+
+<MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
+<MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
+                        | <MSVS pragma directive auto_inline>
+                        | <MSVS pragma directive warning>
+
+# alloc_text( "textsection", function1, ... )
+<MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
+<MSVS pragma directive alloc_text interior> ~ '"' STRING_LITERAL_INSIDE_any '"'
+                                            | <MSVS pragma directive alloc_text interior> WS_any ',' <MSVS pragma identifier>
+
+# auto_inline( [{on | off}] )
+<MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any <MSVS pragma directive auto_inline interior> WS_any ')'
+
+<MSVS pragma directive auto_inline interior> ~ 'on' | 'off'
+
+
+# warning( warning-specifier : warning-number-list [; warning-specifier : warning-number-list...] ) 
+# warning( push[ ,n ] ) 
+# warning( pop )
+<MSVS pragma directive warning> ~ 'warning' WS_any '(' WS_any <MSVS pragma directive warning interior> WS_any ')'
+<MSVS pragma directive warning interior> ~ <MSVS pragma directive warning interior specifier list>
+                                         | <MSVS pragma directive warning interior push>
+                                         | <MSVS pragma directive warning interior pop>
+<MSVS pragma directive warning interior specifier list> ~ <MSVS pragma directive warning interior specifier>+
+<MSVS pragma directive warning interior specifier keyword> ~ '1' | '2' | '3' | '4'
+                                                           | 'default'
+                                                           | 'disable'
+                                                           | 'error'
+                                                           | 'once'
+                                                           | 'suppress'
+<MSVS pragma directive warning interior specifier> ~ <MSVS pragma directive warning interior specifier keyword> WS_any ':' WS_any <MSVS pragma directive warning interior specifier number list>
+<MSVS pragma directive warning interior specifier number list> ~ <MSVS pragma number> WS_any 
+                                                               | <MSVS pragma directive warning interior specifier number list> WS_many <MSVS pragma number> WS_any
+<MSVS pragma directive warning interior push> ~ 'push'
+                                              | 'push' WS_any ',' WS_any 
+<MSVS pragma directive warning interior pop> ~ 'pop'
+:discard ~ <MSVS pragma>
