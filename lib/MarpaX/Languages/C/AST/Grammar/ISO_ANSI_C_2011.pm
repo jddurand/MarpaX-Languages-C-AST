@@ -1824,6 +1824,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive comment>
                         | <MSVS pragma directive component>
                         | <MSVS pragma directive conform>
+                        | <MSVS pragma directive deprecated>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1924,5 +1925,10 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive conform interior optional> ~ <MSVS pragma directive conform interior optional unit>
                                                     | <MSVS pragma directive conform interior optional> <MSVS pragma comma> <MSVS pragma directive conform interior optional unit>
 <MSVS pragma directive conform> ~ 'conform' WS_any '(' WS_any <MSVS pragma directive conform interior> WS_any ')'
+
+# deprecated( identifier1 [,identifier2, ...] )
+<MSVS pragma directive deprecated interior> ~ <MSVS pragma identifier>
+                                            | <MSVS pragma directive deprecated interior> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive deprecated> ~ 'deprecated' WS_any '(' WS_any <MSVS pragma directive deprecated interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

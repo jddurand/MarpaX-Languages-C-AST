@@ -130,3 +130,9 @@ __pragma( conform(forScope, push, x3, off))
 __pragma( conform(forScope, show))
 __pragma( conform(forScope, pop, x1))
 __pragma( conform(forScope, show))
+
+// ----------
+// deprecated
+// ----------
+__pragma( deprecated(func1))
+__pragma( deprecated(func1, func2))
