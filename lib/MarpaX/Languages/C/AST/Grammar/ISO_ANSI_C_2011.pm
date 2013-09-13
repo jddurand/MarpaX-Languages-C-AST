@@ -1818,7 +1818,7 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
                         | <MSVS pragma directive warning>
-                        | <MSVS pragma directive bss_seg>
+                        | <MSVS pragma directive common seg>
                         | <MSVS pragma directive check_stack>
 
 # alloc_text( "textsection", function1, ... )
@@ -1857,18 +1857,19 @@ msvsAsmConstant ::= I_CONSTANT
                                               | 'push' <MSVS pragma comma> <MSVS pragma number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
 
-# bss_seg( [ [ { push | pop }, ] [ identifier, ] ] [ "segment-name" [, "segment-class" ] )
-<MSVS pragma directive bss_seg push or pop> ~ 'push' | 'pop'
-<MSVS pragma directive bss_seg interior 1> ~ <MSVS pragma directive bss_seg push or pop>
-                                           | <MSVS pragma directive bss_seg push or pop> <MSVS pragma comma> <MSVS pragma identifier>
-                                           | <MSVS pragma identifier>
-<MSVS pragma directive bss_seg interior 2> ~ <MSVS pragma string>
-                                           | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
-<MSVS pragma directive bss_seg interior> ~ <MSVS pragma directive bss_seg interior 1>
-                                         | <MSVS pragma directive bss_seg interior 2>
-                                         | <MSVS pragma directive bss_seg interior 1> <MSVS pragma comma> <MSVS pragma directive bss_seg interior 2>
-<MSVS pragma directive bss_seg> ~ 'bss_seg' WS_any '(' WS_any ')'
-                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg interior> WS_any ')'
+# [bss|code]_seg( [ [ { push | pop }, ] [ identifier, ] ] [ "segment-name" [, "segment-class" ] )
+<MSVS pragma directive common seg push or pop> ~ 'push' | 'pop'
+<MSVS pragma directive common seg interior 1> ~ <MSVS pragma directive common seg push or pop>
+                                              | <MSVS pragma directive common seg push or pop> <MSVS pragma comma> <MSVS pragma identifier>
+                                              | <MSVS pragma identifier>
+<MSVS pragma directive common seg interior 2> ~ <MSVS pragma string>
+                                              | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+<MSVS pragma directive common seg interior> ~ <MSVS pragma directive common seg interior 1>
+                                     | <MSVS pragma directive common seg interior 2>
+                                     | <MSVS pragma directive common seg interior 1> <MSVS pragma comma> <MSVS pragma directive common seg interior 2>
+<MSVS pragma directive common seg> ~ <MSVS pragma directive common seg keyword> WS_any '(' WS_any ')'
+                                   | <MSVS pragma directive common seg keyword> WS_any '(' WS_any <MSVS pragma directive common seg interior> WS_any ')'
+<MSVS pragma directive common seg keyword> ~ 'bss_seg' | 'code_seg' | 'const_seg' | 'data_seg'
 
 # check_stack([ {on | off}] )
 # check_stack{+|-}

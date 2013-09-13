@@ -49,53 +49,45 @@ __pragma( auto_inline(off))
 // warning
 // -------
 __pragma( warning( disable : 4507 34; once : 4385; error : 164 ))
-// Disable warning messages 4507 and 4034.
 __pragma( warning( disable : 4507 34 ))
-
-// Issue warning 4385 only once.
 __pragma( warning( once : 4385 ))
-
-// Report warning 4164 as an error.
 __pragma( warning( error : 164 ))
-// pragma_warning.cpp
-// compile with: /W1
 __pragma( warning(disable:4700))
-void Test() {
-   int x;
-   int y = x;   // no C4700 here
-   __pragma( warning(default:4700))   // C4700 enabled after Test ends
-}
-
-int main() {
-   int x;
-   int y = x;   // C4700
-}
 __pragma( warning( push ))
 __pragma( warning( disable : 4705 ))
 __pragma( warning( disable : 4706 ))
 __pragma( warning( disable : 4707 ))
-// Some code
 __pragma( warning( pop ) )
 __pragma( warning( push, 3 ))
-// Declarations/definitions
 __pragma( warning( pop ) )
 
 // -------
 // bss_seg
 // -------
-// pragma_directive_bss_seg.cpp
-int i;                     // stored in .bss
 __pragma( bss_seg(".my_data1") )
-int j;                     // stored in "my_data1"
-
 __pragma( bss_seg(push, stack1, ".my_data2")   )
-int l;                     // stored in "my_data2"
+__pragma( bss_seg(pop, stack1) )
 
-__pragma( bss_seg(pop, stack1) )  // pop stack1 from stack
-int m;                     // stored in "stack_data1"
+// -------
+// code_seg
+// -------
+__pragma( code_seg(".my_data1") )
+__pragma( code_seg(push, stack1, ".my_data2")   )
+__pragma( code_seg(pop, stack1) )
 
-int main() {
-}
+// ---------
+// const_seg
+// ---------
+__pragma( const_seg(".my_data1") )
+__pragma( const_seg(push, stack1, ".my_data2")   )
+__pragma( const_seg(pop, stack1) )
+
+// --------
+// data_seg
+// --------
+__pragma( data_seg(".my_data1") )
+__pragma( data_seg(push, stack1, ".my_data2")   )
+__pragma( data_seg(pop, stack1) )
 
 // -----------
 // check_stack
