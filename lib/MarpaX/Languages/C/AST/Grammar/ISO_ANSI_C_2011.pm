@@ -1819,10 +1819,11 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
-                        | <MSVS pragma directive warning>
                         | <MSVS pragma directive common seg>
-                        | <MSVS pragma directive comment>
                         | <MSVS pragma directive check_stack>
+                        | <MSVS pragma directive comment>
+                        | <MSVS pragma directive component>
+                        | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
 <MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
@@ -1885,5 +1886,23 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive comment interior> ~ <MSVS pragma directive comment interior type>
                                          | <MSVS pragma directive comment interior type> <MSVS pragma comma> <MSVS pragma string>
 <MSVS pragma directive comment> ~ 'comment' WS_any '(' WS_any <MSVS pragma directive comment interior> WS_any ')'
+
+# component( browser, { on | off }[, references [, name ]] )
+# component( minrebuild, on | off ) 
+# component( mintypeinfo, on | off )
+# Note: we use <MSVS pragma identifier> for name, which is ok, since it refers a storage type, that matches <MSVS pragma identifier>
+
+<MSVS pragma directive component interior name> ~ <MSVS pragma identifier>
+                                                | <MSVS pragma string>
+<MSVS pragma directive component interior browser on off> ~ 'on' | 'off'
+<MSVS pragma directive component interior browser> ~ 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
+                                                   | 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off> <MSVS pragma comma> 'references'
+                                                   | 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off> <MSVS pragma comma> 'references' <MSVS pragma comma> <MSVS pragma directive component interior name>
+<MSVS pragma directive component interior minrebuild> ~ 'minrebuild' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
+<MSVS pragma directive component interior mintypeinfo> ~ 'mintypeinfo' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
+<MSVS pragma directive component interior> ~ <MSVS pragma directive component interior browser>
+                                           | <MSVS pragma directive component interior minrebuild>
+                                           | <MSVS pragma directive component interior mintypeinfo>
+<MSVS pragma directive component> ~ 'component' WS_any '(' WS_any <MSVS pragma directive component interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

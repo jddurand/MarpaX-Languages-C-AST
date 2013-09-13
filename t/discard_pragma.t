@@ -105,3 +105,16 @@ __pragma( comment(linker, "/include:__mySymbol"))
 __pragma( comment( lib, "emapi" ) )
 __pragma( comment( compiler ))
 __pragma( comment( user, "Compiled on " "Some date" " at " "Some hour" ) )
+
+// ---------
+// component
+// ---------
+__pragma( component(browser, off))
+__pragma( component(browser, off, references))
+__pragma( component(browser, off, references, DWORD))
+__pragma( component(browser, on, references, DWORD))
+__pragma( component(browser, off, references, "NULL"))
+__pragma( component( minrebuild, on ) )
+__pragma( component( minrebuild, off ) )
+__pragma( component( mintypeinfo, on ) )
+__pragma( component( mintypeinfo, off ) )
