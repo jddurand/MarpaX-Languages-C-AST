@@ -1846,6 +1846,6 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive warning interior specifier number list> ~ <MSVS pragma number> WS_any 
                                                                | <MSVS pragma directive warning interior specifier number list> WS_many <MSVS pragma number> WS_any
 <MSVS pragma directive warning interior push> ~ 'push'
-                                              | 'push' WS_any ',' WS_any 
+                                              | 'push' WS_any ',' WS_any <MSVS pragma number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
 :discard ~ <MSVS pragma>
