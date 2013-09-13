@@ -1820,10 +1820,13 @@ msvsAsmConstant ::= I_CONSTANT
 # alloc_text( "textsection", function1, ... )
 <MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
 <MSVS pragma directive alloc_text interior> ~ '"' STRING_LITERAL_INSIDE_any '"'
-                                            | <MSVS pragma directive alloc_text interior> WS_any ',' <MSVS pragma identifier>
+                                            | <MSVS pragma directive alloc_text interior> WS_any ',' WS_any <MSVS pragma directive alloc_text identifier list> WS_any
+<MSVS pragma directive alloc_text identifier list> ~ <MSVS pragma identifier>
+                                                   | <MSVS pragma directive alloc_text identifier list> WS_any ',' WS_any <MSVS pragma identifier> WS_any
 
 # auto_inline( [{on | off}] )
-<MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any <MSVS pragma directive auto_inline interior> WS_any ')'
+<MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any ')'
+                                    | 'auto_inline' WS_any '(' WS_any <MSVS pragma directive auto_inline interior> WS_any ')'
 
 <MSVS pragma directive auto_inline interior> ~ 'on' | 'off'
 
