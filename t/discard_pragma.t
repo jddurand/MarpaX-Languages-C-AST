@@ -165,3 +165,14 @@ __pragma( float_control(except, on) )
 __pragma( float_control(except, on push) )
 __pragma( float_control(push) )
 __pragma( float_control(pop) )
+
+// -----------
+// fp_contract
+// -----------
+__pragma( fp_contract)
+__pragma( fp_contract(  ))
+__pragma( fp_contract(on))
+__pragma( fp_contract(ON))
+__pragma( fp_contract(off))
+__pragma( fp_contract(OFF))
+

@@ -1828,6 +1828,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive detect_mismatch>
                         | <MSVS pragma directive fenv_access>
                         | <MSVS pragma directive float_control>
+                        | <MSVS pragma directive fp_contract>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1954,5 +1955,13 @@ msvsAsmConstant ::= I_CONSTANT
                                                | 'push'
                                                | 'pop'
 <MSVS pragma directive float_control> ~ 'float_control' WS_any '(' WS_any <MSVS pragma directive float_control interior> WS_any ')'
+
+# fp_contract [ON | OFF]
+# Are the parenthesis necessary ? don't know - assume not
+# on or ON, off or OFF ? Assume all.
+<MSVS pragma directive fp_contract interior> ~ 'on' | 'ON' | 'off' | 'OFF'
+<MSVS pragma directive fp_contract> ~ 'fp_contract'
+                                    | 'fp_contract' WS_any '(' WS_any ')'
+                                    | 'fp_contract' WS_any '(' WS_any <MSVS pragma directive fp_contract interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
