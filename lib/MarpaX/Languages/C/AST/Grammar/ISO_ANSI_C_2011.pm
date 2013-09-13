@@ -1842,6 +1842,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive function>
                         | <MSVS pragma directive hdrstop>
                         | <MSVS pragma directive include_alias>
+                        | <MSVS pragma directive inline_depth>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1992,5 +1993,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive include_alias interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
                                                | <MSVS pragma string 2> <MSVS pragma comma> <MSVS pragma string 2>
 <MSVS pragma directive include_alias> ~ 'include_alias' WS_any '(' WS_any <MSVS pragma directive include_alias interior> WS_any ')'
+
+# inline_depth( [n] )
+<MSVS pragma directive inline_depth interior> ~ <MSVS pragma number>
+<MSVS pragma directive inline_depth> ~ 'inline_depth' WS_any '(' WS_any ')'
+                                     | 'inline_depth' WS_any '(' WS_any <MSVS pragma directive inline_depth interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

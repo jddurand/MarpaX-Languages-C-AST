@@ -193,3 +193,9 @@ __pragma( hdrstop ("c:\\projects\\include\\myinc.pch") )
 // -------------
 __pragma( include_alias("mymath.h", "math.h"))
 __pragma( include_alias( <stdio.h>, <newstdio.h> ))
+
+// ------------
+// inline_depth
+// ------------
+__pragma( inline_depth ())
+__pragma( inline_depth ( 255 ))
