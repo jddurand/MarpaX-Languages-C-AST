@@ -188,3 +188,8 @@ __pragma( function(func1, func2))
 __pragma( hdrstop )
 __pragma( hdrstop ("c:\\projects\\include\\myinc.pch") )
 
+// -------------
+// include_alias
+// -------------
+__pragma( include_alias("mymath.h", "math.h"))
+__pragma( include_alias( <stdio.h>, <newstdio.h> ))

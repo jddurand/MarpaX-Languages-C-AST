@@ -1814,6 +1814,16 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
 <MSVS pragma string> ~ <MSVS pragma string unit>
                      | <MSVS pragma string> WS_any <MSVS pragma string unit>
+
+#
+# Same thing as STRING_LITERAL_INSIDE2 but with <> instead of "
+#
+STRING_LITERAL_INSIDE2 ~ [^<>\\\n]
+STRING_LITERAL_INSIDE2 ~ ES
+STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
+<MSVS pragma string unit 2> ~ '<' STRING_LITERAL_INSIDE2_any '>'
+<MSVS pragma string 2> ~ <MSVS pragma string unit 2>
+
 <MSVS pragma comma> ~ WS_any ',' WS_any
 
 <MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
@@ -1831,6 +1841,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive fp_contract>
                         | <MSVS pragma directive function>
                         | <MSVS pragma directive hdrstop>
+                        | <MSVS pragma directive include_alias>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1975,5 +1986,11 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive hdrstop interior> ~ <MSVS pragma string>
 <MSVS pragma directive hdrstop> ~ 'hdrstop'
                                 | 'hdrstop' WS_any '(' WS_any <MSVS pragma directive hdrstop interior> WS_any ')'
+
+# include_alias( "long_filename", "short_filename" )
+# include_alias( <long_filename>, <short_filename> )
+<MSVS pragma directive include_alias interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+                                               | <MSVS pragma string 2> <MSVS pragma comma> <MSVS pragma string 2>
+<MSVS pragma directive include_alias> ~ 'include_alias' WS_any '(' WS_any <MSVS pragma directive include_alias interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
