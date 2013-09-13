@@ -1811,19 +1811,22 @@ msvsAsmConstant ::= I_CONSTANT
 #
 <MSVS pragma identifier> ~ L A_any
 <MSVS pragma number> ~ [\d]+
+<MSVS pragma string> ~ '"' STRING_LITERAL_INSIDE_any '"'
+<MSVS pragma comma> ~ WS_any ',' WS_any
 
 <MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
                         | <MSVS pragma directive warning>
                         | <MSVS pragma directive bss_seg>
+                        | <MSVS pragma directive check_stack>
 
 # alloc_text( "textsection", function1, ... )
 <MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
-<MSVS pragma directive alloc_text interior> ~ '"' STRING_LITERAL_INSIDE_any '"'
-                                            | <MSVS pragma directive alloc_text interior> WS_any ',' WS_any <MSVS pragma directive alloc_text identifier list> WS_any
+<MSVS pragma directive alloc_text interior> ~ <MSVS pragma string>
+                                            | <MSVS pragma directive alloc_text interior> <MSVS pragma comma> <MSVS pragma directive alloc_text identifier list> WS_any
 <MSVS pragma directive alloc_text identifier list> ~ <MSVS pragma identifier>
-                                                   | <MSVS pragma directive alloc_text identifier list> WS_any ',' WS_any <MSVS pragma identifier> WS_any
+                                                   | <MSVS pragma directive alloc_text identifier list> <MSVS pragma comma> <MSVS pragma identifier> WS_any
 
 # auto_inline( [{on | off}] )
 <MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any ')'
@@ -1851,16 +1854,27 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive warning interior specifier number list> ~ <MSVS pragma number> WS_any 
                                                                | <MSVS pragma directive warning interior specifier number list> WS_many <MSVS pragma number> WS_any
 <MSVS pragma directive warning interior push> ~ 'push'
-                                              | 'push' WS_any ',' WS_any <MSVS pragma number>
+                                              | 'push' <MSVS pragma comma> <MSVS pragma number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
 
 # bss_seg( [ [ { push | pop }, ] [ identifier, ] ] [ "segment-name" [, "segment-class" ] )
 <MSVS pragma directive bss_seg push or pop> ~ 'push' | 'pop'
+<MSVS pragma directive bss_seg interior 1> ~ <MSVS pragma directive bss_seg push or pop>
+                                           | <MSVS pragma directive bss_seg push or pop> <MSVS pragma comma> <MSVS pragma identifier>
+                                           | <MSVS pragma identifier>
+<MSVS pragma directive bss_seg interior 2> ~ <MSVS pragma string>
+                                           | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+<MSVS pragma directive bss_seg interior> ~ <MSVS pragma directive bss_seg interior 1>
+                                         | <MSVS pragma directive bss_seg interior 2>
+                                         | <MSVS pragma directive bss_seg interior 1> <MSVS pragma comma> <MSVS pragma directive bss_seg interior 2>
 <MSVS pragma directive bss_seg> ~ 'bss_seg' WS_any '(' WS_any ')'
-                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ')'
-                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ')'
-                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ')'
-                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ')'
+                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg interior> WS_any ')'
+
+# check_stack([ {on | off}] )
+# check_stack{+|-}
+<MSVS pragma directive check_stack interior> ~ 'on' | 'off' | '+' | '-'
+<MSVS pragma directive check_stack> ~ 'check_stack' WS_any '(' WS_any ')'
+                                | 'check_stack' WS_any '(' WS_any <MSVS pragma directive check_stack interior> WS_any ')'
 
 
 :discard ~ <MSVS pragma>

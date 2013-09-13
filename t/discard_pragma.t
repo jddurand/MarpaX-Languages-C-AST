@@ -85,14 +85,23 @@ __pragma( warning( pop ) )
 // -------
 // pragma_directive_bss_seg.cpp
 int i;                     // stored in .bss
-#pragma bss_seg(".my_data1")
+__pragma( bss_seg(".my_data1") )
 int j;                     // stored in "my_data1"
 
-#pragma bss_seg(push, stack1, ".my_data2")   
+__pragma( bss_seg(push, stack1, ".my_data2")   )
 int l;                     // stored in "my_data2"
 
-#pragma bss_seg(pop, stack1)   // pop stack1 from stack
+__pragma( bss_seg(pop, stack1) )  // pop stack1 from stack
 int m;                     // stored in "stack_data1"
 
 int main() {
 }
+
+// -----------
+// check_stack
+// -----------
+__pragma( check_stack( ))
+__pragma( check_stack (on))
+__pragma( check_stack (off))
+__pragma( check_stack (+))
+__pragma( check_stack (-))
