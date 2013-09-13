@@ -31,14 +31,23 @@ my $valuep = $cAst->parse(\$cSourceCode);
 ok(defined($valuep), 'Output from parse() is ok');
 
 __DATA__
+// ----------
+// alloc_text
+// ----------
 __pragma( alloc_text( "textsection" ))
 __pragma( alloc_text( "textsection", function1 ))
 __pragma( alloc_text( "textsection", function1 , function2 ))
 
+// -----------
+// auto_inline
+// -----------
 __pragma( auto_inline())
 __pragma( auto_inline(on))
 __pragma( auto_inline(off))
 
+// -------
+// warning
+// -------
 __pragma( warning( disable : 4507 34; once : 4385; error : 164 ))
 // Disable warning messages 4507 and 4034.
 __pragma( warning( disable : 4507 34 ))
