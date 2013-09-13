@@ -206,3 +206,10 @@ __pragma( inline_depth ( 255 ))
 __pragma( inline_recursion ())
 __pragma( inline_recursion ( on ))
 __pragma( inline_recursion ( off ))
+
+// --------
+// intrinsic
+// --------
+__pragma( intrinsic(func1))
+__pragma( intrinsic(func1, func2))
+
