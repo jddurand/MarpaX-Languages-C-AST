@@ -1830,6 +1830,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive float_control>
                         | <MSVS pragma directive fp_contract>
                         | <MSVS pragma directive function>
+                        | <MSVS pragma directive hdrstop>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1969,5 +1970,10 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive function interior> ~ <MSVS pragma identifier>
                                             | <MSVS pragma directive function interior> <MSVS pragma comma> <MSVS pragma identifier>
 <MSVS pragma directive function> ~ 'function' WS_any '(' WS_any <MSVS pragma directive function interior> WS_any ')'
+
+# hdrstop [( "filename" )]
+<MSVS pragma directive hdrstop interior> ~ <MSVS pragma string>
+<MSVS pragma directive hdrstop> ~ 'hdrstop'
+                                | 'hdrstop' WS_any '(' WS_any <MSVS pragma directive hdrstop interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

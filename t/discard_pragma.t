@@ -182,3 +182,9 @@ __pragma( fp_contract(OFF))
 __pragma( function(func1))
 __pragma( function(func1, func2))
 
+// -------
+// hdrstop
+// -------
+__pragma( hdrstop )
+__pragma( hdrstop ("c:\\projects\\include\\myinc.pch") )
+
