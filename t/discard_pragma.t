@@ -136,3 +136,8 @@ __pragma( conform(forScope, show))
 // ----------
 __pragma( deprecated(func1))
 __pragma( deprecated(func1, func2))
+
+// ---------------
+// detect_mismatch
+// ---------------
+__pragma( detect_mismatch("myLib_version", "9"))

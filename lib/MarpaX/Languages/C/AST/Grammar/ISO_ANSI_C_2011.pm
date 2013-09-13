@@ -1825,6 +1825,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive component>
                         | <MSVS pragma directive conform>
                         | <MSVS pragma directive deprecated>
+                        | <MSVS pragma directive detect_mismatch>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1930,5 +1931,9 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive deprecated interior> ~ <MSVS pragma identifier>
                                             | <MSVS pragma directive deprecated interior> <MSVS pragma comma> <MSVS pragma identifier>
 <MSVS pragma directive deprecated> ~ 'deprecated' WS_any '(' WS_any <MSVS pragma directive deprecated interior> WS_any ')'
+
+# detect_mismatch( "name", "value")
+<MSVS pragma directive detect_mismatch interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+<MSVS pragma directive detect_mismatch> ~ 'detect_mismatch' WS_any '(' WS_any <MSVS pragma directive detect_mismatch interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
