@@ -176,3 +176,9 @@ __pragma( fp_contract(ON))
 __pragma( fp_contract(off))
 __pragma( fp_contract(OFF))
 
+// --------
+// function
+// --------
+__pragma( function(func1))
+__pragma( function(func1, func2))
+

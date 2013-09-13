@@ -1829,6 +1829,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive fenv_access>
                         | <MSVS pragma directive float_control>
                         | <MSVS pragma directive fp_contract>
+                        | <MSVS pragma directive function>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1963,5 +1964,10 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive fp_contract> ~ 'fp_contract'
                                     | 'fp_contract' WS_any '(' WS_any ')'
                                     | 'fp_contract' WS_any '(' WS_any <MSVS pragma directive fp_contract interior> WS_any ')'
+
+# function( function1 [,function2, ...] )
+<MSVS pragma directive function interior> ~ <MSVS pragma identifier>
+                                            | <MSVS pragma directive function interior> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive function> ~ 'function' WS_any '(' WS_any <MSVS pragma directive function interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
