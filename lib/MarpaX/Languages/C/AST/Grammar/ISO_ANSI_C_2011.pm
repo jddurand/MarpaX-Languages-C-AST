@@ -1838,7 +1838,8 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive warning interior> ~ <MSVS pragma directive warning interior specifier list>
                                          | <MSVS pragma directive warning interior push>
                                          | <MSVS pragma directive warning interior pop>
-<MSVS pragma directive warning interior specifier list> ~ <MSVS pragma directive warning interior specifier>+
+<MSVS pragma directive warning interior specifier list> ~ <MSVS pragma directive warning interior specifier> WS_any
+                                                        | <MSVS pragma directive warning interior specifier list> WS_any ';' WS_any <MSVS pragma directive warning interior specifier> WS_any
 <MSVS pragma directive warning interior specifier keyword> ~ '1' | '2' | '3' | '4'
                                                            | 'default'
                                                            | 'disable'
