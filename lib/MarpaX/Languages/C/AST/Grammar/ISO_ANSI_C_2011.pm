@@ -1816,6 +1816,7 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
                         | <MSVS pragma directive warning>
+                        | <MSVS pragma directive bss_seg>
 
 # alloc_text( "textsection", function1, ... )
 <MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
@@ -1852,4 +1853,14 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive warning interior push> ~ 'push'
                                               | 'push' WS_any ',' WS_any <MSVS pragma number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
+
+# bss_seg( [ [ { push | pop }, ] [ identifier, ] ] [ "segment-name" [, "segment-class" ] )
+<MSVS pragma directive bss_seg push or pop> ~ 'push' | 'pop'
+<MSVS pragma directive bss_seg> ~ 'bss_seg' WS_any '(' WS_any ')'
+                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ')'
+                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ')'
+                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ')'
+                                | 'bss_seg' WS_any '(' WS_any <MSVS pragma directive bss_seg push or pop> WS_any ',' <MSVS pragma identifier> WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ',' '"' STRING_LITERAL_INSIDE_any '"' WS_any ')'
+
+
 :discard ~ <MSVS pragma>
