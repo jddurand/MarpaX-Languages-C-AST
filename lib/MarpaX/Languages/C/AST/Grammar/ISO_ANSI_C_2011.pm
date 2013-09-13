@@ -1827,6 +1827,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive deprecated>
                         | <MSVS pragma directive detect_mismatch>
                         | <MSVS pragma directive fenv_access>
+                        | <MSVS pragma directive float_control>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1944,5 +1945,14 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive fenv_access> ~ 'fenv_access'
                                     | 'fenv_access' WS_any '(' WS_any ')'
                                     | 'fenv_access' WS_any '(' WS_any <MSVS pragma directive fenv_access interior> WS_any ')'
+
+# float_control( value,setting [push] | push | pop )
+<MSVS pragma directive float_control interior value> ~ 'precise' | 'except'
+<MSVS pragma directive float_control interior setting> ~ 'on' | 'off'
+<MSVS pragma directive float_control interior> ~ <MSVS pragma directive float_control interior value> <MSVS pragma comma> <MSVS pragma directive float_control interior setting> 
+                                               | <MSVS pragma directive float_control interior value> <MSVS pragma comma> <MSVS pragma directive float_control interior setting> WS_any 'push'
+                                               | 'push'
+                                               | 'pop'
+<MSVS pragma directive float_control> ~ 'float_control' WS_any '(' WS_any <MSVS pragma directive float_control interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

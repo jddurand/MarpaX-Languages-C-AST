@@ -152,3 +152,16 @@ __pragma( fenv_access(ON))
 __pragma( fenv_access(off))
 __pragma( fenv_access(OFF))
 
+// -------------
+// float_control
+// -------------
+__pragma( float_control(except, off) )
+__pragma( float_control(except, off push) )
+__pragma( float_control(precise, off) )
+__pragma( float_control(precise, off push) )
+__pragma( float_control(precise, on) )
+__pragma( float_control(precise, on push) )
+__pragma( float_control(except, on) )
+__pragma( float_control(except, on push) )
+__pragma( float_control(push) )
+__pragma( float_control(pop) )
