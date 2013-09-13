@@ -199,3 +199,10 @@ __pragma( include_alias( <stdio.h>, <newstdio.h> ))
 // ------------
 __pragma( inline_depth ())
 __pragma( inline_depth ( 255 ))
+
+// ----------------
+// inline_recursion
+// ----------------
+__pragma( inline_recursion ())
+__pragma( inline_recursion ( on ))
+__pragma( inline_recursion ( off ))

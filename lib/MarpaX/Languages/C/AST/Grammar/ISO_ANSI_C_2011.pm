@@ -1843,6 +1843,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive hdrstop>
                         | <MSVS pragma directive include_alias>
                         | <MSVS pragma directive inline_depth>
+                        | <MSVS pragma directive inline_recursion>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1998,5 +1999,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive inline_depth interior> ~ <MSVS pragma number>
 <MSVS pragma directive inline_depth> ~ 'inline_depth' WS_any '(' WS_any ')'
                                      | 'inline_depth' WS_any '(' WS_any <MSVS pragma directive inline_depth interior> WS_any ')'
+
+# inline_recursion( [{on | off}] )
+<MSVS pragma directive inline_recursion interior> ~ 'on' | 'off'
+<MSVS pragma directive inline_recursion> ~ 'inline_recursion' WS_any '(' WS_any ')'
+                                     | 'inline_recursion' WS_any '(' WS_any <MSVS pragma directive inline_recursion interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
