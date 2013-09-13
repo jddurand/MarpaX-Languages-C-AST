@@ -141,3 +141,14 @@ __pragma( deprecated(func1, func2))
 // detect_mismatch
 // ---------------
 __pragma( detect_mismatch("myLib_version", "9"))
+
+// -----------
+// fenv_access
+// -----------
+__pragma( fenv_access)
+__pragma( fenv_access(  ))
+__pragma( fenv_access(on))
+__pragma( fenv_access(ON))
+__pragma( fenv_access(off))
+__pragma( fenv_access(OFF))
+

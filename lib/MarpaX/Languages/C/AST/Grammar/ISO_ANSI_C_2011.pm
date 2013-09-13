@@ -1826,6 +1826,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive conform>
                         | <MSVS pragma directive deprecated>
                         | <MSVS pragma directive detect_mismatch>
+                        | <MSVS pragma directive fenv_access>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1935,5 +1936,13 @@ msvsAsmConstant ::= I_CONSTANT
 # detect_mismatch( "name", "value")
 <MSVS pragma directive detect_mismatch interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
 <MSVS pragma directive detect_mismatch> ~ 'detect_mismatch' WS_any '(' WS_any <MSVS pragma directive detect_mismatch interior> WS_any ')'
+
+# fenv_access [ON | OFF]
+# Are the parenthesis necessary ? don't know - assume not
+# on or ON, off or OFF ? Assume all.
+<MSVS pragma directive fenv_access interior> ~ 'on' | 'ON' | 'off' | 'OFF'
+<MSVS pragma directive fenv_access> ~ 'fenv_access'
+                                    | 'fenv_access' WS_any '(' WS_any ')'
+                                    | 'fenv_access' WS_any '(' WS_any <MSVS pragma directive fenv_access interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
