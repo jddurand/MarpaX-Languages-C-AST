@@ -79,3 +79,20 @@ __pragma( warning( pop ) )
 __pragma( warning( push, 3 ))
 // Declarations/definitions
 __pragma( warning( pop ) )
+
+// -------
+// bss_seg
+// -------
+// pragma_directive_bss_seg.cpp
+int i;                     // stored in .bss
+#pragma bss_seg(".my_data1")
+int j;                     // stored in "my_data1"
+
+#pragma bss_seg(push, stack1, ".my_data2")   
+int l;                     // stored in "my_data2"
+
+#pragma bss_seg(pop, stack1)   // pop stack1 from stack
+int m;                     // stored in "stack_data1"
+
+int main() {
+}
