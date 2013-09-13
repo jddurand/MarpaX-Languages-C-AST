@@ -1811,7 +1811,9 @@ msvsAsmConstant ::= I_CONSTANT
 #
 <MSVS pragma identifier> ~ L A_any
 <MSVS pragma number> ~ [\d]+
-<MSVS pragma string> ~ '"' STRING_LITERAL_INSIDE_any '"'
+<MSVS pragma string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
+<MSVS pragma string> ~ <MSVS pragma string unit>
+                     | <MSVS pragma string> WS_any <MSVS pragma string unit>
 <MSVS pragma comma> ~ WS_any ',' WS_any
 
 <MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
@@ -1819,6 +1821,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive auto_inline>
                         | <MSVS pragma directive warning>
                         | <MSVS pragma directive common seg>
+                        | <MSVS pragma directive comment>
                         | <MSVS pragma directive check_stack>
 
 # alloc_text( "textsection", function1, ... )
@@ -1877,5 +1880,10 @@ msvsAsmConstant ::= I_CONSTANT
 <MSVS pragma directive check_stack> ~ 'check_stack' WS_any '(' WS_any ')'
                                 | 'check_stack' WS_any '(' WS_any <MSVS pragma directive check_stack interior> WS_any ')'
 
+# comment( comment-type [,"commentstring"] )
+<MSVS pragma directive comment interior type> ~ 'compiler' | 'exestr' | 'lib' | 'linker' | 'user'
+<MSVS pragma directive comment interior> ~ <MSVS pragma directive comment interior type>
+                                         | <MSVS pragma directive comment interior type> <MSVS pragma comma> <MSVS pragma string>
+<MSVS pragma directive comment> ~ 'comment' WS_any '(' WS_any <MSVS pragma directive comment interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

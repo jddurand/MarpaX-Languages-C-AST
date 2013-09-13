@@ -97,3 +97,11 @@ __pragma( check_stack (on))
 __pragma( check_stack (off))
 __pragma( check_stack (+))
 __pragma( check_stack (-))
+
+// -------
+// comment
+// -------
+__pragma( comment(linker, "/include:__mySymbol"))
+__pragma( comment( lib, "emapi" ) )
+__pragma( comment( compiler ))
+__pragma( comment( user, "Compiled on " "Some date" " at " "Some hour" ) )
