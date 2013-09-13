@@ -118,3 +118,15 @@ __pragma( component( minrebuild, on ) )
 __pragma( component( minrebuild, off ) )
 __pragma( component( mintypeinfo, on ) )
 __pragma( component( mintypeinfo, off ) )
+
+// -------
+// conform
+// -------
+__pragma( conform(forScope, show))
+__pragma( conform(forScope, push, x, on))
+__pragma( conform(forScope, push, x1, off))
+__pragma( conform(forScope, push, x2, off))
+__pragma( conform(forScope, push, x3, off))
+__pragma( conform(forScope, show))
+__pragma( conform(forScope, pop, x1))
+__pragma( conform(forScope, show))

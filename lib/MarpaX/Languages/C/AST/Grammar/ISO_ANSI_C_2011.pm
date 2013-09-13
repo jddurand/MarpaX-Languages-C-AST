@@ -1823,6 +1823,7 @@ msvsAsmConstant ::= I_CONSTANT
                         | <MSVS pragma directive check_stack>
                         | <MSVS pragma directive comment>
                         | <MSVS pragma directive component>
+                        | <MSVS pragma directive conform>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1904,5 +1905,24 @@ msvsAsmConstant ::= I_CONSTANT
                                            | <MSVS pragma directive component interior minrebuild>
                                            | <MSVS pragma directive component interior mintypeinfo>
 <MSVS pragma directive component> ~ 'component' WS_any '(' WS_any <MSVS pragma directive component interior> WS_any ')'
+
+# conform(name [, show ] [, on | off ] [ [, push | pop ] [, identifier ] ] )
+# Note: the examples do not conform to this specification, i.e.:
+# conform(forScope, push, x, on)
+# Therefore we consider that the components show, on/off, push/pop and identifier could appear in any order (and in fact as many times as needed)
+
+<MSVS pragma directive conform interior name> ~ 'forScope'
+<MSVS pragma directive conform interior show> ~ 'show'
+<MSVS pragma directive conform interior on off> ~ 'on' | 'off'
+<MSVS pragma directive conform interior push pop> ~ 'push' | 'pop'
+<MSVS pragma directive conform interior> ~ <MSVS pragma directive conform interior name>
+                                           | <MSVS pragma directive conform interior name> <MSVS pragma comma> <MSVS pragma directive conform interior optional>
+<MSVS pragma directive conform interior optional unit> ~ <MSVS pragma directive conform interior show>
+                                                         | <MSVS pragma directive conform interior on off>
+                                                         | <MSVS pragma directive conform interior push pop>
+                                                         | <MSVS pragma identifier>
+<MSVS pragma directive conform interior optional> ~ <MSVS pragma directive conform interior optional unit>
+                                                    | <MSVS pragma directive conform interior optional> <MSVS pragma comma> <MSVS pragma directive conform interior optional unit>
+<MSVS pragma directive conform> ~ 'conform' WS_any '(' WS_any <MSVS pragma directive conform interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
