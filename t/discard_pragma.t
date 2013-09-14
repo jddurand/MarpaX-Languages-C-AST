@@ -257,3 +257,17 @@ __pragma( optimize( "ts", on ))
 __pragma( optimize( "", off ))
 __pragma( optimize( "", on ))
 
+// ----
+// pack
+// ----
+__pragma(pack(2))
+__pragma(pack())   // n defaults to 8; equivalent to /Zp8
+__pragma(pack(show))   // C4810
+__pragma(pack(4))   // n = 4
+__pragma(pack(show))   // C4810
+__pragma(pack(push, r1, 16))   // n = 16, pushed to stack
+__pragma(pack(push, 16))   // n = 16, pushed to stack
+__pragma(pack(show))   // C4810
+__pragma(pack(pop, r1, 2))   // n = 2 , stack popped
+__pragma(pack(pop, 2))   // n = 2 , stack popped
+__pragma(pack(show))   // C4810

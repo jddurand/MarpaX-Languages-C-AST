@@ -1854,6 +1854,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			# | <MSVS pragma directive omp>
 			| <MSVS pragma directive once>
 			| <MSVS pragma directive optimize>
+			| <MSVS pragma directive pack>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2061,5 +2062,19 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive optimize interior on off> ~ 'on' | 'off'
 <MSVS pragma directive optimize interior> ~ <MSVS pragma directive optimize interior optimizationList> <MSVS pragma comma> <MSVS pragma directive optimize interior on off>
 <MSVS pragma directive optimize> ~ 'optimize' WS_any '(' WS_any <MSVS pragma directive optimize interior> WS_any ')'
+
+# pack( [ show ] | [ push | pop ] [, identifier ] , n  )
+<MSVS pragma directive pack interior show> ~ 'show'
+<MSVS pragma directive pack interior 1> ~ <MSVS pragma directive pack interior show>
+<MSVS pragma directive pack interior push pop> ~ 'push' | 'pop'
+<MSVS pragma directive pack interior 21> ~ <MSVS pragma directive pack interior push pop>
+                                         | <MSVS pragma identifier>
+                                         | <MSVS pragma directive pack interior push pop> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive pack interior 2> ~ <MSVS pragma number>
+                                        | <MSVS pragma directive pack interior 21> <MSVS pragma comma> <MSVS pragma number>
+<MSVS pragma directive pack interior> ~ <MSVS pragma directive pack interior 1>
+                                      | <MSVS pragma directive pack interior 2>
+<MSVS pragma directive pack> ~ 'pack' WS_any '(' WS_any ')'
+                             | 'pack' WS_any '(' WS_any <MSVS pragma directive pack interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
