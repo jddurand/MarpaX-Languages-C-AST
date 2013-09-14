@@ -1078,10 +1078,14 @@ GCC_ALIGNOF ~ 'alignof'
 MSVS_ASM ~ '__asm'
 :lexeme ~ <MSVS_FASTCALL>            priority => -60
 MSVS_FASTCALL ~ '__fastcall'
+:lexeme ~ <MSVS_THISCALL>            priority => -60
+MSVS_THISCALL ~ '__thiscall'
 :lexeme ~ <MSVS_BASED>               priority => -60
 MSVS_BASED ~ '__based'
 :lexeme ~ <MSVS_CDECL>               priority => -60
 MSVS_CDECL ~ '__cdecl'
+:lexeme ~ <MSVS_CLRCALL>             priority => -60
+MSVS_CLRCALL ~ '__clrcall'
 :lexeme ~ <MSVS___C_ASSERT__>        priority => -60
 MSVS___C_ASSERT__ ~ '__C_ASSERT__'
 :lexeme ~ <MSVS_STDCALL>             priority => -60
@@ -1540,7 +1544,7 @@ offsetofMemberDesignator ::=   IDENTIFIER
 #
 # Microsoft Extensions
 #
-msvsAttribute ::= MSVS_ASM | MSVS_FASTCALL | MSVS_BASED | MSVS_CDECL | MSVS_STDCALL
+msvsAttribute ::= MSVS_ASM | MSVS_FASTCALL | MSVS_BASED | MSVS_CDECL | MSVS_CLRCALL | MSVS_STDCALL | MSVS_THISCALL
 
 msvsBuiltinType ::=  MSVS_INT8
                   | MSVS_INT16
