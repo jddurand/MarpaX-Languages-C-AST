@@ -301,3 +301,11 @@ __pragma(endregion(ThisRegion))
 __pragma(runtime_checks( "sc", restore ))
 __pragma(runtime_checks( "", off ))
 __pragma(runtime_checks( "", restore )) 
+
+// -------
+// section
+// -------
+__pragma(section("mysec"))
+__pragma(section("mysec",read))
+__pragma(section("mysec",read, write))
+

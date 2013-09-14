@@ -1861,6 +1861,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive region>
 			| <MSVS pragma directive endregion>
 			| <MSVS pragma directive runtime_checks>
+			| <MSVS pragma directive section>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2114,5 +2115,13 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive runtime_checks interior on off> ~ 'restore' | 'off'
 <MSVS pragma directive runtime_checks interior> ~ <MSVS pragma directive runtime_checks interior optimizationList> <MSVS pragma comma> <MSVS pragma directive runtime_checks interior on off>
 <MSVS pragma directive runtime_checks> ~ 'runtime_checks' WS_any '(' WS_any <MSVS pragma directive runtime_checks interior> WS_any ')'
+
+# section( "section-name" [, attributes] )
+<MSVS pragma directive section interior attribute> ~ 'read' | 'write' | 'execute' | 'shared' | 'nopage' | 'nocache' | 'discard' | 'remove'
+<MSVS pragma directive section interior attribute list> ~ <MSVS pragma directive section interior attribute>
+                                                        | <MSVS pragma directive section interior attribute list> <MSVS pragma comma> <MSVS pragma directive section interior attribute>
+<MSVS pragma directive section interior> ~ <MSVS pragma string>
+                                         | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma directive section interior attribute list>
+<MSVS pragma directive section> ~ 'section' WS_any '(' WS_any <MSVS pragma directive section interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
