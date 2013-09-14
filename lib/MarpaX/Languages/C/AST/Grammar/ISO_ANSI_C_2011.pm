@@ -1103,6 +1103,10 @@ MSVS_ALLOCATE ~ 'allocate'
 MSVS_ALIGN ~ 'align'
 :lexeme ~ <MSVS_DLLIMPORT>           priority => -60
 MSVS_DLLIMPORT ~ 'dllimport'
+:lexeme ~ <MSVS_APPDOMAIN>           priority => -60
+MSVS_APPDOMAIN ~ 'appdomain'
+:lexeme ~ <MSVS_JITINTRINSIC>        priority => -60
+MSVS_JITINTRINSIC ~ 'jitintrinsic'
 :lexeme ~ <MSVS_DLLEXPORT>           priority => -60
 MSVS_DLLEXPORT ~ 'dllexport'
 :lexeme ~ <MSVS_NAKED>               priority => -60
@@ -1127,6 +1131,12 @@ MSVS_THREAD ~ 'thread'
 MSVS_UUID ~ 'uuid'
 :lexeme ~ <MSVS_INLINE>              priority => -60
 MSVS_INLINE ~ '__inline'
+:lexeme ~ <MSVS_NOINLINE>            priority => -60
+MSVS_NOINLINE ~ 'noinline'
+:lexeme ~ <MSVS_SAFEBUFFERS>         priority => -60
+MSVS_SAFEBUFFERS ~ 'safebuffers'
+:lexeme ~ <MSVS_PROCESS>             priority => -60
+MSVS_PROCESS ~ 'process'
 :lexeme ~ <MSVS_FORCEINLINE>         priority => -60
 MSVS_FORCEINLINE ~ '__forceinline'
 :lexeme ~ <MSVS_AT>                  priority => -60
@@ -1593,11 +1603,16 @@ msvsPropertyList ::= IDENTIFIER EQUAL IDENTIFIER
 
 msvsExtendedDeclModifier ::=   MSVS_ALLOCATE LPAREN string RPAREN
                            | MSVS_ALIGN LPAREN unaryExpression RPAREN
+                           | MSVS_APPDOMAIN
+                           | MSVS_JITINTRINSIC
+                           | MSVS_NOINLINE
+                           | MSVS_PROCESS
                            | MSVS_DLLIMPORT
                            | MSVS_DLLEXPORT
                            | MSVS_NAKED
                            | MSVS_NORETURN
                            | MSVS_NOALIAS
+                           | MSVS_SAFEBUFFERS
                            | MSVS_DEPRECATED
                            | MSVS_DEPRECATED LPAREN RPAREN
                            | MSVS_DEPRECATED LPAREN string RPAREN
