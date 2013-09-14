@@ -309,3 +309,8 @@ __pragma(section("mysec"))
 __pragma(section("mysec",read))
 __pragma(section("mysec",read, write))
 
+// -------
+// setlocale
+// -------
+__pragma( setlocale("dutch"))
+
