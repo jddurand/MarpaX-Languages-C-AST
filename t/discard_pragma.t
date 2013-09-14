@@ -275,5 +275,13 @@ __pragma(pack(show))   // C4810
 // -------------------
 // pointers_to_members
 // -------------------
-
 __pragma( pointers_to_members( full_generality, single_inheritance ))
+
+// --------------------
+// pop_macro/push_macro
+// --------------------
+   __pragma(push_macro("Y"))
+   __pragma(push_macro("X"))
+   __pragma(pop_macro("X"))
+   __pragma(pop_macro("Y"))
+

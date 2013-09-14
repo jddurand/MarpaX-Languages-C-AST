@@ -1856,6 +1856,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive optimize>
 			| <MSVS pragma directive pack>
 			| <MSVS pragma directive pointers_to_members>
+			| <MSVS pragma directive pop_macro>
+			| <MSVS pragma directive push_macro>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2084,5 +2086,11 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive pointers_to_members interior> ~ <MSVS pragma directive pointers_to_members interior pointer declaration>
                                                      | <MSVS pragma directive pointers_to_members interior pointer declaration> <MSVS pragma comma> <MSVS pragma directive pointers_to_members interior most general representation>
 <MSVS pragma directive pointers_to_members> ~ 'pointers_to_members' WS_any '(' WS_any <MSVS pragma directive pointers_to_members interior> WS_any ')'
+
+# pop_macro("macro_name")
+<MSVS pragma directive pop_macro> ~ 'pop_macro' WS_any '(' WS_any <MSVS pragma string> WS_any ')'
+
+# push_macro("macro_name")
+<MSVS pragma directive push_macro> ~ 'push_macro' WS_any '(' WS_any <MSVS pragma string> WS_any ')'
 
 :discard ~ <MSVS pragma>
