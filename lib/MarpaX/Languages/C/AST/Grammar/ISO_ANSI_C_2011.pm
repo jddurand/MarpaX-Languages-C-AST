@@ -476,7 +476,6 @@ typeQualifier
 functionSpecifier
 	::= INLINE
 	| NORETURN
-        | msvsFunctionSpecifier
 
 alignmentSpecifier
 	::= ALIGNAS LPAREN typeName RPAREN
@@ -793,6 +792,7 @@ INLINE        ~ 'inline'
 INLINE        ~ '__inline__'
 INLINE        ~ 'inline__'
 INLINE        ~ '__inline'
+INLINE        ~ '__forceinline'           # MSVS
 :lexeme ~ <INT>           priority => -18
 INT           ~ 'int'
 :lexeme ~ <LONG>          priority => -19
@@ -1094,10 +1094,6 @@ MSVS_INT16 ~ '__int16'
 MSVS_INT32 ~ '__int32'
 :lexeme ~ <MSVS_INT64>               priority => -60
 MSVS_INT64 ~ '__int64'
-:lexeme ~ <MSVS_INLINE>              priority => -60
-MSVS_INLINE ~ '__inline'
-:lexeme ~ <MSVS_FORCEINLINE>         priority => -60
-MSVS_FORCEINLINE ~ '__forceinline'
 :lexeme ~ <MSVS_AT>                  priority => -60
 MSVS_AT ~ '@'
 :lexeme ~ <MSVS_W64>                 priority => -60
@@ -1550,9 +1546,6 @@ msvsBuiltinType ::=  MSVS_INT8
                   | MSVS_INT16
                   | MSVS_INT32
                   | MSVS_INT64
-
-msvsFunctionSpecifier ::= MSVS_INLINE
-                        | MSVS_FORCEINLINE
 
 msvsAsmStatementDirectiveList ::= msvsAsmDirective+
 
