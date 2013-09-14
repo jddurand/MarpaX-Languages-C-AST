@@ -314,3 +314,11 @@ __pragma(section("mysec",read, write))
 // -------
 __pragma( setlocale("dutch"))
 
+// -------
+// strict_gs_check
+// -------
+__pragma( strict_gs_check(push, on))
+__pragma( strict_gs_check(on))
+__pragma( strict_gs_check(push, off))
+__pragma( strict_gs_check(off))
+__pragma( strict_gs_check(pop))

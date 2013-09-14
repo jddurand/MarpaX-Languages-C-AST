@@ -1863,6 +1863,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive runtime_checks>
 			| <MSVS pragma directive section>
 			| <MSVS pragma directive setlocale>
+			| <MSVS pragma directive strict_gs_check>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2128,5 +2129,15 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # setlocale( "[locale-string]" )
 <MSVS pragma directive setlocale interior> ~ <MSVS pragma string>
 <MSVS pragma directive setlocale> ~ 'setlocale' WS_any '(' WS_any <MSVS pragma directive setlocale interior> WS_any ')'
+
+# strict_gs_check([push,] on )
+# strict_gs_check([push,] off )
+# strict_gs_check(pop)
+<MSVS pragma directive strict_gs_check interior> ~ 'on'
+                                                 | 'push' <MSVS pragma comma> 'on'
+                                                 | 'off'
+                                                 | 'push' <MSVS pragma comma> 'off'
+                                                 | 'pop'
+<MSVS pragma directive strict_gs_check> ~ 'strict_gs_check' WS_any '(' WS_any <MSVS pragma directive strict_gs_check interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
