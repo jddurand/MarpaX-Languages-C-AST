@@ -365,7 +365,6 @@ storageClassSpecifier
 	| THREAD_LOCAL
 	| AUTO
 	| REGISTER
-        | msvsDeclspec
 
 typeSpecifier
 	::= VOID
@@ -394,7 +393,7 @@ structContextStart ::=
 event 'structContextEnd[]' = nulled <structContextEnd>
 structContextEnd ::=
 
-structOrUnionSpecifierCompilerAttribute ::= gccAttributeMany | msvsDeclspec
+structOrUnionSpecifierCompilerAttribute ::= gccAttributeMany
 
 structOrUnionSpecifier
         # gccAttributeMany just after struct or union keyword
@@ -1095,54 +1094,12 @@ MSVS_INT16 ~ '__int16'
 MSVS_INT32 ~ '__int32'
 :lexeme ~ <MSVS_INT64>               priority => -60
 MSVS_INT64 ~ '__int64'
-:lexeme ~ <MSVS_DECLSPEC>            priority => -60
-MSVS_DECLSPEC ~ '__declspec'
-:lexeme ~ <MSVS_ALLOCATE>            priority => -60
-MSVS_ALLOCATE ~ 'allocate'
-:lexeme ~ <MSVS_ALIGN>               priority => -60
-MSVS_ALIGN ~ 'align'
-:lexeme ~ <MSVS_DLLIMPORT>           priority => -60
-MSVS_DLLIMPORT ~ 'dllimport'
-:lexeme ~ <MSVS_APPDOMAIN>           priority => -60
-MSVS_APPDOMAIN ~ 'appdomain'
-:lexeme ~ <MSVS_JITINTRINSIC>        priority => -60
-MSVS_JITINTRINSIC ~ 'jitintrinsic'
-:lexeme ~ <MSVS_DLLEXPORT>           priority => -60
-MSVS_DLLEXPORT ~ 'dllexport'
-:lexeme ~ <MSVS_NAKED>               priority => -60
-MSVS_NAKED ~ 'naked'
-:lexeme ~ <MSVS_NORETURN>            priority => -60
-MSVS_NORETURN ~ 'noreturn'
-:lexeme ~ <MSVS_NOALIAS>             priority => -60
-MSVS_NOALIAS ~ 'noalias'
-:lexeme ~ <MSVS_DEPRECATED>          priority => -60
-MSVS_DEPRECATED ~ 'deprecated'
-:lexeme ~ <MSVS_RESTRICT>            priority => -60
-MSVS_RESTRICT ~ 'restrict'
-:lexeme ~ <MSVS_NOVTABLE>            priority => -60
-MSVS_NOVTABLE ~ 'novtable'
-:lexeme ~ <MSVS_PROPERTY>            priority => -60
-MSVS_PROPERTY ~ 'property'
-:lexeme ~ <MSVS_SELECTANY>           priority => -60
-MSVS_SELECTANY ~ 'selectany'
-:lexeme ~ <MSVS_THREAD>              priority => -60
-MSVS_THREAD ~ 'thread'
-:lexeme ~ <MSVS_UUID>                priority => -60
-MSVS_UUID ~ 'uuid'
 :lexeme ~ <MSVS_INLINE>              priority => -60
 MSVS_INLINE ~ '__inline'
-:lexeme ~ <MSVS_NOINLINE>            priority => -60
-MSVS_NOINLINE ~ 'noinline'
-:lexeme ~ <MSVS_SAFEBUFFERS>         priority => -60
-MSVS_SAFEBUFFERS ~ 'safebuffers'
-:lexeme ~ <MSVS_PROCESS>             priority => -60
-MSVS_PROCESS ~ 'process'
 :lexeme ~ <MSVS_FORCEINLINE>         priority => -60
 MSVS_FORCEINLINE ~ '__forceinline'
 :lexeme ~ <MSVS_AT>                  priority => -60
 MSVS_AT ~ '@'
-:lexeme ~ <MSVS_NOTHROW>             priority => -60
-MSVS_NOTHROW ~ 'NOTHROW'
 :lexeme ~ <MSVS_W64>                 priority => -60
 MSVS_W64 ~ '__w64'
 :lexeme ~ <MSVS_PTR32>               priority => -60
@@ -1594,37 +1551,6 @@ msvsBuiltinType ::=  MSVS_INT8
                   | MSVS_INT32
                   | MSVS_INT64
 
-msvsExtendedDeclModifierList ::= msvsExtendedDeclModifier*
-
-msvsDeclspec ::= MSVS_DECLSPEC LPAREN msvsExtendedDeclModifierList RPAREN
-
-msvsPropertyList ::= IDENTIFIER EQUAL IDENTIFIER
-                   | COMMA msvsPropertyList
-
-msvsExtendedDeclModifier ::=   MSVS_ALLOCATE LPAREN string RPAREN
-                           | MSVS_ALIGN LPAREN unaryExpression RPAREN
-                           | MSVS_APPDOMAIN
-                           | MSVS_JITINTRINSIC
-                           | MSVS_NOINLINE
-                           | MSVS_PROCESS
-                           | MSVS_DLLIMPORT
-                           | MSVS_DLLEXPORT
-                           | MSVS_NAKED
-                           | MSVS_NORETURN
-                           | MSVS_NOALIAS
-                           | MSVS_SAFEBUFFERS
-                           | MSVS_DEPRECATED
-                           | MSVS_DEPRECATED LPAREN RPAREN
-                           | MSVS_DEPRECATED LPAREN string RPAREN
-                           | MSVS_RESTRICT
-                           | MSVS_NOTHROW
-                           | MSVS_NOVTABLE
-                           | MSVS_PROPERTY LPAREN RPAREN
-                           | MSVS_PROPERTY LPAREN msvsPropertyList RPAREN
-                           | MSVS_SELECTANY
-                           | MSVS_THREAD
-                           | MSVS_UUID LPAREN string RPAREN
-
 msvsFunctionSpecifier ::= MSVS_INLINE
                         | MSVS_FORCEINLINE
 
@@ -1820,27 +1746,31 @@ msvsAsmConstant ::= I_CONSTANT
 <Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
 :discard ~ <Cpp style directive>
 
-#############################################################################################
-# Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
-# with the C grammar
-#############################################################################################
-<MSVS pragma identifier> ~ L A_any
-<MSVS pragma number> ~ [\d]+
-<MSVS pragma string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
-<MSVS pragma string> ~ <MSVS pragma string unit>
-                     | <MSVS pragma string> WS_any <MSVS pragma string unit>
+#####################
+# G0 specific "tools"
+#####################
+<G0 identifier> ~ L A_any
+<G0 number> ~ [\d]+
+<G0 string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
+<G0 string> ~ <G0 string unit>
+                     | <G0 string> WS_any <G0 string unit>
 
 #
-# Same thing as STRING_LITERAL_INSIDE2 but with <> instead of "
+# Same thing as <G0 string> but with <> instead of "
 #
 STRING_LITERAL_INSIDE2 ~ [^<>\\\n]
 STRING_LITERAL_INSIDE2 ~ ES
 STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
-<MSVS pragma string unit 2> ~ '<' STRING_LITERAL_INSIDE2_any '>'
-<MSVS pragma string 2> ~ <MSVS pragma string unit 2>
+<G0 string unit 2> ~ '<' STRING_LITERAL_INSIDE2_any '>'
+<G0 string 2> ~ <G0 string unit 2>
 
-<MSVS pragma comma> ~ WS_any ',' WS_any
+<G0 comma> ~ WS_any ',' WS_any
+<G0 equal> ~ WS_any '=' WS_any
 
+#############################################################################################
+# Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
+# with the C grammar
+#############################################################################################
 <MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
@@ -1884,10 +1814,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 # alloc_text( "textsection", function1, ... )
 <MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
-<MSVS pragma directive alloc_text interior> ~ <MSVS pragma string>
-                                            | <MSVS pragma directive alloc_text interior> <MSVS pragma comma> <MSVS pragma directive alloc_text identifier list> WS_any
-<MSVS pragma directive alloc_text identifier list> ~ <MSVS pragma identifier>
-                                                   | <MSVS pragma directive alloc_text identifier list> <MSVS pragma comma> <MSVS pragma identifier> WS_any
+<MSVS pragma directive alloc_text interior> ~ <G0 string>
+                                            | <MSVS pragma directive alloc_text interior> <G0 comma> <MSVS pragma directive alloc_text identifier list> WS_any
+<MSVS pragma directive alloc_text identifier list> ~ <G0 identifier>
+                                                   | <MSVS pragma directive alloc_text identifier list> <G0 comma> <G0 identifier> WS_any
 
 # auto_inline( [{on | off}] )
 <MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any ')'
@@ -1912,22 +1842,22 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                                            | 'once'
                                                            | 'suppress'
 <MSVS pragma directive warning interior specifier> ~ <MSVS pragma directive warning interior specifier keyword> WS_any ':' WS_any <MSVS pragma directive warning interior specifier number list>
-<MSVS pragma directive warning interior specifier number list> ~ <MSVS pragma number> WS_any 
-                                                               | <MSVS pragma directive warning interior specifier number list> WS_many <MSVS pragma number> WS_any
+<MSVS pragma directive warning interior specifier number list> ~ <G0 number> WS_any 
+                                                               | <MSVS pragma directive warning interior specifier number list> WS_many <G0 number> WS_any
 <MSVS pragma directive warning interior push> ~ 'push'
-                                              | 'push' <MSVS pragma comma> <MSVS pragma number>
+                                              | 'push' <G0 comma> <G0 number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
 
 # [bss|code]_seg( [ [ { push | pop }, ] [ identifier, ] ] [ "segment-name" [, "segment-class" ] )
 <MSVS pragma directive common seg push or pop> ~ 'push' | 'pop'
 <MSVS pragma directive common seg interior 1> ~ <MSVS pragma directive common seg push or pop>
-                                              | <MSVS pragma directive common seg push or pop> <MSVS pragma comma> <MSVS pragma identifier>
-                                              | <MSVS pragma identifier>
-<MSVS pragma directive common seg interior 2> ~ <MSVS pragma string>
-                                              | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+                                              | <MSVS pragma directive common seg push or pop> <G0 comma> <G0 identifier>
+                                              | <G0 identifier>
+<MSVS pragma directive common seg interior 2> ~ <G0 string>
+                                              | <G0 string> <G0 comma> <G0 string>
 <MSVS pragma directive common seg interior> ~ <MSVS pragma directive common seg interior 1>
-                                     | <MSVS pragma directive common seg interior 2>
-                                     | <MSVS pragma directive common seg interior 1> <MSVS pragma comma> <MSVS pragma directive common seg interior 2>
+                                            | <MSVS pragma directive common seg interior 2>
+                                            | <MSVS pragma directive common seg interior 1> <G0 comma> <MSVS pragma directive common seg interior 2>
 <MSVS pragma directive common seg> ~ <MSVS pragma directive common seg keyword> WS_any '(' WS_any ')'
                                    | <MSVS pragma directive common seg keyword> WS_any '(' WS_any <MSVS pragma directive common seg interior> WS_any ')'
 <MSVS pragma directive common seg keyword> ~ 'bss_seg' | 'code_seg' | 'const_seg' | 'data_seg'
@@ -1936,27 +1866,27 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # check_stack{+|-}
 <MSVS pragma directive check_stack interior> ~ 'on' | 'off' | '+' | '-'
 <MSVS pragma directive check_stack> ~ 'check_stack' WS_any '(' WS_any ')'
-                                | 'check_stack' WS_any '(' WS_any <MSVS pragma directive check_stack interior> WS_any ')'
+                                    | 'check_stack' WS_any '(' WS_any <MSVS pragma directive check_stack interior> WS_any ')'
 
 # comment( comment-type [,"commentstring"] )
 <MSVS pragma directive comment interior type> ~ 'compiler' | 'exestr' | 'lib' | 'linker' | 'user'
 <MSVS pragma directive comment interior> ~ <MSVS pragma directive comment interior type>
-                                         | <MSVS pragma directive comment interior type> <MSVS pragma comma> <MSVS pragma string>
+                                         | <MSVS pragma directive comment interior type> <G0 comma> <G0 string>
 <MSVS pragma directive comment> ~ 'comment' WS_any '(' WS_any <MSVS pragma directive comment interior> WS_any ')'
 
 # component( browser, { on | off }[, references [, name ]] )
 # component( minrebuild, on | off ) 
 # component( mintypeinfo, on | off )
-# Note: we use <MSVS pragma identifier> for name, which is ok, since it refers a storage type, that matches <MSVS pragma identifier>
+# Note: we use <G0 identifier> for name, which is ok, since it refers a storage type, that matches <G0 identifier>
 
-<MSVS pragma directive component interior name> ~ <MSVS pragma identifier>
-                                                | <MSVS pragma string>
+<MSVS pragma directive component interior name> ~ <G0 identifier>
+                                                | <G0 string>
 <MSVS pragma directive component interior browser on off> ~ 'on' | 'off'
-<MSVS pragma directive component interior browser> ~ 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
-                                                   | 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off> <MSVS pragma comma> 'references'
-                                                   | 'browser' <MSVS pragma comma> <MSVS pragma directive component interior browser on off> <MSVS pragma comma> 'references' <MSVS pragma comma> <MSVS pragma directive component interior name>
-<MSVS pragma directive component interior minrebuild> ~ 'minrebuild' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
-<MSVS pragma directive component interior mintypeinfo> ~ 'mintypeinfo' <MSVS pragma comma> <MSVS pragma directive component interior browser on off>
+<MSVS pragma directive component interior browser> ~ 'browser' <G0 comma> <MSVS pragma directive component interior browser on off>
+                                                   | 'browser' <G0 comma> <MSVS pragma directive component interior browser on off> <G0 comma> 'references'
+                                                   | 'browser' <G0 comma> <MSVS pragma directive component interior browser on off> <G0 comma> 'references' <G0 comma> <MSVS pragma directive component interior name>
+<MSVS pragma directive component interior minrebuild> ~ 'minrebuild' <G0 comma> <MSVS pragma directive component interior browser on off>
+<MSVS pragma directive component interior mintypeinfo> ~ 'mintypeinfo' <G0 comma> <MSVS pragma directive component interior browser on off>
 <MSVS pragma directive component interior> ~ <MSVS pragma directive component interior browser>
                                            | <MSVS pragma directive component interior minrebuild>
                                            | <MSVS pragma directive component interior mintypeinfo>
@@ -1972,22 +1902,22 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive conform interior on off> ~ 'on' | 'off'
 <MSVS pragma directive conform interior push pop> ~ 'push' | 'pop'
 <MSVS pragma directive conform interior> ~ <MSVS pragma directive conform interior name>
-                                           | <MSVS pragma directive conform interior name> <MSVS pragma comma> <MSVS pragma directive conform interior optional>
+                                           | <MSVS pragma directive conform interior name> <G0 comma> <MSVS pragma directive conform interior optional>
 <MSVS pragma directive conform interior optional unit> ~ <MSVS pragma directive conform interior show>
                                                          | <MSVS pragma directive conform interior on off>
                                                          | <MSVS pragma directive conform interior push pop>
-                                                         | <MSVS pragma identifier>
+                                                         | <G0 identifier>
 <MSVS pragma directive conform interior optional> ~ <MSVS pragma directive conform interior optional unit>
-                                                    | <MSVS pragma directive conform interior optional> <MSVS pragma comma> <MSVS pragma directive conform interior optional unit>
+                                                    | <MSVS pragma directive conform interior optional> <G0 comma> <MSVS pragma directive conform interior optional unit>
 <MSVS pragma directive conform> ~ 'conform' WS_any '(' WS_any <MSVS pragma directive conform interior> WS_any ')'
 
 # deprecated( identifier1 [,identifier2, ...] )
-<MSVS pragma directive deprecated interior> ~ <MSVS pragma identifier>
-                                            | <MSVS pragma directive deprecated interior> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive deprecated interior> ~ <G0 identifier>
+                                            | <MSVS pragma directive deprecated interior> <G0 comma> <G0 identifier>
 <MSVS pragma directive deprecated> ~ 'deprecated' WS_any '(' WS_any <MSVS pragma directive deprecated interior> WS_any ')'
 
 # detect_mismatch( "name", "value")
-<MSVS pragma directive detect_mismatch interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
+<MSVS pragma directive detect_mismatch interior> ~ <G0 string> <G0 comma> <G0 string>
 <MSVS pragma directive detect_mismatch> ~ 'detect_mismatch' WS_any '(' WS_any <MSVS pragma directive detect_mismatch interior> WS_any ')'
 
 # fenv_access [ON | OFF]
@@ -2001,8 +1931,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # float_control( value,setting [push] | push | pop )
 <MSVS pragma directive float_control interior value> ~ 'precise' | 'except'
 <MSVS pragma directive float_control interior setting> ~ 'on' | 'off'
-<MSVS pragma directive float_control interior> ~ <MSVS pragma directive float_control interior value> <MSVS pragma comma> <MSVS pragma directive float_control interior setting> 
-                                               | <MSVS pragma directive float_control interior value> <MSVS pragma comma> <MSVS pragma directive float_control interior setting> WS_any 'push'
+<MSVS pragma directive float_control interior> ~ <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting> 
+                                               | <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting> WS_any 'push'
                                                | 'push'
                                                | 'pop'
 <MSVS pragma directive float_control> ~ 'float_control' WS_any '(' WS_any <MSVS pragma directive float_control interior> WS_any ')'
@@ -2016,23 +1946,23 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                     | 'fp_contract' WS_any '(' WS_any <MSVS pragma directive fp_contract interior> WS_any ')'
 
 # function( function1 [,function2, ...] )
-<MSVS pragma directive function interior> ~ <MSVS pragma identifier>
-                                            | <MSVS pragma directive function interior> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive function interior> ~ <G0 identifier>
+                                            | <MSVS pragma directive function interior> <G0 comma> <G0 identifier>
 <MSVS pragma directive function> ~ 'function' WS_any '(' WS_any <MSVS pragma directive function interior> WS_any ')'
 
 # hdrstop [( "filename" )]
-<MSVS pragma directive hdrstop interior> ~ <MSVS pragma string>
+<MSVS pragma directive hdrstop interior> ~ <G0 string>
 <MSVS pragma directive hdrstop> ~ 'hdrstop'
                                 | 'hdrstop' WS_any '(' WS_any <MSVS pragma directive hdrstop interior> WS_any ')'
 
 # include_alias( "long_filename", "short_filename" )
 # include_alias( <long_filename>, <short_filename> )
-<MSVS pragma directive include_alias interior> ~ <MSVS pragma string> <MSVS pragma comma> <MSVS pragma string>
-                                               | <MSVS pragma string 2> <MSVS pragma comma> <MSVS pragma string 2>
+<MSVS pragma directive include_alias interior> ~ <G0 string> <G0 comma> <G0 string>
+                                               | <G0 string 2> <G0 comma> <G0 string 2>
 <MSVS pragma directive include_alias> ~ 'include_alias' WS_any '(' WS_any <MSVS pragma directive include_alias interior> WS_any ')'
 
 # inline_depth( [n] )
-<MSVS pragma directive inline_depth interior> ~ <MSVS pragma number>
+<MSVS pragma directive inline_depth interior> ~ <G0 number>
 <MSVS pragma directive inline_depth> ~ 'inline_depth' WS_any '(' WS_any ')'
                                      | 'inline_depth' WS_any '(' WS_any <MSVS pragma directive inline_depth interior> WS_any ')'
 
@@ -2042,27 +1972,27 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                      | 'inline_recursion' WS_any '(' WS_any <MSVS pragma directive inline_recursion interior> WS_any ')'
 
 # intrinsic( function1 [,function2, ...] )
-<MSVS pragma directive intrinsic interior> ~ <MSVS pragma identifier>
-                                            | <MSVS pragma directive intrinsic interior> <MSVS pragma comma> <MSVS pragma identifier>
+<MSVS pragma directive intrinsic interior> ~ <G0 identifier>
+                                            | <MSVS pragma directive intrinsic interior> <G0 comma> <G0 identifier>
 <MSVS pragma directive intrinsic> ~ 'intrinsic' WS_any '(' WS_any <MSVS pragma directive intrinsic interior> WS_any ')'
 
 # loop( hint_parallel(n) )
 # loop( no_vector )
 # loop( ivdep )
-<MSVS pragma directive loop interior> ~ 'hint_parallel' WS_any '(' WS_any <MSVS pragma number> WS_any ')'
+<MSVS pragma directive loop interior> ~ 'hint_parallel' WS_any '(' WS_any <G0 number> WS_any ')'
                                       | 'no_vector'
                                       | 'ivdep'
 <MSVS pragma directive loop> ~ 'loop' WS_any '(' WS_any <MSVS pragma directive loop interior> WS_any ')'
 
 # make_public(type)
-<MSVS pragma directive make_public interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive make_public interior> ~ <G0 identifier>
 <MSVS pragma directive make_public> ~ 'make_public' WS_any '(' WS_any <MSVS pragma directive make_public interior> WS_any ')'
 
 # managed
 # managed([push,] on | off)
 # managed(pop)
 <MSVS pragma directive managed interior on off> ~ 'on' | 'off'
-<MSVS pragma directive managed interior> ~ 'push' <MSVS pragma comma> <MSVS pragma directive managed interior on off>
+<MSVS pragma directive managed interior> ~ 'push' <G0 comma> <MSVS pragma directive managed interior on off>
                                          | <MSVS pragma directive managed interior on off>
                                          | 'pop'
 <MSVS pragma directive managed> ~ 'managed'
@@ -2074,7 +2004,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                   | 'unmanaged' WS_any '(' WS_any ')'
 
 # message( messagestring )
-<MSVS pragma directive message interior> ~ <MSVS pragma string>
+<MSVS pragma directive message interior> ~ <G0 string>
 <MSVS pragma directive message> ~ 'message' WS_any '(' WS_any <MSVS pragma directive message interior> WS_any ')'
 
 # once
@@ -2083,9 +2013,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 # optimize( "[optimization-list]", {on | off} )
 #  Note: "[optimization-list]" should contains only specified characters. We do not mind and say this is a string.
-<MSVS pragma directive optimize interior optimizationList> ~  <MSVS pragma string>
+<MSVS pragma directive optimize interior optimizationList> ~  <G0 string>
 <MSVS pragma directive optimize interior on off> ~ 'on' | 'off'
-<MSVS pragma directive optimize interior> ~ <MSVS pragma directive optimize interior optimizationList> <MSVS pragma comma> <MSVS pragma directive optimize interior on off>
+<MSVS pragma directive optimize interior> ~ <MSVS pragma directive optimize interior optimizationList> <G0 comma> <MSVS pragma directive optimize interior on off>
 <MSVS pragma directive optimize> ~ 'optimize' WS_any '(' WS_any <MSVS pragma directive optimize interior> WS_any ')'
 
 # pack( [ show ] | [ push | pop ] [, identifier ] , n  )
@@ -2093,10 +2023,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive pack interior 1> ~ <MSVS pragma directive pack interior show>
 <MSVS pragma directive pack interior push pop> ~ 'push' | 'pop'
 <MSVS pragma directive pack interior 21> ~ <MSVS pragma directive pack interior push pop>
-                                         | <MSVS pragma identifier>
-                                         | <MSVS pragma directive pack interior push pop> <MSVS pragma comma> <MSVS pragma identifier>
-<MSVS pragma directive pack interior 2> ~ <MSVS pragma number>
-                                        | <MSVS pragma directive pack interior 21> <MSVS pragma comma> <MSVS pragma number>
+                                         | <G0 identifier>
+                                         | <MSVS pragma directive pack interior push pop> <G0 comma> <G0 identifier>
+<MSVS pragma directive pack interior 2> ~ <G0 number>
+                                        | <MSVS pragma directive pack interior 21> <G0 comma> <G0 number>
 <MSVS pragma directive pack interior> ~ <MSVS pragma directive pack interior 1>
                                       | <MSVS pragma directive pack interior 2>
 <MSVS pragma directive pack> ~ 'pack' WS_any '(' WS_any ')'
@@ -2106,44 +2036,44 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive pointers_to_members interior pointer declaration> ~ 'full_generality' | 'best_case'
 <MSVS pragma directive pointers_to_members interior most general representation> ~ 'single_inheritance' | 'multiple_inheritance' | 'virtual_inheritance'
 <MSVS pragma directive pointers_to_members interior> ~ <MSVS pragma directive pointers_to_members interior pointer declaration>
-                                                     | <MSVS pragma directive pointers_to_members interior pointer declaration> <MSVS pragma comma> <MSVS pragma directive pointers_to_members interior most general representation>
+                                                     | <MSVS pragma directive pointers_to_members interior pointer declaration> <G0 comma> <MSVS pragma directive pointers_to_members interior most general representation>
 <MSVS pragma directive pointers_to_members> ~ 'pointers_to_members' WS_any '(' WS_any <MSVS pragma directive pointers_to_members interior> WS_any ')'
 
 # pop_macro("macro_name")
-<MSVS pragma directive pop_macro> ~ 'pop_macro' WS_any '(' WS_any <MSVS pragma string> WS_any ')'
+<MSVS pragma directive pop_macro> ~ 'pop_macro' WS_any '(' WS_any <G0 string> WS_any ')'
 
 # push_macro("macro_name")
-<MSVS pragma directive push_macro> ~ 'push_macro' WS_any '(' WS_any <MSVS pragma string> WS_any ')'
+<MSVS pragma directive push_macro> ~ 'push_macro' WS_any '(' WS_any <G0 string> WS_any ')'
 
 # region [name]
-<MSVS pragma directive region interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive region interior> ~ <G0 identifier>
 <MSVS pragma directive region> ~ 'region'
                                | 'region' WS_any '(' WS_any ')'
                                | 'region' WS_any '(' WS_any <MSVS pragma directive region interior> WS_any')'
 
 # endregion [name]
-<MSVS pragma directive endregion interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive endregion interior> ~ <G0 identifier>
 <MSVS pragma directive endregion> ~ 'endregion'
                                   | 'endregion' WS_any '(' WS_any ')'
                                   | 'endregion' WS_any '(' WS_any <MSVS pragma directive endregion interior> WS_any')'
 
 # optimize( "[runtime_checks]", {restore | off} )
 #  Note: "[runtime_checks]" should contains only specified characters. We do not mind and say this is a string.
-<MSVS pragma directive runtime_checks interior optimizationList> ~  <MSVS pragma string>
+<MSVS pragma directive runtime_checks interior optimizationList> ~  <G0 string>
 <MSVS pragma directive runtime_checks interior on off> ~ 'restore' | 'off'
-<MSVS pragma directive runtime_checks interior> ~ <MSVS pragma directive runtime_checks interior optimizationList> <MSVS pragma comma> <MSVS pragma directive runtime_checks interior on off>
+<MSVS pragma directive runtime_checks interior> ~ <MSVS pragma directive runtime_checks interior optimizationList> <G0 comma> <MSVS pragma directive runtime_checks interior on off>
 <MSVS pragma directive runtime_checks> ~ 'runtime_checks' WS_any '(' WS_any <MSVS pragma directive runtime_checks interior> WS_any ')'
 
 # section( "section-name" [, attributes] )
 <MSVS pragma directive section interior attribute> ~ 'read' | 'write' | 'execute' | 'shared' | 'nopage' | 'nocache' | 'discard' | 'remove'
 <MSVS pragma directive section interior attribute list> ~ <MSVS pragma directive section interior attribute>
-                                                        | <MSVS pragma directive section interior attribute list> <MSVS pragma comma> <MSVS pragma directive section interior attribute>
-<MSVS pragma directive section interior> ~ <MSVS pragma string>
-                                         | <MSVS pragma string> <MSVS pragma comma> <MSVS pragma directive section interior attribute list>
+                                                        | <MSVS pragma directive section interior attribute list> <G0 comma> <MSVS pragma directive section interior attribute>
+<MSVS pragma directive section interior> ~ <G0 string>
+                                         | <G0 string> <G0 comma> <MSVS pragma directive section interior attribute list>
 <MSVS pragma directive section> ~ 'section' WS_any '(' WS_any <MSVS pragma directive section interior> WS_any ')'
 
 # setlocale( "[locale-string]" )
-<MSVS pragma directive setlocale interior> ~ <MSVS pragma string>
+<MSVS pragma directive setlocale interior> ~ <G0 string>
 <MSVS pragma directive setlocale> ~ 'setlocale' WS_any '(' WS_any <MSVS pragma directive setlocale interior> WS_any ')'
 
 # strict_gs_check([push,] on )
@@ -2151,7 +2081,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # strict_gs_check(pop)
 <MSVS pragma directive strict_gs_check interior on off> ~ 'on' | 'off'
 <MSVS pragma directive strict_gs_check interior> ~ <MSVS pragma directive strict_gs_check interior on off>
-                                                 | 'push' <MSVS pragma comma> <MSVS pragma directive strict_gs_check interior on off>
+                                                 | 'push' <G0 comma> <MSVS pragma directive strict_gs_check interior on off>
                                                  | 'pop'
 <MSVS pragma directive strict_gs_check> ~ 'strict_gs_check' WS_any '(' WS_any <MSVS pragma directive strict_gs_check interior> WS_any ')'
 
@@ -2159,9 +2089,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # vtordisp(pop)
 # vtordisp()
 # vtordisp([push,] {on | off})
-<MSVS pragma directive vtordisp interior on off number> ~ 'on' | 'off' | <MSVS pragma number>
+<MSVS pragma directive vtordisp interior on off number> ~ 'on' | 'off' | <G0 number>
 <MSVS pragma directive vtordisp interior> ~ <MSVS pragma directive vtordisp interior on off number>
-                                          | 'push' <MSVS pragma comma> <MSVS pragma directive vtordisp interior on off number>
+                                          | 'push' <G0 comma> <MSVS pragma directive vtordisp interior on off number>
                                           | 'pop'
 <MSVS pragma directive vtordisp> ~ 'vtordisp'
                                  | 'vtordisp' WS_any '(' WS_any ')'
@@ -2169,7 +2099,97 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 :discard ~ <MSVS pragma>
 
-#############################################################################################
-# Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
-# with the C grammar
-#############################################################################################
+###############################
+# Discard MSVS __declspec stuff
+###############################
+<MSVS declspec> ~ '__declspec' WS_any '(' WS_any <MSVS declspec directive> WS_any ')'
+<MSVS declspec directive> ~ <MSVS declspec align>
+                          | <MSVS declspec allocate>
+                          | <MSVS declspec appdomain>
+                          | <MSVS declspec deprecated>
+                          | <MSVS declspec dllexport>
+                          | <MSVS declspec dllimport>
+                          | <MSVS declspec jitintrinsic>
+                          | <MSVS declspec naked>
+                          | <MSVS declspec noalias>
+                          | <MSVS declspec noinline>
+                          | <MSVS declspec noreturn>
+                          | <MSVS declspec nothrow>
+                          | <MSVS declspec novtable>
+                          | <MSVS declspec process>
+                          | <MSVS declspec property>
+                          | <MSVS declspec restrict>
+                          | <MSVS declspec safebuffers>
+                          | <MSVS declspec selectany>
+                          | <MSVS declspec thread>
+                          | <MSVS declspec uuid>
+
+# align(#)
+<MSVS declspec align> ~ 'align' WS_any '(' WS_any <G0 number> WS_any ')'
+
+# allocate("segname")
+<MSVS declspec allocate> ~ 'allocate' WS_any '(' WS_any <G0 string> WS_any ')'
+
+# appdomain
+<MSVS declspec appdomain> ~ 'appdomain'
+
+# deprecated
+# deprecated()
+# deprecated("text")
+<MSVS declspec deprecated> ~ 'deprecated'
+                           | 'deprecated' WS_any '(' WS_any ')'
+                           | 'deprecated' WS_any '(' WS_any <G0 string> WS_any ')'
+
+# dllexport
+<MSVS declspec dllexport> ~ 'dllexport'
+
+# dllimport
+<MSVS declspec dllimport> ~ 'dllimport'
+
+# jitintrinsic
+<MSVS declspec jitintrinsic> ~ 'jitintrinsic'
+
+# naked
+<MSVS declspec naked> ~ 'naked'
+
+# noalias
+<MSVS declspec noalias> ~ 'noalias'
+
+# noinline
+<MSVS declspec noinline> ~ 'noinline'
+
+# noreturn
+<MSVS declspec noreturn> ~ 'noreturn'
+
+# nothrow
+<MSVS declspec nothrow> ~ 'nothrow'
+
+# novtable
+<MSVS declspec novtable> ~ 'novtable'
+
+# process
+<MSVS declspec process> ~ 'process'
+
+# property([get|put]=function)
+<MSVS declspec property interior get put> ~ 'get' | 'put'
+<MSVS declspec property interior> ~ <MSVS declspec property interior get put> <G0 equal> <G0 identifier>
+<MSVS declspec property interior list> ~ <MSVS declspec property interior>
+                                       | <MSVS declspec property interior list> <G0 comma> <MSVS declspec property interior>
+<MSVS declspec property> ~ 'property' WS_any '(' WS_any <MSVS declspec property interior list> WS_any ')'
+
+# restrict
+<MSVS declspec restrict> ~ 'restrict'
+
+# safebuffers
+<MSVS declspec safebuffers> ~ 'safebuffers'
+
+# selectany
+<MSVS declspec selectany> ~ 'selectany'
+
+# thread
+<MSVS declspec thread> ~ 'thread'
+
+# uuid("ComObjectGUID")
+<MSVS declspec uuid> ~ 'uuid' WS_any '(' WS_any <G0 string> WS_any ')'
+
+:discard ~ <MSVS declspec>
