@@ -1846,6 +1846,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive inline_recursion>
                         | <MSVS pragma directive intrinsic>
                         | <MSVS pragma directive loop>
+                        | <MSVS pragma directive make_public>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2019,5 +2020,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                       | 'no_vector'
                                       | 'ivdep'
 <MSVS pragma directive loop> ~ 'loop' WS_any '(' WS_any <MSVS pragma directive loop interior> WS_any ')'
+
+# make_public(type)
+<MSVS pragma directive make_public interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive make_public> ~ 'make_public' WS_any '(' WS_any <MSVS pragma directive make_public interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
