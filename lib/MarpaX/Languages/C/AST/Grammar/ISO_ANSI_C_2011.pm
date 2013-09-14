@@ -1864,6 +1864,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive section>
 			| <MSVS pragma directive setlocale>
 			| <MSVS pragma directive strict_gs_check>
+			| <MSVS pragma directive vtordisp>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2133,11 +2134,22 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # strict_gs_check([push,] on )
 # strict_gs_check([push,] off )
 # strict_gs_check(pop)
-<MSVS pragma directive strict_gs_check interior> ~ 'on'
-                                                 | 'push' <MSVS pragma comma> 'on'
-                                                 | 'off'
-                                                 | 'push' <MSVS pragma comma> 'off'
+<MSVS pragma directive strict_gs_check interior on off> ~ 'on' | 'off'
+<MSVS pragma directive strict_gs_check interior> ~ <MSVS pragma directive strict_gs_check interior on off>
+                                                 | 'push' <MSVS pragma comma> <MSVS pragma directive strict_gs_check interior on off>
                                                  | 'pop'
 <MSVS pragma directive strict_gs_check> ~ 'strict_gs_check' WS_any '(' WS_any <MSVS pragma directive strict_gs_check interior> WS_any ')'
+
+# vtordisp([push,] n)
+# vtordisp(pop)
+# vtordisp()
+# vtordisp([push,] {on | off})
+<MSVS pragma directive vtordisp interior on off number> ~ 'on' | 'off' | <MSVS pragma number>
+<MSVS pragma directive vtordisp interior> ~ <MSVS pragma directive vtordisp interior on off number>
+                                          | 'push' <MSVS pragma comma> <MSVS pragma directive vtordisp interior on off number>
+                                          | 'pop'
+<MSVS pragma directive vtordisp> ~ 'vtordisp'
+                                 | 'vtordisp' WS_any '(' WS_any ')'
+                                 | 'vtordisp' WS_any '(' WS_any <MSVS pragma directive vtordisp interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

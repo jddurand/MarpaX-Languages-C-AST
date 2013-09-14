@@ -309,16 +309,29 @@ __pragma(section("mysec"))
 __pragma(section("mysec",read))
 __pragma(section("mysec",read, write))
 
-// -------
+// ---------
 // setlocale
-// -------
+// ---------
 __pragma( setlocale("dutch"))
 
-// -------
+// ---------------
 // strict_gs_check
-// -------
+// ---------------
 __pragma( strict_gs_check(push, on))
 __pragma( strict_gs_check(on))
 __pragma( strict_gs_check(push, off))
 __pragma( strict_gs_check(off))
 __pragma( strict_gs_check(pop))
+
+// --------
+// vtordisp
+// --------
+__pragma( vtordisp(2))
+__pragma( vtordisp(on))
+__pragma( vtordisp(off))
+__pragma( vtordisp(push, 2))
+__pragma( vtordisp(push, on))
+__pragma( vtordisp(push, off))
+__pragma( vtordisp(pop))
+__pragma( vtordisp())
+__pragma( vtordisp)
