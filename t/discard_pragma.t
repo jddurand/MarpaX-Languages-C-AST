@@ -271,3 +271,9 @@ __pragma(pack(show))   // C4810
 __pragma(pack(pop, r1, 2))   // n = 2 , stack popped
 __pragma(pack(pop, 2))   // n = 2 , stack popped
 __pragma(pack(show))   // C4810
+
+// -------------------
+// pointers_to_members
+// -------------------
+
+__pragma( pointers_to_members( full_generality, single_inheritance ))

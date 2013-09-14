@@ -1855,6 +1855,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive once>
 			| <MSVS pragma directive optimize>
 			| <MSVS pragma directive pack>
+			| <MSVS pragma directive pointers_to_members>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2076,5 +2077,12 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                       | <MSVS pragma directive pack interior 2>
 <MSVS pragma directive pack> ~ 'pack' WS_any '(' WS_any ')'
                              | 'pack' WS_any '(' WS_any <MSVS pragma directive pack interior> WS_any ')'
+
+# pointers_to_members( pointer-declaration, [most-general-representation] )
+<MSVS pragma directive pointers_to_members interior pointer declaration> ~ 'full_generality' | 'best_case'
+<MSVS pragma directive pointers_to_members interior most general representation> ~ 'single_inheritance' | 'multiple_inheritance' | 'virtual_inheritance'
+<MSVS pragma directive pointers_to_members interior> ~ <MSVS pragma directive pointers_to_members interior pointer declaration>
+                                                     | <MSVS pragma directive pointers_to_members interior pointer declaration> <MSVS pragma comma> <MSVS pragma directive pointers_to_members interior most general representation>
+<MSVS pragma directive pointers_to_members> ~ 'pointers_to_members' WS_any '(' WS_any <MSVS pragma directive pointers_to_members interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
