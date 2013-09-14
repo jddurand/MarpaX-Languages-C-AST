@@ -1820,10 +1820,10 @@ msvsAsmConstant ::= I_CONSTANT
 <Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
 :discard ~ <Cpp style directive>
 
-#
+#############################################################################################
 # Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
 # with the C grammar
-#
+#############################################################################################
 <MSVS pragma identifier> ~ L A_any
 <MSVS pragma number> ~ [\d]+
 <MSVS pragma string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
