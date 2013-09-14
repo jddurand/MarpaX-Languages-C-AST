@@ -213,3 +213,10 @@ __pragma( inline_recursion ( off ))
 __pragma( intrinsic(func1))
 __pragma( intrinsic(func1, func2))
 
+// --------
+// loop
+// --------
+__pragma( loop(hint_parallel(3)))
+__pragma( loop(no_vector))
+__pragma( loop(ivdep))
+

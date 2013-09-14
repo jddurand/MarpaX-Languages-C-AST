@@ -1845,6 +1845,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive inline_depth>
                         | <MSVS pragma directive inline_recursion>
                         | <MSVS pragma directive intrinsic>
+                        | <MSVS pragma directive loop>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2010,5 +2011,13 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive intrinsic interior> ~ <MSVS pragma identifier>
                                             | <MSVS pragma directive intrinsic interior> <MSVS pragma comma> <MSVS pragma identifier>
 <MSVS pragma directive intrinsic> ~ 'intrinsic' WS_any '(' WS_any <MSVS pragma directive intrinsic interior> WS_any ')'
+
+# loop( hint_parallel(n) )
+# loop( no_vector )
+# loop( ivdep )
+<MSVS pragma directive loop interior> ~ 'hint_parallel' WS_any '(' WS_any <MSVS pragma number> WS_any ')'
+                                      | 'no_vector'
+                                      | 'ivdep'
+<MSVS pragma directive loop> ~ 'loop' WS_any '(' WS_any <MSVS pragma directive loop interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
