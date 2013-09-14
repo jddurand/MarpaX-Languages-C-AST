@@ -250,3 +250,10 @@ __pragma( message("_M_IX86 >= 500"))
 __pragma( once)
 __pragma( once())
 
+// ---------
+// optimize
+// ---------
+__pragma( optimize( "ts", on ))
+__pragma( optimize( "", off ))
+__pragma( optimize( "", on ))
+

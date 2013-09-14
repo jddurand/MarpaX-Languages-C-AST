@@ -1853,6 +1853,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         # TODO - only the parallel if() is causing trouble
 			# | <MSVS pragma directive omp>
 			| <MSVS pragma directive once>
+			| <MSVS pragma directive optimize>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2052,6 +2053,13 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 # once
 <MSVS pragma directive once> ~ 'once'
-                                  | 'once' WS_any '(' WS_any ')'
+                             | 'once' WS_any '(' WS_any ')'
+
+# optimize( "[optimization-list]", {on | off} )
+#  Note: "[optimization-list]" should contains only specified characters. We do not mind and say this is a string.
+<MSVS pragma directive optimize interior optimizationList> ~  <MSVS pragma string>
+<MSVS pragma directive optimize interior on off> ~ 'on' | 'off'
+<MSVS pragma directive optimize interior> ~ <MSVS pragma directive optimize interior optimizationList> <MSVS pragma comma> <MSVS pragma directive optimize interior on off>
+<MSVS pragma directive optimize> ~ 'optimize' WS_any '(' WS_any <MSVS pragma directive optimize interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
