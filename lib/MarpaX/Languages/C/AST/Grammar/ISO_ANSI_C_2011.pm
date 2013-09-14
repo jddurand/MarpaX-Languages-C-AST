@@ -996,9 +996,9 @@ VERTICAL_BAR ~ '|'
 :lexeme ~ <QUESTION_MARK> priority => -149
 QUESTION_MARK ~ '?'
 
-#
+############################################################################
 # Discard of a C comment, c.f. https://gist.github.com/jeffreykegler/5015057
-#
+############################################################################
 <C style comment> ~ '/*' <comment interior> '*/'
 <comment interior> ~
     <optional non stars>
@@ -1011,15 +1011,15 @@ QUESTION_MARK ~ '?'
 <optional star free text> ~ [^*]*
 <optional pre final stars> ~ [*]*
 
-#
+##########################
 # Discard of a C++ comment
-#
+##########################
 <Cplusplus style comment> ~ '//' <Cplusplus comment interior>
 <Cplusplus comment interior> ~ [^\n]*
 
-#
+##############################################
 # Discard of some simple annotation directives
-#
+##############################################
 <MSVS annotation directive start> ~ '[source_annotation_attribute'
 <MSVS annotation directive interior single line> ~ [^\n]*
 <MSVS annotation directive> ~ <MSVS annotation directive start> <MSVS annotation directive interior single line>
@@ -1811,10 +1811,10 @@ msvsAsmByteRegister ::= MSVS_ASM_AL | MSVS_ASM_AH | MSVS_ASM_BL | MSVS_ASM_BH | 
 
 msvsAsmConstant ::= I_CONSTANT
 
-#
+###############################################################################################
 # Discard simple preprocessor directives (on one line - cpp output persist to get some of them)
 # Too bad if AST.pm did not catched it after a pause lexeme
-#
+###############################################################################################
 <Cpp style directive start> ~ '#'
 <Cpp style directive interior single line> ~ [^\n]*
 <Cpp style directive> ~ <Cpp style directive start> <Cpp style directive interior single line>
@@ -2168,3 +2168,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                  | 'vtordisp' WS_any '(' WS_any <MSVS pragma directive vtordisp interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
+
+#############################################################################################
+# Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
+# with the C grammar
+#############################################################################################
