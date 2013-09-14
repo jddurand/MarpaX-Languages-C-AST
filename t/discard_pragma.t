@@ -285,3 +285,13 @@ __pragma( pointers_to_members( full_generality, single_inheritance ))
    __pragma(pop_macro("X"))
    __pragma(pop_macro("Y"))
 
+// ----------------
+// region/endregion
+// ----------------
+__pragma(region)
+__pragma(region())
+__pragma(region(ThisRegion))
+__pragma(endregion)
+__pragma(endregion())
+__pragma(endregion(ThisRegion))
+

@@ -1858,6 +1858,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive pointers_to_members>
 			| <MSVS pragma directive pop_macro>
 			| <MSVS pragma directive push_macro>
+			| <MSVS pragma directive region>
+			| <MSVS pragma directive endregion>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2092,5 +2094,17 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 # push_macro("macro_name")
 <MSVS pragma directive push_macro> ~ 'push_macro' WS_any '(' WS_any <MSVS pragma string> WS_any ')'
+
+# region [name]
+<MSVS pragma directive region interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive region> ~ 'region'
+                               | 'region' WS_any '(' WS_any ')'
+                               | 'region' WS_any '(' WS_any <MSVS pragma directive region interior> WS_any')'
+
+# endregion [name]
+<MSVS pragma directive endregion interior> ~ <MSVS pragma identifier>
+<MSVS pragma directive endregion> ~ 'endregion'
+                                  | 'endregion' WS_any '(' WS_any ')'
+                                  | 'endregion' WS_any '(' WS_any <MSVS pragma directive endregion interior> WS_any')'
 
 :discard ~ <MSVS pragma>
