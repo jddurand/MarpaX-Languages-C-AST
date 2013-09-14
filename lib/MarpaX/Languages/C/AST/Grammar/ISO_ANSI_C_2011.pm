@@ -1860,6 +1860,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 			| <MSVS pragma directive push_macro>
 			| <MSVS pragma directive region>
 			| <MSVS pragma directive endregion>
+			| <MSVS pragma directive runtime_checks>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2106,5 +2107,12 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive endregion> ~ 'endregion'
                                   | 'endregion' WS_any '(' WS_any ')'
                                   | 'endregion' WS_any '(' WS_any <MSVS pragma directive endregion interior> WS_any')'
+
+# optimize( "[runtime_checks]", {restore | off} )
+#  Note: "[runtime_checks]" should contains only specified characters. We do not mind and say this is a string.
+<MSVS pragma directive runtime_checks interior optimizationList> ~  <MSVS pragma string>
+<MSVS pragma directive runtime_checks interior on off> ~ 'restore' | 'off'
+<MSVS pragma directive runtime_checks interior> ~ <MSVS pragma directive runtime_checks interior optimizationList> <MSVS pragma comma> <MSVS pragma directive runtime_checks interior on off>
+<MSVS pragma directive runtime_checks> ~ 'runtime_checks' WS_any '(' WS_any <MSVS pragma directive runtime_checks interior> WS_any ')'
 
 :discard ~ <MSVS pragma>
