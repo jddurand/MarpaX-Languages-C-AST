@@ -1849,6 +1849,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive make_public>
                         | <MSVS pragma directive managed>
                         | <MSVS pragma directive unmanaged>
+                        | <MSVS pragma directive message>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2041,5 +2042,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # unmanaged
 <MSVS pragma directive unmanaged> ~ 'unmanaged'
                                   | 'unmanaged' WS_any '(' WS_any ')'
+
+# message( messagestring )
+<MSVS pragma directive message interior> ~ <MSVS pragma string>
+<MSVS pragma directive message> ~ 'message' WS_any '(' WS_any <MSVS pragma directive message interior> WS_any ')'
 
 :discard ~ <MSVS pragma>

@@ -238,3 +238,8 @@ __pragma( managed(pop))
 // ---------
 __pragma( unmanaged)
 __pragma( unmanaged())
+
+// -------
+// message
+// -------
+__pragma( message("_M_IX86 >= 500"))
