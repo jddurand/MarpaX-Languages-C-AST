@@ -1850,6 +1850,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive managed>
                         | <MSVS pragma directive unmanaged>
                         | <MSVS pragma directive message>
+                        # TODO - only the parallel if() is causing trouble
+			# | <MSVS pragma directive omp>
+			| <MSVS pragma directive once>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2046,5 +2049,9 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # message( messagestring )
 <MSVS pragma directive message interior> ~ <MSVS pragma string>
 <MSVS pragma directive message> ~ 'message' WS_any '(' WS_any <MSVS pragma directive message interior> WS_any ')'
+
+# once
+<MSVS pragma directive once> ~ 'once'
+                                  | 'once' WS_any '(' WS_any ')'
 
 :discard ~ <MSVS pragma>

@@ -243,3 +243,10 @@ __pragma( unmanaged())
 // message
 // -------
 __pragma( message("_M_IX86 >= 500"))
+
+// ---------
+// once
+// ---------
+__pragma( once)
+__pragma( once())
+
