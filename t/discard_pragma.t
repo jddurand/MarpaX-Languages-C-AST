@@ -224,3 +224,17 @@ __pragma( loop(ivdep))
 // make_public
 // -----------
 __pragma( make_public(Native_Struct_1))
+
+// -------
+// managed
+// -------
+__pragma( managed)
+__pragma( managed())
+__pragma( managed(push, off))
+__pragma( managed(pop))
+
+// ---------
+// unmanaged
+// ---------
+__pragma( unmanaged)
+__pragma( unmanaged())

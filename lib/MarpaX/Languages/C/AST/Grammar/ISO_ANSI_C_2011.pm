@@ -1847,6 +1847,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive intrinsic>
                         | <MSVS pragma directive loop>
                         | <MSVS pragma directive make_public>
+                        | <MSVS pragma directive managed>
+                        | <MSVS pragma directive unmanaged>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -2024,5 +2026,20 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # make_public(type)
 <MSVS pragma directive make_public interior> ~ <MSVS pragma identifier>
 <MSVS pragma directive make_public> ~ 'make_public' WS_any '(' WS_any <MSVS pragma directive make_public interior> WS_any ')'
+
+# managed
+# managed([push,] on | off)
+# managed(pop)
+<MSVS pragma directive managed interior on off> ~ 'on' | 'off'
+<MSVS pragma directive managed interior> ~ 'push' <MSVS pragma comma> <MSVS pragma directive managed interior on off>
+                                         | <MSVS pragma directive managed interior on off>
+                                         | 'pop'
+<MSVS pragma directive managed> ~ 'managed'
+                                | 'managed' WS_any '(' WS_any ')'
+                                | 'managed' WS_any '(' WS_any <MSVS pragma directive managed interior> WS_any ')'
+
+# unmanaged
+<MSVS pragma directive unmanaged> ~ 'unmanaged'
+                                  | 'unmanaged' WS_any '(' WS_any ')'
 
 :discard ~ <MSVS pragma>
