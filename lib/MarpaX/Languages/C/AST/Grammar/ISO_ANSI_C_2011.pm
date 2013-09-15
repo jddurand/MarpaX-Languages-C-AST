@@ -227,7 +227,6 @@ unaryExpression
 	| SIZEOF LPAREN typeName RPAREN
 	| ALIGNOF LPAREN typeName RPAREN
         | gccAlignofExpression
-        | gccExtensionSpecifier castExpression
 
 unaryOperator
 	::= AMPERSAND
@@ -342,7 +341,6 @@ declarationSpecifiersUnit ::= storageClassSpecifier
                             | typeQualifier
                             | functionSpecifier
                             | alignmentSpecifier
-                            | gccDeclarationSpecifier
 
 declarationSpecifiers ::= declarationSpecifiersUnit+
 
@@ -411,7 +409,6 @@ structDeclaration
 
 specifierQualifierListUnit ::= typeSpecifier
                              | typeQualifier
-                             | gccDeclarationSpecifier
 
 specifierQualifierList ::= specifierQualifierListUnit+
 
@@ -1016,9 +1013,6 @@ ANYTHING_ELSE   ~ [.]
 #
 # GCC C LEXEMES
 #
-:lexeme ~ <GCC_EXTENSION>            priority => -60
-GCC_EXTENSION        ~ '__extension__'
-GCC_EXTENSION        ~ '__extension'
 :lexeme ~ <GCC_ASM>                  priority => -60
 GCC_ASM              ~ 'asm__'
 GCC_ASM              ~ '__asm'
@@ -1409,11 +1403,7 @@ MSVS_ASM_SBYTE ~ 'sbyte'
 gccBuiltinType ::= gccTypeof
                  | GCC_BUILTIN_VA_LIST
 
-gccDeclarationSpecifier ::= gccExtensionSpecifier
-
 gccEmptyRule ::=
-
-gccExtensionSpecifier ::= GCC_EXTENSION
 
 gccAsmStatement ::= gccAsmExpression SEMICOLON
 
@@ -2356,3 +2346,11 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <G0 constantExpression>	~ <G0 conditionalExpression> # with constraints
 
 :discard ~ <GCC attribute>
+
+#################################
+# Discard GCC __extension__ stuff
+#################################
+<GCC extension> ~ '__extension__'
+                | '__extension'
+
+:discard ~ <GCC extension>
