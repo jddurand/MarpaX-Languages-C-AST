@@ -393,18 +393,8 @@ structContextStart ::=
 event 'structContextEnd[]' = nulled <structContextEnd>
 structContextEnd ::=
 
-structOrUnionSpecifierCompilerAttribute ::= gccAttributeMany
-
 structOrUnionSpecifier
-        # gccAttributeMany just after struct or union keyword
-	::= structOrUnion structOrUnionSpecifierCompilerAttribute LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion structOrUnionSpecifierCompilerAttribute IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion structOrUnionSpecifierCompilerAttribute IDENTIFIER
-        # or just after the closing brace
-	| structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY gccAttributeMany <structContextEnd>
-	| structOrUnion IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY gccAttributeMany <structContextEnd>
-        # or nowhere
-	| structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	::= structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
 	| structOrUnion IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
 	| structOrUnion IDENTIFIER
 
@@ -431,23 +421,11 @@ structDeclaratorList
 
 structDeclarator
 	::= COLON constantExpression
-	| declarator COLON constantExpression gccAttributeAny
+	| declarator COLON constantExpression
 	| declarator
 
 enumSpecifier
-        # gccAttributeMany just after ENUM keyword
-	::= ENUM gccAttributeMany LCURLY enumeratorList RCURLY
-	| ENUM gccAttributeMany LCURLY enumeratorList COMMA RCURLY
-	| ENUM gccAttributeMany IDENTIFIER LCURLY enumeratorList RCURLY
-	| ENUM gccAttributeMany IDENTIFIER LCURLY enumeratorList COMMA RCURLY
-	| ENUM gccAttributeMany IDENTIFIER
-        # or after the closing brace
-	| ENUM LCURLY enumeratorList RCURLY gccAttributeMany
-	| ENUM LCURLY enumeratorList COMMA RCURLY gccAttributeMany
-	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY gccAttributeMany
-	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY gccAttributeMany
-        # or nowhere
-	| ENUM LCURLY enumeratorList RCURLY
+	::= ENUM LCURLY enumeratorList RCURLY
 	| ENUM LCURLY enumeratorList COMMA RCURLY
 	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY
 	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY
@@ -484,8 +462,8 @@ alignmentSpecifier
 msvsAttributeAny ::= msvsAttribute*
 
 declarator
-	::= pointer msvsAttributeAny directDeclarator gccAsmExpressionMaybe gccAttributeAny
-	| msvsAttributeAny directDeclarator gccAsmExpressionMaybe gccAttributeAny
+	::= pointer msvsAttributeAny directDeclarator gccAsmExpressionMaybe
+	| msvsAttributeAny directDeclarator gccAsmExpressionMaybe
         #
         # Microsoft hack that does not really declare a declarator
         #
@@ -495,13 +473,9 @@ event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
 	::= IDENTIFIER
 
-gccAttributeAny ::= gccAttribute*
-
-gccAttributeMany ::= gccAttribute+
-
 directDeclarator
 	::= directDeclaratorIdentifier
-	| LPAREN gccAttributeAny declarator RPAREN
+	| LPAREN declarator RPAREN
 	| directDeclarator LBRACKET RBRACKET
 	| directDeclarator LBRACKET STAR RBRACKET
 	| directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
@@ -515,7 +489,7 @@ directDeclarator
 	| directDeclarator LPAREN_SCOPE RPAREN_SCOPE
 	| directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
 
-pointerQualifier ::= typeQualifier | gccAttribute
+pointerQualifier ::= typeQualifier
 
 pointerQualifierList ::= pointerQualifier+
 
@@ -562,32 +536,32 @@ gccAsmExpressionMaybe ::= gccAsmExpression
                         | gccEmptyRule
 
 abstractDeclarator
-	::= pointer msvsAttributeAny directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
+	::= pointer msvsAttributeAny directAbstractDeclarator gccAsmExpressionMaybe
 	| pointer msvsAttributeAny
-	| directAbstractDeclarator gccAsmExpressionMaybe gccAttributeAny
+	| directAbstractDeclarator gccAsmExpressionMaybe
 
 directAbstractDeclarator
-	::= LPAREN gccAttributeAny abstractDeclarator RPAREN                                             rank =>   0
-	| LBRACKET RBRACKET                                                                                  rank =>  -1
-	| LBRACKET STAR RBRACKET                                                                             rank =>  -2
-	| LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET                             rank =>  -3
-	| LBRACKET STATIC assignmentExpression RBRACKET                                                      rank =>  -4
-	| LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET                             rank =>  -5
-	| LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET                                    rank =>  -6
-	| LBRACKET gccArrayTypeModifierList RBRACKET                                                         rank =>  -7
-	| LBRACKET assignmentExpression RBRACKET                                                             rank =>  -8
-	| directAbstractDeclarator LBRACKET RBRACKET                                                         rank =>  -9
-	| directAbstractDeclarator LBRACKET STAR RBRACKET                                                    rank => -10
-	| directAbstractDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET    rank => -11
-	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET                             rank => -12
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET           rank => -13
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET    rank => -14
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET                                rank => -15
-	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET                                    rank => -16
-	| LPAREN_SCOPE RPAREN_SCOPE                                                                          rank => -17
-	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE                                                        rank => -18
-	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE                                                 rank => -19
-	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE                               rank => -20
+	::= LPAREN abstractDeclarator RPAREN
+	| LBRACKET RBRACKET
+	| LBRACKET STAR RBRACKET
+	| LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	| LBRACKET STATIC assignmentExpression RBRACKET
+	| LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
+	| LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
+	| LBRACKET gccArrayTypeModifierList RBRACKET
+	| LBRACKET assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET RBRACKET
+	| directAbstractDeclarator LBRACKET STAR RBRACKET
+	| directAbstractDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
+	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
+	| LPAREN_SCOPE RPAREN_SCOPE
+	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
+	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
 
 initializer
 	::= LCURLY initializerList RCURLY
@@ -625,7 +599,7 @@ statement
         | gccAsmStatement
 
 labeledStatement
-	::= IDENTIFIER COLON gccAttributeAny statement
+	::= IDENTIFIER COLON statement
 	| CASE constantExpression COLON statement
 	| DEFAULT COLON statement
 
@@ -1042,9 +1016,6 @@ ANYTHING_ELSE   ~ [.]
 #
 # GCC C LEXEMES
 #
-:lexeme ~ <GCC_ATTRIBUTE>            priority => -60
-GCC_ATTRIBUTE        ~ '__attribute__'
-GCC_ATTRIBUTE        ~ '__attribute'
 :lexeme ~ <GCC_EXTENSION>            priority => -60
 GCC_EXTENSION        ~ '__extension__'
 GCC_EXTENSION        ~ '__extension'
@@ -1438,36 +1409,9 @@ MSVS_ASM_SBYTE ~ 'sbyte'
 gccBuiltinType ::= gccTypeof
                  | GCC_BUILTIN_VA_LIST
 
-gccDeclarationSpecifier ::= gccAttribute
-                          | gccExtensionSpecifier
-
-gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN RPAREN RPAREN
-               | GCC_ATTRIBUTE LPAREN LPAREN gccAttributeParameterList RPAREN RPAREN
-
-# gccAttribute ::= GCC_ATTRIBUTE LPAREN LPAREN gccAttributeExtensionList RPAREN RPAREN
-
-gccAttributeParameterList ::= gccAttributeParameter
-                            | gccAttributeParameterList COMMA gccAttributeParameter
-
-# gccAttributeExtensionList ::= gccAttributeExtension
-#                             | gccAttributeExtensionList COMMA gccAttributeExtension
+gccDeclarationSpecifier ::= gccExtensionSpecifier
 
 gccEmptyRule ::=
-
-gccAttributeParameter ::= gccEmptyRule
-                        | gccAnyWord
-                        | gccAnyWord LPAREN gccAttributeInnerParameter RPAREN
-
-gccAttributeInnerParameter ::= IDENTIFIER                    rank =>  0
-                             | IDENTIFIER COMMA expression   rank => -1
-                             | expression                    rank => -2
-                             | gccEmptyRule                  rank => -3
-
-gccAnyWord ::= IDENTIFIER
-             | storageClassSpecifier
-             | typeSpecifier
-             | typeQualifier
-             | functionSpecifier
 
 gccExtensionSpecifier ::= GCC_EXTENSION
 
@@ -1508,7 +1452,6 @@ gccAsmClobber ::= string
 gccStatementExpression ::= LPAREN compoundStatement RPAREN
 
 gccArrayTypeModifier ::= typeQualifier
-                       | gccAttribute
 
 # @since 2.6.264
 # for error handling: second assignmentExpression is always last parameter name
@@ -1746,29 +1689,90 @@ msvsAsmConstant ::= I_CONSTANT
 #####################
 # G0 specific "tools"
 #####################
-<G0 identifier> ~ L A_any
-<G0 number> ~ [\d]+
-<G0 string unit> ~ '"' STRING_LITERAL_INSIDE_any '"'
-<G0 string> ~ <G0 string unit>
-                     | <G0 string> WS_any <G0 string unit>
+<G0 identifier> ~ WS_any L A_any WS_any
+<_G0 number> ~ [\d]+
+<G0 number> ~ WS_any <_G0 number> WS_any
+<G0 string unit> ~ WS_any '"' STRING_LITERAL_INSIDE_any '"' WS_any
+<G0 string> ~ <G0 string unit>+
 
+<_G0 word> ~ [\w]+
+<G0 word> ~ WS_any <_G0 word> WS_any
+<G0 words> ~ <G0 word>+
+<G0 anything but space> ~ [^ \t\v\n\f]+
 #
 # Same thing as <G0 string> but with <> instead of "
 #
 STRING_LITERAL_INSIDE2 ~ [^<>\\\n]
 STRING_LITERAL_INSIDE2 ~ ES
 STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
-<G0 string unit 2> ~ '<' STRING_LITERAL_INSIDE2_any '>'
+<G0 string unit 2> ~ WS_any '<' STRING_LITERAL_INSIDE2_any '>' WS_any
 <G0 string 2> ~ <G0 string unit 2>
-
+#
+# G0 operators
+#
+<G0 mul assign> ~ WS_any '*=' WS_any 
+<G0 div assign> ~ WS_any '/=' WS_any 
+<G0 mod assign> ~ WS_any '%=' WS_any 
+<G0 add assign> ~ WS_any '+=' WS_any 
+<G0 sub assign> ~ WS_any '-=' WS_any 
+<G0 left assign> ~ WS_any '<<=' WS_any 
+<G0 right assign> ~ WS_any '>>=' WS_any 
+<G0 and assign> ~ WS_any '&=' WS_any 
+<G0 xor assign> ~ WS_any '^=' WS_any 
+<G0 or assign> ~ WS_any '|=' WS_any 
+<G0 or op> ~ WS_any '||' WS_any 
+<G0 and op> ~ WS_any '&&' WS_any
+<G0 vertical bar> ~ WS_any '|' WS_any
+<G0 caret> ~ WS_any '^' WS_any
+<G0 ampersand> ~ WS_any '&' WS_any
+<G0 eq op> ~ WS_any '==' WS_any
+<G0 ne op> ~ WS_any '!=' WS_any
+<G0 less than> ~ WS_any '<' WS_any
+<G0 greater than> ~ WS_any '>' WS_any
+<G0 le op> ~ WS_any '<=' WS_any
+<G0 ge op> ~ WS_any '>=' WS_any
+<G0 left op> ~ WS_any '<<' WS_any
+<G0 right op> ~ WS_any '>>' WS_any
+<G0 plus> ~ WS_any '+' WS_any
+<G0 hyphen> ~ WS_any '-' WS_any
+<G0 star> ~ WS_any '*' WS_any
+<G0 slash> ~ WS_any '/' WS_any
+<G0 percent> ~ WS_any '%' WS_any
+<G0 lparen> ~ WS_any '(' WS_any
+<G0 rparen> ~ WS_any ')' WS_any
+<G0 lcurly> ~ WS_any '{' WS_any
+<G0 rcurly> ~ WS_any '}' WS_any
+<G0 lbracket> ~ WS_any '[' WS_any
+<G0 rbracket> ~ WS_any ']' WS_any
+<G0 inc op> ~ WS_any '++' WS_any
+<G0 dec op> ~ WS_any '--' WS_any
+<G0 ptr op> ~ WS_any '->' WS_any
+<G0 dot> ~ WS_any '.' WS_any
+<G0 exclamation> ~ WS_any '!' WS_any
+<G0 tilde> ~ WS_any '~' WS_any
+<G0 generic> ~ WS_any '_Generic' WS_any
+<G0 default> ~ WS_any 'default' WS_any
+<G0 ellipsis> ~ WS_any '...' WS_any
+<G0 sizeof> ~ WS_any 'sizeof' WS_any
+<G0 alignof> ~ WS_any '_Alignof' WS_any
+             | WS_any '__alignof__' WS_any
+             | WS_any 'alignof__' WS_any
+             | WS_any '__alignof' WS_any
+             | WS_any 'alignof' WS_any
+#
+# G0 "separators"
+#
 <G0 comma> ~ WS_any ',' WS_any
 <G0 equal> ~ WS_any '=' WS_any
+<G0 colon> ~ WS_any ':' WS_any
+<G0 semicolon> ~ WS_any ';' WS_any
+<G0 question mark> ~ WS_any '?' WS_any
 
 #############################################################################################
 # Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
 # with the C grammar
 #############################################################################################
-<MSVS pragma> ~ '__pragma' WS_any '(' WS_any <MSVS pragma directive> WS_any ')'
+<MSVS pragma> ~ '__pragma' <G0 lparen> <MSVS pragma directive> <G0 rparen>
 <MSVS pragma directive> ~ <MSVS pragma directive alloc_text>
                         | <MSVS pragma directive auto_inline>
                         | <MSVS pragma directive common seg>
@@ -1810,15 +1814,15 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
-<MSVS pragma directive alloc_text> ~ 'alloc_text' WS_any '(' WS_any <MSVS pragma directive alloc_text interior> WS_any ')'
+<MSVS pragma directive alloc_text> ~ 'alloc_text' <G0 lparen> <MSVS pragma directive alloc_text interior> <G0 rparen>
 <MSVS pragma directive alloc_text interior> ~ <G0 string>
-                                            | <MSVS pragma directive alloc_text interior> <G0 comma> <MSVS pragma directive alloc_text identifier list> WS_any
+                                            | <MSVS pragma directive alloc_text interior> <G0 comma> <MSVS pragma directive alloc_text identifier list>
 <MSVS pragma directive alloc_text identifier list> ~ <G0 identifier>
-                                                   | <MSVS pragma directive alloc_text identifier list> <G0 comma> <G0 identifier> WS_any
+                                                   | <MSVS pragma directive alloc_text identifier list> <G0 comma> <G0 identifier>
 
 # auto_inline( [{on | off}] )
-<MSVS pragma directive auto_inline> ~ 'auto_inline' WS_any '(' WS_any ')'
-                                    | 'auto_inline' WS_any '(' WS_any <MSVS pragma directive auto_inline interior> WS_any ')'
+<MSVS pragma directive auto_inline> ~ 'auto_inline' <G0 lparen> <G0 rparen>
+                                    | 'auto_inline' <G0 lparen> <MSVS pragma directive auto_inline interior> <G0 rparen>
 
 <MSVS pragma directive auto_inline interior> ~ 'on' | 'off'
 
@@ -1826,21 +1830,21 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # warning( warning-specifier : warning-number-list [; warning-specifier : warning-number-list...] ) 
 # warning( push[ ,n ] ) 
 # warning( pop )
-<MSVS pragma directive warning> ~ 'warning' WS_any '(' WS_any <MSVS pragma directive warning interior> WS_any ')'
+<MSVS pragma directive warning> ~ 'warning' <G0 lparen> <MSVS pragma directive warning interior> <G0 rparen>
 <MSVS pragma directive warning interior> ~ <MSVS pragma directive warning interior specifier list>
                                          | <MSVS pragma directive warning interior push>
                                          | <MSVS pragma directive warning interior pop>
-<MSVS pragma directive warning interior specifier list> ~ <MSVS pragma directive warning interior specifier> WS_any
-                                                        | <MSVS pragma directive warning interior specifier list> WS_any ';' WS_any <MSVS pragma directive warning interior specifier> WS_any
+<MSVS pragma directive warning interior specifier list> ~ <MSVS pragma directive warning interior specifier>
+                                                        | <MSVS pragma directive warning interior specifier list> <G0 semicolon> <MSVS pragma directive warning interior specifier>
 <MSVS pragma directive warning interior specifier keyword> ~ '1' | '2' | '3' | '4'
                                                            | 'default'
                                                            | 'disable'
                                                            | 'error'
                                                            | 'once'
                                                            | 'suppress'
-<MSVS pragma directive warning interior specifier> ~ <MSVS pragma directive warning interior specifier keyword> WS_any ':' WS_any <MSVS pragma directive warning interior specifier number list>
-<MSVS pragma directive warning interior specifier number list> ~ <G0 number> WS_any 
-                                                               | <MSVS pragma directive warning interior specifier number list> WS_many <G0 number> WS_any
+<MSVS pragma directive warning interior specifier> ~ <MSVS pragma directive warning interior specifier keyword> <G0 colon> <MSVS pragma directive warning interior specifier number list>
+<MSVS pragma directive warning interior specifier number list> ~ <G0 number>
+                                                               | <MSVS pragma directive warning interior specifier number list> WS_many <G0 number>
 <MSVS pragma directive warning interior push> ~ 'push'
                                               | 'push' <G0 comma> <G0 number>
 <MSVS pragma directive warning interior pop> ~ 'pop'
@@ -1855,21 +1859,21 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive common seg interior> ~ <MSVS pragma directive common seg interior 1>
                                             | <MSVS pragma directive common seg interior 2>
                                             | <MSVS pragma directive common seg interior 1> <G0 comma> <MSVS pragma directive common seg interior 2>
-<MSVS pragma directive common seg> ~ <MSVS pragma directive common seg keyword> WS_any '(' WS_any ')'
-                                   | <MSVS pragma directive common seg keyword> WS_any '(' WS_any <MSVS pragma directive common seg interior> WS_any ')'
+<MSVS pragma directive common seg> ~ <MSVS pragma directive common seg keyword> <G0 lparen> <G0 rparen>
+                                   | <MSVS pragma directive common seg keyword> <G0 lparen> <MSVS pragma directive common seg interior> <G0 rparen>
 <MSVS pragma directive common seg keyword> ~ 'bss_seg' | 'code_seg' | 'const_seg' | 'data_seg'
 
 # check_stack([ {on | off}] )
 # check_stack{+|-}
 <MSVS pragma directive check_stack interior> ~ 'on' | 'off' | '+' | '-'
-<MSVS pragma directive check_stack> ~ 'check_stack' WS_any '(' WS_any ')'
-                                    | 'check_stack' WS_any '(' WS_any <MSVS pragma directive check_stack interior> WS_any ')'
+<MSVS pragma directive check_stack> ~ 'check_stack' <G0 lparen> <G0 rparen>
+                                    | 'check_stack' <G0 lparen> <MSVS pragma directive check_stack interior> <G0 rparen>
 
 # comment( comment-type [,"commentstring"] )
 <MSVS pragma directive comment interior type> ~ 'compiler' | 'exestr' | 'lib' | 'linker' | 'user'
 <MSVS pragma directive comment interior> ~ <MSVS pragma directive comment interior type>
                                          | <MSVS pragma directive comment interior type> <G0 comma> <G0 string>
-<MSVS pragma directive comment> ~ 'comment' WS_any '(' WS_any <MSVS pragma directive comment interior> WS_any ')'
+<MSVS pragma directive comment> ~ 'comment' <G0 lparen> <MSVS pragma directive comment interior> <G0 rparen>
 
 # component( browser, { on | off }[, references [, name ]] )
 # component( minrebuild, on | off ) 
@@ -1887,7 +1891,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive component interior> ~ <MSVS pragma directive component interior browser>
                                            | <MSVS pragma directive component interior minrebuild>
                                            | <MSVS pragma directive component interior mintypeinfo>
-<MSVS pragma directive component> ~ 'component' WS_any '(' WS_any <MSVS pragma directive component interior> WS_any ')'
+<MSVS pragma directive component> ~ 'component' <G0 lparen> <MSVS pragma directive component interior> <G0 rparen>
 
 # conform(name [, show ] [, on | off ] [ [, push | pop ] [, identifier ] ] )
 # Note: the examples do not conform to this specification, i.e.:
@@ -1906,24 +1910,24 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                                          | <G0 identifier>
 <MSVS pragma directive conform interior optional> ~ <MSVS pragma directive conform interior optional unit>
                                                     | <MSVS pragma directive conform interior optional> <G0 comma> <MSVS pragma directive conform interior optional unit>
-<MSVS pragma directive conform> ~ 'conform' WS_any '(' WS_any <MSVS pragma directive conform interior> WS_any ')'
+<MSVS pragma directive conform> ~ 'conform' <G0 lparen> <MSVS pragma directive conform interior> <G0 rparen>
 
 # deprecated( identifier1 [,identifier2, ...] )
 <MSVS pragma directive deprecated interior> ~ <G0 identifier>
                                             | <MSVS pragma directive deprecated interior> <G0 comma> <G0 identifier>
-<MSVS pragma directive deprecated> ~ 'deprecated' WS_any '(' WS_any <MSVS pragma directive deprecated interior> WS_any ')'
+<MSVS pragma directive deprecated> ~ 'deprecated' <G0 lparen> <MSVS pragma directive deprecated interior> <G0 rparen>
 
 # detect_mismatch( "name", "value")
 <MSVS pragma directive detect_mismatch interior> ~ <G0 string> <G0 comma> <G0 string>
-<MSVS pragma directive detect_mismatch> ~ 'detect_mismatch' WS_any '(' WS_any <MSVS pragma directive detect_mismatch interior> WS_any ')'
+<MSVS pragma directive detect_mismatch> ~ 'detect_mismatch' <G0 lparen> <MSVS pragma directive detect_mismatch interior> <G0 rparen>
 
 # fenv_access [ON | OFF]
 # Are the parenthesis necessary ? don't know - assume not
 # on or ON, off or OFF ? Assume all.
 <MSVS pragma directive fenv_access interior> ~ 'on' | 'ON' | 'off' | 'OFF'
 <MSVS pragma directive fenv_access> ~ 'fenv_access'
-                                    | 'fenv_access' WS_any '(' WS_any ')'
-                                    | 'fenv_access' WS_any '(' WS_any <MSVS pragma directive fenv_access interior> WS_any ')'
+                                    | 'fenv_access' <G0 lparen> <G0 rparen>
+                                    | 'fenv_access' <G0 lparen> <MSVS pragma directive fenv_access interior> <G0 rparen>
 
 # float_control( value,setting [push] | push | pop )
 <MSVS pragma directive float_control interior value> ~ 'precise' | 'except'
@@ -1932,58 +1936,58 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                                | <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting> WS_any 'push'
                                                | 'push'
                                                | 'pop'
-<MSVS pragma directive float_control> ~ 'float_control' WS_any '(' WS_any <MSVS pragma directive float_control interior> WS_any ')'
+<MSVS pragma directive float_control> ~ 'float_control' <G0 lparen> <MSVS pragma directive float_control interior> <G0 rparen>
 
 # fp_contract [ON | OFF]
 # Are the parenthesis necessary ? don't know - assume not
 # on or ON, off or OFF ? Assume all.
 <MSVS pragma directive fp_contract interior> ~ 'on' | 'ON' | 'off' | 'OFF'
 <MSVS pragma directive fp_contract> ~ 'fp_contract'
-                                    | 'fp_contract' WS_any '(' WS_any ')'
-                                    | 'fp_contract' WS_any '(' WS_any <MSVS pragma directive fp_contract interior> WS_any ')'
+                                    | 'fp_contract' <G0 lparen> <G0 rparen>
+                                    | 'fp_contract' <G0 lparen> <MSVS pragma directive fp_contract interior> <G0 rparen>
 
 # function( function1 [,function2, ...] )
 <MSVS pragma directive function interior> ~ <G0 identifier>
                                             | <MSVS pragma directive function interior> <G0 comma> <G0 identifier>
-<MSVS pragma directive function> ~ 'function' WS_any '(' WS_any <MSVS pragma directive function interior> WS_any ')'
+<MSVS pragma directive function> ~ 'function' <G0 lparen> <MSVS pragma directive function interior> <G0 rparen>
 
 # hdrstop [( "filename" )]
 <MSVS pragma directive hdrstop interior> ~ <G0 string>
 <MSVS pragma directive hdrstop> ~ 'hdrstop'
-                                | 'hdrstop' WS_any '(' WS_any <MSVS pragma directive hdrstop interior> WS_any ')'
+                                | 'hdrstop' <G0 lparen> <MSVS pragma directive hdrstop interior> <G0 rparen>
 
 # include_alias( "long_filename", "short_filename" )
 # include_alias( <long_filename>, <short_filename> )
 <MSVS pragma directive include_alias interior> ~ <G0 string> <G0 comma> <G0 string>
                                                | <G0 string 2> <G0 comma> <G0 string 2>
-<MSVS pragma directive include_alias> ~ 'include_alias' WS_any '(' WS_any <MSVS pragma directive include_alias interior> WS_any ')'
+<MSVS pragma directive include_alias> ~ 'include_alias' <G0 lparen> <MSVS pragma directive include_alias interior> <G0 rparen>
 
 # inline_depth( [n] )
 <MSVS pragma directive inline_depth interior> ~ <G0 number>
-<MSVS pragma directive inline_depth> ~ 'inline_depth' WS_any '(' WS_any ')'
-                                     | 'inline_depth' WS_any '(' WS_any <MSVS pragma directive inline_depth interior> WS_any ')'
+<MSVS pragma directive inline_depth> ~ 'inline_depth' <G0 lparen> <G0 rparen>
+                                     | 'inline_depth' <G0 lparen> <MSVS pragma directive inline_depth interior> <G0 rparen>
 
 # inline_recursion( [{on | off}] )
 <MSVS pragma directive inline_recursion interior> ~ 'on' | 'off'
-<MSVS pragma directive inline_recursion> ~ 'inline_recursion' WS_any '(' WS_any ')'
-                                     | 'inline_recursion' WS_any '(' WS_any <MSVS pragma directive inline_recursion interior> WS_any ')'
+<MSVS pragma directive inline_recursion> ~ 'inline_recursion' <G0 lparen> <G0 rparen>
+                                     | 'inline_recursion' <G0 lparen> <MSVS pragma directive inline_recursion interior> <G0 rparen>
 
 # intrinsic( function1 [,function2, ...] )
 <MSVS pragma directive intrinsic interior> ~ <G0 identifier>
                                             | <MSVS pragma directive intrinsic interior> <G0 comma> <G0 identifier>
-<MSVS pragma directive intrinsic> ~ 'intrinsic' WS_any '(' WS_any <MSVS pragma directive intrinsic interior> WS_any ')'
+<MSVS pragma directive intrinsic> ~ 'intrinsic' <G0 lparen> <MSVS pragma directive intrinsic interior> <G0 rparen>
 
 # loop( hint_parallel(n) )
 # loop( no_vector )
 # loop( ivdep )
-<MSVS pragma directive loop interior> ~ 'hint_parallel' WS_any '(' WS_any <G0 number> WS_any ')'
+<MSVS pragma directive loop interior> ~ 'hint_parallel' <G0 lparen> <G0 number> <G0 rparen>
                                       | 'no_vector'
                                       | 'ivdep'
-<MSVS pragma directive loop> ~ 'loop' WS_any '(' WS_any <MSVS pragma directive loop interior> WS_any ')'
+<MSVS pragma directive loop> ~ 'loop' <G0 lparen> <MSVS pragma directive loop interior> <G0 rparen>
 
 # make_public(type)
 <MSVS pragma directive make_public interior> ~ <G0 identifier>
-<MSVS pragma directive make_public> ~ 'make_public' WS_any '(' WS_any <MSVS pragma directive make_public interior> WS_any ')'
+<MSVS pragma directive make_public> ~ 'make_public' <G0 lparen> <MSVS pragma directive make_public interior> <G0 rparen>
 
 # managed
 # managed([push,] on | off)
@@ -1993,27 +1997,27 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                          | <MSVS pragma directive managed interior on off>
                                          | 'pop'
 <MSVS pragma directive managed> ~ 'managed'
-                                | 'managed' WS_any '(' WS_any ')'
-                                | 'managed' WS_any '(' WS_any <MSVS pragma directive managed interior> WS_any ')'
+                                | 'managed' <G0 lparen> <G0 rparen>
+                                | 'managed' <G0 lparen> <MSVS pragma directive managed interior> <G0 rparen>
 
 # unmanaged
 <MSVS pragma directive unmanaged> ~ 'unmanaged'
-                                  | 'unmanaged' WS_any '(' WS_any ')'
+                                  | 'unmanaged' <G0 lparen> <G0 rparen>
 
 # message( messagestring )
 <MSVS pragma directive message interior> ~ <G0 string>
-<MSVS pragma directive message> ~ 'message' WS_any '(' WS_any <MSVS pragma directive message interior> WS_any ')'
+<MSVS pragma directive message> ~ 'message' <G0 lparen> <MSVS pragma directive message interior> <G0 rparen>
 
 # once
 <MSVS pragma directive once> ~ 'once'
-                             | 'once' WS_any '(' WS_any ')'
+                             | 'once' <G0 lparen> <G0 rparen>
 
 # optimize( "[optimization-list]", {on | off} )
 #  Note: "[optimization-list]" should contains only specified characters. We do not mind and say this is a string.
 <MSVS pragma directive optimize interior optimizationList> ~  <G0 string>
 <MSVS pragma directive optimize interior on off> ~ 'on' | 'off'
 <MSVS pragma directive optimize interior> ~ <MSVS pragma directive optimize interior optimizationList> <G0 comma> <MSVS pragma directive optimize interior on off>
-<MSVS pragma directive optimize> ~ 'optimize' WS_any '(' WS_any <MSVS pragma directive optimize interior> WS_any ')'
+<MSVS pragma directive optimize> ~ 'optimize' <G0 lparen> <MSVS pragma directive optimize interior> <G0 rparen>
 
 # pack( [ show ] | [ push | pop ] [, identifier ] , n  )
 <MSVS pragma directive pack interior show> ~ 'show'
@@ -2026,40 +2030,40 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                         | <MSVS pragma directive pack interior 21> <G0 comma> <G0 number>
 <MSVS pragma directive pack interior> ~ <MSVS pragma directive pack interior 1>
                                       | <MSVS pragma directive pack interior 2>
-<MSVS pragma directive pack> ~ 'pack' WS_any '(' WS_any ')'
-                             | 'pack' WS_any '(' WS_any <MSVS pragma directive pack interior> WS_any ')'
+<MSVS pragma directive pack> ~ 'pack' <G0 lparen> <G0 rparen>
+                             | 'pack' <G0 lparen> <MSVS pragma directive pack interior> <G0 rparen>
 
 # pointers_to_members( pointer-declaration, [most-general-representation] )
 <MSVS pragma directive pointers_to_members interior pointer declaration> ~ 'full_generality' | 'best_case'
 <MSVS pragma directive pointers_to_members interior most general representation> ~ 'single_inheritance' | 'multiple_inheritance' | 'virtual_inheritance'
 <MSVS pragma directive pointers_to_members interior> ~ <MSVS pragma directive pointers_to_members interior pointer declaration>
                                                      | <MSVS pragma directive pointers_to_members interior pointer declaration> <G0 comma> <MSVS pragma directive pointers_to_members interior most general representation>
-<MSVS pragma directive pointers_to_members> ~ 'pointers_to_members' WS_any '(' WS_any <MSVS pragma directive pointers_to_members interior> WS_any ')'
+<MSVS pragma directive pointers_to_members> ~ 'pointers_to_members' <G0 lparen> <MSVS pragma directive pointers_to_members interior> <G0 rparen>
 
 # pop_macro("macro_name")
-<MSVS pragma directive pop_macro> ~ 'pop_macro' WS_any '(' WS_any <G0 string> WS_any ')'
+<MSVS pragma directive pop_macro> ~ 'pop_macro' <G0 lparen> <G0 string> <G0 rparen>
 
 # push_macro("macro_name")
-<MSVS pragma directive push_macro> ~ 'push_macro' WS_any '(' WS_any <G0 string> WS_any ')'
+<MSVS pragma directive push_macro> ~ 'push_macro' <G0 lparen> <G0 string> <G0 rparen>
 
 # region [name]
 <MSVS pragma directive region interior> ~ <G0 identifier>
 <MSVS pragma directive region> ~ 'region'
-                               | 'region' WS_any '(' WS_any ')'
-                               | 'region' WS_any '(' WS_any <MSVS pragma directive region interior> WS_any')'
+                               | 'region' <G0 lparen> <G0 rparen>
+                               | 'region' <G0 lparen> <MSVS pragma directive region interior> <G0 rparen>
 
 # endregion [name]
 <MSVS pragma directive endregion interior> ~ <G0 identifier>
 <MSVS pragma directive endregion> ~ 'endregion'
-                                  | 'endregion' WS_any '(' WS_any ')'
-                                  | 'endregion' WS_any '(' WS_any <MSVS pragma directive endregion interior> WS_any')'
+                                  | 'endregion' <G0 lparen> <G0 rparen>
+                                  | 'endregion' <G0 lparen> <MSVS pragma directive endregion interior> <G0 rparen>
 
 # optimize( "[runtime_checks]", {restore | off} )
 #  Note: "[runtime_checks]" should contains only specified characters. We do not mind and say this is a string.
 <MSVS pragma directive runtime_checks interior optimizationList> ~  <G0 string>
 <MSVS pragma directive runtime_checks interior on off> ~ 'restore' | 'off'
 <MSVS pragma directive runtime_checks interior> ~ <MSVS pragma directive runtime_checks interior optimizationList> <G0 comma> <MSVS pragma directive runtime_checks interior on off>
-<MSVS pragma directive runtime_checks> ~ 'runtime_checks' WS_any '(' WS_any <MSVS pragma directive runtime_checks interior> WS_any ')'
+<MSVS pragma directive runtime_checks> ~ 'runtime_checks' <G0 lparen> <MSVS pragma directive runtime_checks interior> <G0 rparen>
 
 # section( "section-name" [, attributes] )
 <MSVS pragma directive section interior attribute> ~ 'read' | 'write' | 'execute' | 'shared' | 'nopage' | 'nocache' | 'discard' | 'remove'
@@ -2067,11 +2071,11 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                                         | <MSVS pragma directive section interior attribute list> <G0 comma> <MSVS pragma directive section interior attribute>
 <MSVS pragma directive section interior> ~ <G0 string>
                                          | <G0 string> <G0 comma> <MSVS pragma directive section interior attribute list>
-<MSVS pragma directive section> ~ 'section' WS_any '(' WS_any <MSVS pragma directive section interior> WS_any ')'
+<MSVS pragma directive section> ~ 'section' <G0 lparen> <MSVS pragma directive section interior> <G0 rparen>
 
 # setlocale( "[locale-string]" )
 <MSVS pragma directive setlocale interior> ~ <G0 string>
-<MSVS pragma directive setlocale> ~ 'setlocale' WS_any '(' WS_any <MSVS pragma directive setlocale interior> WS_any ')'
+<MSVS pragma directive setlocale> ~ 'setlocale' <G0 lparen> <MSVS pragma directive setlocale interior> <G0 rparen>
 
 # strict_gs_check([push,] on )
 # strict_gs_check([push,] off )
@@ -2080,7 +2084,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive strict_gs_check interior> ~ <MSVS pragma directive strict_gs_check interior on off>
                                                  | 'push' <G0 comma> <MSVS pragma directive strict_gs_check interior on off>
                                                  | 'pop'
-<MSVS pragma directive strict_gs_check> ~ 'strict_gs_check' WS_any '(' WS_any <MSVS pragma directive strict_gs_check interior> WS_any ')'
+<MSVS pragma directive strict_gs_check> ~ 'strict_gs_check' <G0 lparen> <MSVS pragma directive strict_gs_check interior> <G0 rparen>
 
 # vtordisp([push,] n)
 # vtordisp(pop)
@@ -2091,15 +2095,15 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                                           | 'push' <G0 comma> <MSVS pragma directive vtordisp interior on off number>
                                           | 'pop'
 <MSVS pragma directive vtordisp> ~ 'vtordisp'
-                                 | 'vtordisp' WS_any '(' WS_any ')'
-                                 | 'vtordisp' WS_any '(' WS_any <MSVS pragma directive vtordisp interior> WS_any ')'
+                                 | 'vtordisp' <G0 lparen> <G0 rparen>
+                                 | 'vtordisp' <G0 lparen> <MSVS pragma directive vtordisp interior> <G0 rparen>
 
 :discard ~ <MSVS pragma>
 
 ###############################
 # Discard MSVS __declspec stuff
 ###############################
-<MSVS declspec> ~ '__declspec' WS_any '(' WS_any <MSVS declspec directive> WS_any ')'
+<MSVS declspec> ~ '__declspec' <G0 lparen> <MSVS declspec directive> <G0 rparen>
 <MSVS declspec directive> ~ <MSVS declspec align>
                           | <MSVS declspec allocate>
                           | <MSVS declspec appdomain>
@@ -2122,10 +2126,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                           | <MSVS declspec uuid>
 
 # align(#)
-<MSVS declspec align> ~ 'align' WS_any '(' WS_any <G0 number> WS_any ')'
+<MSVS declspec align> ~ 'align' <G0 lparen> <G0 number> <G0 rparen>
 
 # allocate("segname")
-<MSVS declspec allocate> ~ 'allocate' WS_any '(' WS_any <G0 string> WS_any ')'
+<MSVS declspec allocate> ~ 'allocate' <G0 lparen> <G0 string> <G0 rparen>
 
 # appdomain
 <MSVS declspec appdomain> ~ 'appdomain'
@@ -2134,8 +2138,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # deprecated()
 # deprecated("text")
 <MSVS declspec deprecated> ~ 'deprecated'
-                           | 'deprecated' WS_any '(' WS_any ')'
-                           | 'deprecated' WS_any '(' WS_any <G0 string> WS_any ')'
+                           | 'deprecated' <G0 lparen> <G0 rparen>
+                           | 'deprecated' <G0 lparen> <G0 string> <G0 rparen>
 
 # dllexport
 <MSVS declspec dllexport> ~ 'dllexport'
@@ -2172,7 +2176,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS declspec property interior> ~ <MSVS declspec property interior get put> <G0 equal> <G0 identifier>
 <MSVS declspec property interior list> ~ <MSVS declspec property interior>
                                        | <MSVS declspec property interior list> <G0 comma> <MSVS declspec property interior>
-<MSVS declspec property> ~ 'property' WS_any '(' WS_any <MSVS declspec property interior list> WS_any ')'
+<MSVS declspec property> ~ 'property' <G0 lparen> <MSVS declspec property interior list> <G0 rparen>
 
 # restrict
 <MSVS declspec restrict> ~ 'restrict'
@@ -2187,6 +2191,168 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS declspec thread> ~ 'thread'
 
 # uuid("ComObjectGUID")
-<MSVS declspec uuid> ~ 'uuid' WS_any '(' WS_any <G0 string> WS_any ')'
+<MSVS declspec uuid> ~ 'uuid' <G0 lparen> <G0 string> <G0 rparen>
 
 :discard ~ <MSVS declspec>
+
+#################################
+# Discard GCC __attribute__ stuff
+#################################
+<GCC attribute keyword> ~ '__attribute__'
+                        | '__attribute'
+
+<GCC attribute> ~ <GCC attribute keyword> <G0 lparen> <G0 lparen> <G0 rparen> <G0 rparen>
+                | <GCC attribute keyword> <G0 lparen> <G0 lparen> <GCC attribute list> <G0 rparen> <G0 rparen>
+
+<GCC attribute list> ~ <GCC attribute unit>
+                     | <GCC attribute list> <G0 comma> <GCC attribute unit>
+
+<GCC attribute unit> ~ <G0 word>
+                     | <G0 word> <G0 lparen> <G0 rparen>
+                     | <G0 word> <G0 lparen> <GCC attribute parameters> <G0 rparen>
+
+<GCC attribute parameters> ~ <G0 identifier>
+                           | <G0 identifier> <G0 comma> <GCC attribute parameters expressions>
+                           | <GCC attribute parameters expressions>
+
+<GCC attribute parameters expressions> ~ <GCC attribute parameters expression>
+                                       | <GCC attribute parameters expressions> <G0 comma> <GCC attribute parameters expression>
+
+#
+# Here comes the difficuly. This should be an expression.
+# Since this is for :discard, we provide a G0 version of it.
+# This is a brutal version:
+# - typeName is replaced by <G0 words>
+# - constant is replaced by <G0 anything but space>
+# - GCC extensions are ignored
+#
+<GCC attribute parameters expression> ~ <G0 expression>
+
+<G0 expression>	~ <G0 assignmentExpression>
+	        | <G0 expression> <G0 comma> <G0 assignmentExpression>
+
+<G0 assignmentExpression> ~ <G0 conditionalExpression>
+	                  | <G0 unaryExpression> <G0 assignmentOperator> <G0 assignmentExpression>
+
+<G0 assignmentOperator>	~ <G0 equal>
+	                | <G0 mul assign>
+                	| <G0 div assign>
+                	| <G0 mod assign>
+                	| <G0 add assign>
+                	| <G0 sub assign>
+                	| <G0 left assign>
+                	| <G0 right assign>
+                	| <G0 and assign>
+                	| <G0 xor assign>
+                	| <G0 or assign>
+
+<G0 conditionalExpression> ~ <G0 logicalOrExpression>
+                           | <G0 logicalOrExpression> <G0 question mark> <G0 expression> <G0 colon> <G0 conditionalExpression>
+                           | <G0 logicalOrExpression> <G0 question mark> <G0 colon> <G0 conditionalExpression>          # GCC Extension
+
+<G0 logicalOrExpression> ~ <G0 logicalAndExpression>
+                         | <G0 logicalOrExpression> <G0 or op> <G0 logicalAndExpression>
+
+<G0 logicalAndExpression> ~ <G0 inclusiveOrExpression>
+                          | <G0 logicalAndExpression> <G0 and op> <G0 inclusiveOrExpression>
+
+<G0 inclusiveOrExpression> ~ <G0 exclusiveOrExpression>
+                           | <G0 inclusiveOrExpression> <G0 vertical bar> <G0 exclusiveOrExpression>
+
+<G0 exclusiveOrExpression> ~ <G0 andExpression>
+                           | <G0 exclusiveOrExpression> <G0 caret> <G0 andExpression>
+
+<G0 andExpression> ~ <G0 equalityExpression>
+                   | <G0 andExpression> <G0 ampersand> <G0 equalityExpression>
+
+<G0 equalityExpression> ~ <G0 relationalExpression>
+                        | <G0 equalityExpression> <G0 eq op> <G0 relationalExpression>
+                        | <G0 equalityExpression> <G0 ne op> <G0 relationalExpression>
+
+<G0 relationalExpression> ~ <G0 shiftExpression>
+                          | <G0 relationalExpression> <G0 less than> <G0 shiftExpression>
+                          | <G0 relationalExpression> <G0 greater than> <G0 shiftExpression>
+                          | <G0 relationalExpression> <G0 le op> <G0 shiftExpression>
+                          | <G0 relationalExpression> <G0 ge op> <G0 shiftExpression>
+
+<G0 shiftExpression> ~ <G0 additiveExpression>
+                     | <G0 shiftExpression> <G0 left op> <G0 additiveExpression>
+                     | <G0 shiftExpression> <G0 right op> <G0 additiveExpression>
+
+<G0 additiveExpression>	~ <G0 multiplicativeExpression>
+                        | <G0 additiveExpression> <G0 plus> <G0 multiplicativeExpression>
+                        | <G0 additiveExpression> <G0 hyphen> <G0 multiplicativeExpression>
+
+<G0 multiplicativeExpression> ~ <G0 castExpression>
+                              | <G0 multiplicativeExpression> <G0 star> <G0 castExpression>
+                              | <G0 multiplicativeExpression> <G0 slash> <G0 castExpression>
+                              | <G0 multiplicativeExpression> <G0 percent> <G0 castExpression>
+
+<G0 castExpression> ~ <G0 unaryExpression>
+                    | <G0 lparen> <G0 words> <G0 rparen> <G0 castExpression>
+
+<G0 unaryOperator> ~ <G0 ampersand>
+                   | <G0 star>
+                   | <G0 plus>
+                   | <G0 hyphen>
+                   | <G0 tilde>
+                   | <G0 exclamation>
+
+<G0 unaryExpression> ~ <G0 postfixExpression>
+                     | <G0 inc op> <G0 unaryExpression>
+                     | <G0 dec op> <G0 unaryExpression>
+                     | <G0 unaryOperator> <G0 castExpression>
+                     | <G0 sizeof> <G0 unaryExpression>
+                     | <G0 sizeof> <G0 lparen> <G0 words> <G0 rparen>
+                     | <G0 alignof> <G0 lparen> <G0 words> <G0 rparen>
+
+<G0 postfixExpression>	~ <G0 primaryExpression>
+                        | <G0 postfixExpression> <G0 lbracket> <G0 expression> <G0 rbracket>
+                        | <G0 postfixExpression> <G0 lparen> <G0 rparen>
+                        | <G0 postfixExpression> <G0 lparen> <G0 argumentExpressionList> <G0 rparen>
+                        | <G0 postfixExpression> <G0 dot> <G0 identifier>
+                        | <G0 postfixExpression> <G0 ptr op> <G0 identifier>
+                        | <G0 postfixExpression> <G0 inc op>
+                        | <G0 postfixExpression> <G0 dec op>
+                        | <G0 lparen> <G0 words> <G0 rparen> <G0 lcurly> <G0 initializerList> <G0 rcurly>
+                        | <G0 lparen> <G0 words> <G0 rparen> <G0 lcurly> <G0 initializerList> <G0 comma> <G0 rcurly>
+
+<G0 primaryExpression> ~ <G0 identifier>
+                       | <G0 anything but space>
+                       | <G0 string>
+                       | <G0 lparen> <G0 expression> <G0 rparen>
+                       | <G0 genericSelection>
+
+<G0 argumentExpressionList> ~ <G0 assignmentExpression>
+                            | <G0 argumentExpressionList> <G0 comma> <G0 assignmentExpression>
+                            | <G0 argumentExpressionList> <G0 comma>
+
+<G0 genericSelection> ~ <G0 generic> <G0 lparen> <G0 assignmentExpression> <G0 comma> <G0 genericAssocList> <G0 rparen>
+
+<G0 genericAssocList> ~ <G0 genericAssociation>
+                      | <G0 genericAssocList> <G0 comma> <G0 genericAssociation>
+
+<G0 genericAssociation>	~ <G0 words> <G0 colon> <G0 assignmentExpression>
+                        | <G0 default> <G0 colon> <G0 assignmentExpression>
+
+<G0 initializerList> ~ <G0 designation> <G0 initializer>
+                     | <G0 initializer>
+                     | <G0 identifier> <G0 colon> <G0 initializer>
+                     | <G0 initializerList> <G0 comma> <G0 designation> <G0 initializer>
+                     | <G0 initializerList> <G0 comma> <G0 initializer>
+
+<G0 initializer> ~ <G0 lcurly> <G0 initializerList> <G0 rcurly>
+                 | <G0 lcurly> <G0 initializerList> <G0 comma> <G0 rcurly>
+                 | <G0 assignmentExpression>
+
+<G0 designation> ~ <G0 designatorList> <G0 equal>
+
+<G0 designatorList> ~ <G0 designator>+
+
+<G0 designator>	~ <G0 lbracket> <G0 constantExpression> <G0 rbracket>
+                | <G0 dot> <G0 identifier>
+                | <G0 lbracket> <G0 constantExpression> <G0 ellipsis> <G0 constantExpression> <G0 rbracket> # GCC Extension
+
+<G0 constantExpression>	~ <G0 conditionalExpression> # with constraints
+
+:discard ~ <GCC attribute>
