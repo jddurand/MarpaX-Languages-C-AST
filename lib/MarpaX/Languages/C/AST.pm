@@ -195,7 +195,7 @@ sub parse {
     $self->_getLexeme(\%lexeme);
     $self->_doScope(\%lexeme);
     $self->_doEvents();
-    $pos += $self->_doPauseAfterLexeme(\%lexeme);
+    $pos += $self->_doPauseBeforeLexeme(\%lexeme);
     $self->_doLogInfo(\%lexeme);
     $self->_doLexemeCallback(\%lexeme);
     $self->_doPreprocessing($pos);
@@ -292,7 +292,7 @@ sub _getLexeme {
   #
   # Get paused lexeme
   # Trustable if pause after
-  # See _doPauseAfterLexeme for the others
+  # See _doPauseBeforeLexeme for the others
   #
   my $lexeme = $self->{_impl}->pause_lexeme();
   if (defined($lexeme)) {
@@ -481,7 +481,7 @@ sub _doScope {
   }
 }
 # ----------------------------------------------------------------------------------------
-sub _doPauseAfterLexeme {
+sub _doPauseBeforeLexeme {
   my ($self, $lexemeHashp) = @_;
 
   my $delta = 0;
@@ -491,7 +491,7 @@ sub _doPauseAfterLexeme {
   #
   if (exists($lexemeHashp->{name})) {
       #
-      # pause start lexemes
+      # C grammar typedef/enumeration_constant/identifier ambiguity
       #
       if ($lexemeHashp->{name} eq 'TYPEDEF_NAME' ||
           $lexemeHashp->{name} eq 'ENUMERATION_CONSTANT' ||
