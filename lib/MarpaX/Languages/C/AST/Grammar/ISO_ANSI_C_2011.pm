@@ -227,6 +227,7 @@ unaryExpression
 	| SIZEOF LPAREN typeName RPAREN
 	| ALIGNOF LPAREN typeName RPAREN
         | gccAlignofExpression
+        | (gccExtension) castExpression
 
 unaryOperator
 	::= AMPERSAND
@@ -312,6 +313,7 @@ assignmentOperator
 
 expression
 	::= assignmentExpression
+	| (gccExtension) assignmentExpression
 	| expression COMMA assignmentExpression
 
 constantExpression
@@ -336,11 +338,14 @@ declaration
 	| declarationCheck
 	| staticAssertDeclaration
 
+gccExtension ::= GCC_EXTENSION
+
 declarationSpecifiersUnit ::= storageClassSpecifier
                             | typeSpecifier
                             | typeQualifier
                             | functionSpecifier
                             | alignmentSpecifier
+                            | (gccExtension)
 
 declarationSpecifiers ::= declarationSpecifiersUnit+
 
@@ -409,6 +414,7 @@ structDeclaration
 
 specifierQualifierListUnit ::= typeSpecifier
                              | typeQualifier
+                             | (gccExtension)
 
 specifierQualifierList ::= specifierQualifierListUnit+
 
@@ -1017,6 +1023,10 @@ ANYTHING_ELSE   ~ [.]
 GCC_ASM              ~ 'asm__'
 GCC_ASM              ~ '__asm'
 GCC_ASM              ~ '__asm__'
+:lexeme ~ <GCC_EXTENSION>            priority => -60
+GCC_EXTENSION        ~ 'extension__'
+GCC_EXTENSION        ~ '__extension'
+GCC_EXTENSION        ~ '__extension__'
 :lexeme ~ <GCC_BUILTIN_VA_START>     priority => -60
 GCC_BUILTIN_VA_START ~ '__builtin_va_start'
 :lexeme ~ <GCC_BUILTIN_VA_END>       priority => -60
