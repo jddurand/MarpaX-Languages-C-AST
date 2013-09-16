@@ -41,8 +41,7 @@
                                                                ], 'C::AST::directDeclarator' ),
                                                         bless( [
                                                                  undef
-                                                               ], 'C::AST::gccAsmExpressionMaybe' ),
-                                                        bless( [], 'C::AST::gccAttributeAny' )
+                                                               ], 'C::AST::gccAsmExpressionMaybe' )
                                                       ], 'C::AST::declarator' )
                                              ], 'C::AST::fileScopeDeclarator' ),
                                       bless( [
