@@ -227,7 +227,6 @@ unaryExpression
 	| SIZEOF LPAREN typeName RPAREN
 	| ALIGNOF LPAREN typeName RPAREN
         | gccAlignofExpression
-        | (gccExtension) castExpression
 
 unaryOperator
 	::= AMPERSAND
