@@ -527,8 +527,18 @@ sub _doPauseBeforeLexeme {
 	  # A lexeme_read() can generate an event
 	  #
 	  $self->_doEvents();
-      }
-  }
+        } elsif ($lexemeHashp->{name} eq 'ASM') {
+          # __asm assembly-instruction [ ; ]
+          # __asm { assembly-instruction-list } [ ; ]
+          #
+          # Set current position to where is this lexeme
+          #
+          my $start_lengthp = startAndLength($self->{_impl});
+          my $pos = $start_lengthp->[0];
+          my $savPos = pos(${$self->{_sourcep}});
+          pos(${$self->{_sourcep}}) = $pos;
+        }
+    }
 
   return $delta;
 }
