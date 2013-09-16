@@ -693,6 +693,9 @@ H          ~ [a-fA-F0-9]
 H_any      ~ H*
 H_many     ~ H+
 HP         ~ '0' [xX]
+B          ~ [0-1]
+B_many     ~ B+
+BP         ~ '0' [bB]
 SIGN_maybe ~ [+-]
 SIGN_maybe ~
 E          ~ [Ee] SIGN_maybe D_many
@@ -853,6 +856,7 @@ IDENTIFIER           ~ L A_any
 
 :lexeme ~ <I_CONSTANT>         priority => -101
 I_CONSTANT ~ HP H_many IS_maybe
+           | BP B_many IS_maybe   # Gcc extension: binary constants
            | NZ D_any IS_maybe
            | '0' O_any IS_maybe
            | CP_maybe QUOTE I_CONSTANT_INSIDE_many QUOTE
@@ -1770,6 +1774,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # G0 "constants"
 #
 <G0 I_CONSTANT> ~ HP H_many IS_maybe
+                | BP B_many IS_maybe   # Gcc extension: binary constants
                 | NZ D_any IS_maybe
                 | '0' O_any IS_maybe
                 | CP_maybe QUOTE I_CONSTANT_INSIDE_many QUOTE
