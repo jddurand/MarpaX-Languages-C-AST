@@ -1697,7 +1697,6 @@ msvsAsmConstant ::= I_CONSTANT
 <_G0 word> ~ [\w]+
 <G0 word> ~ WS_any <_G0 word> WS_any
 <G0 words> ~ <G0 word>+
-<G0 anything but space> ~ [^ \t\v\n\f]+
 #
 # Same thing as <G0 string> but with <> instead of "
 #
@@ -1766,6 +1765,23 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <G0 colon> ~ WS_any ':' WS_any
 <G0 semicolon> ~ WS_any ';' WS_any
 <G0 question mark> ~ WS_any '?' WS_any
+
+#
+# G0 "constants"
+#
+<G0 I_CONSTANT> ~ HP H_many IS_maybe
+                | NZ D_any IS_maybe
+                | '0' O_any IS_maybe
+                | CP_maybe QUOTE I_CONSTANT_INSIDE_many QUOTE
+<G0 F_CONSTANT> ~ D_many E FS_maybe
+                | D_any '.' D_many E_maybe FS_maybe
+                | D_many '.' E_maybe FS_maybe
+                | HP H_many P FS_maybe
+                | HP H_any '.' H_many P FS_maybe
+                | HP H_many '.' P FS_maybe
+<G0 constant> ~ <G0 I_CONSTANT>
+              | <G0 F_CONSTANT>
+              | <G0 identifier>
 
 #############################################################################################
 # Discard MSVS __pragma stuff. It can happen in a lot of place, even in places not compatible
@@ -2222,7 +2238,6 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # Since this is for :discard, we provide a G0 version of it.
 # This is a brutal version:
 # - typeName is replaced by <G0 words>
-# - constant is replaced by <G0 anything but space>
 # - GCC extensions are ignored
 #
 <GCC attribute parameters expression> ~ <G0 expression>
@@ -2317,7 +2332,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <G0 lparen> <G0 words> <G0 rparen> <G0 lcurly> <G0 initializerList> <G0 comma> <G0 rcurly>
 
 <G0 primaryExpression> ~ <G0 identifier>
-                       | <G0 anything but space>
+                       | <G0 constant>
                        | <G0 string>
                        | <G0 lparen> <G0 expression> <G0 rparen>
                        | <G0 genericSelection>
