@@ -1026,6 +1026,7 @@ ANYTHING_ELSE   ~ [.]
 GCC_ASM              ~ 'asm__'
 GCC_ASM              ~ '__asm'
 GCC_ASM              ~ '__asm__'
+GCC_ASM              ~ 'asm'
 :lexeme ~ <GCC_EXTENSION>            priority => -60
 GCC_EXTENSION        ~ 'extension__'
 GCC_EXTENSION        ~ '__extension'
