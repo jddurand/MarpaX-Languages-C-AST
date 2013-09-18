@@ -10,7 +10,7 @@ use Log::Any qw/$log/;
 use Data::Dumper;
 use Carp qw/croak/;
 # Marpa follows Unicode recommendation, i.e. perl's \R, that cannot be in a character class
-use constant { NEWLINE_REGEXP => qr/(?>\x0D\x0A|\v)/ };
+our $NEWLINE_REGEXP = qr/(?>\x0D\x0A|\v)/;
 
 # VERSION
 # CONTRIBUTORS
@@ -135,15 +135,30 @@ sub showLineAndCol {
     my ($line, $col, $sourcep) = @_;
 
     my $pointer = ($col > 0 ? '-' x ($col-1) : '') . '^';
-    my $content = (split(NEWLINE_REGEXP, ${$sourcep}, -1))[$line-1];
-    $content =~ s/\t/ /g;
-    print STDERR "JDD line $line\n";
-    print STDERR "JDD col $col\n";
-    print STDERR "JDD split:\n";
-    foreach (split(NEWLINE_REGEXP, ${$sourcep})) {
-	print "<$_>\n";
+    my $content = '';
+
+    my $prevpos = pos(${$sourcep});
+    pos(${$sourcep}) = undef;
+    my $thisline = 0;
+    my $nbnewlines = 0;
+    my $eos = 0;
+    while (${$sourcep} =~ m/\G(.*?)($NEWLINE_REGEXP|\Z)/scmg) {
+      if (++$thisline == $line) {
+        $content = substr(${$sourcep}, $-[1], $+[1] - $-[1]);
+        $eos = (($+[2] - $-[2]) > 0) ? 0 : 1;
+        last;
+      }
     }
-    return "line:column $line:$col\n\n$content\n$pointer";
+    $content =~ s/\t/ /g;
+    if ($content) {
+      $nbnewlines = (substr(${$sourcep}, 0, pos(${$sourcep})) =~ tr/\n//);
+      if ($eos) {
+        ++$nbnewlines; # End of string instead of $NEWLINE_REGEXP
+      }
+    }
+    pos(${$sourcep}) = $prevpos;
+
+    return "line:column $line:$col (Unicode newline count) $nbnewlines:$col (\\n count)\n\n$content\n$pointer";
 }
 
 =head2 lineAndCol($impl, $g1)
