@@ -339,14 +339,49 @@ declaration
 
 gccExtension ::= GCC_EXTENSION
 
-declarationSpecifiersUnit ::= storageClassSpecifier
-                            | typeSpecifier
-                            | typeQualifier
-                            | functionSpecifier
-                            | alignmentSpecifier
-                            | (gccExtension)
+#declarationSpecifiersUnit ::= storageClassSpecifier
+#                            | typeSpecifier
+#                            | typeQualifier
+#                            | functionSpecifier
+#                            | alignmentSpecifier
+#                            | (gccExtension)
 
-declarationSpecifiers ::= declarationSpecifiersUnit+
+declarationSpecifiers ::= declarationSpecifiers0
+                        | declarationSpecifiers1
+                        | declarationSpecifiers2
+
+declarationSpecifiers0 ::=       # List without type specifiers
+                           storageClassSpecifier
+                         | declarationSpecifiers0 storageClassSpecifier
+                         | typeQualifier
+                         | declarationSpecifiers0 typeQualifier
+                         | functionSpecifier
+                         | declarationSpecifiers0 functionSpecifier
+                         | alignmentSpecifier
+                         | declarationSpecifiers0 alignmentSpecifier
+                         | (gccExtension)
+                         | declarationSpecifiers0 (gccExtension)
+
+declarationSpecifiers1 ::=       # List with a single typeSpecifier1
+                           typeSpecifier1
+                         | declarationSpecifiers0 typeSpecifier1
+                         | declarationSpecifiers1 storageClassSpecifier
+                         | declarationSpecifiers1 typeQualifier
+                         | declarationSpecifiers1 functionSpecifier
+                         | declarationSpecifiers1 alignmentSpecifier
+                         | declarationSpecifiers1 (gccExtension)
+
+declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
+                           typeSpecifier2
+                         | declarationSpecifiers0 typeSpecifier2
+                         | declarationSpecifiers2 typeSpecifier2
+                         | declarationSpecifiers2 storageClassSpecifier
+                         | declarationSpecifiers2 typeQualifier
+                         | declarationSpecifiers2 functionSpecifier
+                         | declarationSpecifiers2 alignmentSpecifier
+                         | declarationSpecifiers2 (gccExtension)
+
+# declarationSpecifiers ::= declarationSpecifiersUnit+
 
 initDeclaratorList
 	::= initDeclarator
@@ -368,13 +403,23 @@ storageClassSpecifier
 	| AUTO
 	| REGISTER
 
-typeSpecifier
+#
+# Following advice at http://eli-project.sourceforge.net/c_html/c.html, typeSpecifier is
+# divided into two parts: those than only appear in lists of one element, those that can be
+# be used to form lists of one or more elements
+#
+typeSpecifier1
 	::= VOID
-	| CHAR
+	| FLOAT
+	| structOrUnionSpecifier
+	| enumSpecifier
+	| TYPEDEF_NAME		# after it has been defined as such
+
+typeSpecifier2
+	::= CHAR
 	| SHORT
 	| INT
 	| LONG
-	| FLOAT
 	| DOUBLE
 	| SIGNED
 	| UNSIGNED
@@ -383,9 +428,6 @@ typeSpecifier
 	| COMPLEX
 	| IMAGINARY	  	# non-mandated extension
 	| atomicTypeSpecifier
-	| structOrUnionSpecifier
-	| enumSpecifier
-	| TYPEDEF_NAME		# after it has been defined as such
         | msvsBuiltinType
         | gccBuiltinType
 
@@ -411,11 +453,34 @@ structDeclaration
 	| specifierQualifierList structDeclaratorList SEMICOLON
 	| SEMICOLON                             # GCC extension
 
-specifierQualifierListUnit ::= typeSpecifier
-                             | typeQualifier
-                             | (gccExtension)
+#specifierQualifierListUnit ::= typeSpecifier
+#                             | typeQualifier
+#                             | (gccExtension)
 
-specifierQualifierList ::= specifierQualifierListUnit+
+# specifierQualifierList ::= specifierQualifierListUnit+
+
+specifierQualifierList ::= specifierQualifierList0
+                         | specifierQualifierList1
+                         | specifierQualifierList2
+
+specifierQualifierList0 ::= # List without type specifiers
+                            typeQualifier
+                          | specifierQualifierList0 typeQualifier
+                          | (gccExtension)
+                          | specifierQualifierList0 (gccExtension)
+
+specifierQualifierList1 ::= # List with a single typeSpecifier1
+                            typeSpecifier1
+                          | specifierQualifierList0 typeSpecifier1
+                          | specifierQualifierList1 typeQualifier
+                          | specifierQualifierList1 (gccExtension)
+
+specifierQualifierList2 ::= # List with one or more typeSpecifier2
+                            typeSpecifier2
+                          | specifierQualifierList0 typeSpecifier2
+                          | specifierQualifierList2 typeSpecifier2
+                          | specifierQualifierList2 typeQualifier
+                          | specifierQualifierList2 (gccExtension)
 
 structDeclaratorList
 	::= structDeclarator
@@ -463,9 +528,11 @@ alignmentSpecifier
 
 msvsAttributeAny ::= msvsAttribute*
 
+event 'declaratordirectDeclarator[]' = nulled <declaratordirectDeclarator>
+declaratordirectDeclarator ::=
 declarator
-	::= pointer msvsAttributeAny directDeclarator gccAsmExpressionMaybe
-	| msvsAttributeAny directDeclarator gccAsmExpressionMaybe
+	::= pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpressionMaybe
+	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpressionMaybe
         #
         # Microsoft hack that does not really declare a declarator
         #
