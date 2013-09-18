@@ -9,6 +9,8 @@ use Exporter 'import';
 use Log::Any qw/$log/;
 use Data::Dumper;
 use Carp qw/croak/;
+# Marpa follows Unicode recommendation, i.e. perl's \R, that cannot be in a character class
+use constant { NEWLINE_REGEXP => qr/(?>\x0D\x0A|\v)/ };
 
 # VERSION
 # CONTRIBUTORS
@@ -133,8 +135,14 @@ sub showLineAndCol {
     my ($line, $col, $sourcep) = @_;
 
     my $pointer = ($col > 0 ? '-' x ($col-1) : '') . '^';
-    my $content = (split("\n", ${$sourcep}))[$line-1];
+    my $content = (split(NEWLINE_REGEXP, ${$sourcep}, -1))[$line-1];
     $content =~ s/\t/ /g;
+    print STDERR "JDD line $line\n";
+    print STDERR "JDD col $col\n";
+    print STDERR "JDD split:\n";
+    foreach (split(NEWLINE_REGEXP, ${$sourcep})) {
+	print "<$_>\n";
+    }
     return "line:column $line:$col\n\n$content\n$pointer";
 }
 
