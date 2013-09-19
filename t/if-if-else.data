@@ -11,8 +11,8 @@
                                                                             4,
                                                                             'void'
                                                                           ]
-                                                                        ], 'C::AST::typeSpecifier' )
-                                                               ], 'C::AST::declarationSpecifiersUnit' )
+                                                                        ], 'C::AST::typeSpecifier1' )
+                                                               ], 'C::AST::declarationSpecifiers1' )
                                                       ], 'C::AST::declarationSpecifiers' )
                                              ], 'C::AST::functionDefinitionCheck2declarationSpecifiers' ),
                                       bless( [
@@ -38,10 +38,7 @@
                                                                    1,
                                                                    ')'
                                                                  ]
-                                                               ], 'C::AST::directDeclarator' ),
-                                                        bless( [
-                                                                 undef
-                                                               ], 'C::AST::gccAsmExpressionMaybe' )
+                                                               ], 'C::AST::directDeclarator' )
                                                       ], 'C::AST::declarator' )
                                              ], 'C::AST::fileScopeDeclarator' ),
                                       bless( [
