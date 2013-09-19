@@ -313,6 +313,7 @@ assignmentOperator
 
 expression
 	::= assignmentExpression
+	| (gccExtension) assignmentExpression
 	| expression COMMA assignmentExpression
 
 constantExpression
@@ -337,11 +338,14 @@ declaration
 	| declarationCheck
 	| staticAssertDeclaration
 
+gccExtension ::= GCC_EXTENSION
+
 #declarationSpecifiersUnit ::= storageClassSpecifier
 #                            | typeSpecifier
 #                            | typeQualifier
 #                            | functionSpecifier
 #                            | alignmentSpecifier
+#                            | (gccExtension)
 
 declarationSpecifiers ::= declarationSpecifiers0
                         | declarationSpecifiers1
@@ -356,6 +360,8 @@ declarationSpecifiers0 ::=       # List without type specifiers
                          | declarationSpecifiers0 functionSpecifier
                          | alignmentSpecifier
                          | declarationSpecifiers0 alignmentSpecifier
+                         | (gccExtension)
+                         | declarationSpecifiers0 (gccExtension)
 
 declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                            typeSpecifier1
@@ -364,6 +370,7 @@ declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                          | declarationSpecifiers1 typeQualifier
                          | declarationSpecifiers1 functionSpecifier
                          | declarationSpecifiers1 alignmentSpecifier
+                         | declarationSpecifiers1 (gccExtension)
 
 declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                            typeSpecifier2
@@ -373,6 +380,7 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                          | declarationSpecifiers2 typeQualifier
                          | declarationSpecifiers2 functionSpecifier
                          | declarationSpecifiers2 alignmentSpecifier
+                         | declarationSpecifiers2 (gccExtension)
 
 # declarationSpecifiers ::= declarationSpecifiersUnit+
 
@@ -448,6 +456,7 @@ structDeclaration
 
 #specifierQualifierListUnit ::= typeSpecifier
 #                             | typeQualifier
+#                             | (gccExtension)
 
 # specifierQualifierList ::= specifierQualifierListUnit+
 
@@ -458,17 +467,21 @@ specifierQualifierList ::= specifierQualifierList0
 specifierQualifierList0 ::= # List without type specifiers
                             typeQualifier
                           | specifierQualifierList0 typeQualifier
+                          | (gccExtension)
+                          | specifierQualifierList0 (gccExtension)
 
 specifierQualifierList1 ::= # List with a single typeSpecifier1
                             typeSpecifier1
                           | specifierQualifierList0 typeSpecifier1
                           | specifierQualifierList1 typeQualifier
+                          | specifierQualifierList1 (gccExtension)
 
 specifierQualifierList2 ::= # List with one or more typeSpecifier2
                             typeSpecifier2
                           | specifierQualifierList0 typeSpecifier2
                           | specifierQualifierList2 typeSpecifier2
                           | specifierQualifierList2 typeQualifier
+                          | specifierQualifierList2 (gccExtension)
 
 structDeclaratorList
 	::= structDeclarator
@@ -1081,6 +1094,10 @@ GCC_ASM              ~ 'asm__'
 GCC_ASM              ~ '__asm'
 GCC_ASM              ~ '__asm__'
 GCC_ASM              ~ 'asm'
+:lexeme ~ <GCC_EXTENSION>            priority => -60
+GCC_EXTENSION        ~ 'extension__'
+GCC_EXTENSION        ~ '__extension'
+GCC_EXTENSION        ~ '__extension__'
 :lexeme ~ <GCC_BUILTIN_VA_START>     priority => -60
 GCC_BUILTIN_VA_START ~ '__builtin_va_start'
 :lexeme ~ <GCC_BUILTIN_VA_END>       priority => -60
@@ -2426,12 +2443,3 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <G0 constantExpression>	~ <G0 conditionalExpression> # with constraints
 
 :discard ~ <GCC attribute>
-
-#################################
-# Discard GCC __extension__ stuff
-#################################
-<GCC extension> ~ '__extension__'
-                | '__extension'
-                | 'extension__'
-
-:discard ~ <GCC extension>
