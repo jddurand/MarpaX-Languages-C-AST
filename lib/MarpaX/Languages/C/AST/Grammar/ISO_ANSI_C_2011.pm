@@ -37,6 +37,7 @@ our %DEFAULT_PAUSE = (
     TYPEDEF_NAME         => 'before',
     ENUMERATION_CONSTANT => 'before',
     IDENTIFIER           => 'before',
+    # MSVS_ASM             => 'before',
     SEMICOLON            => 'after',
     LCURLY_SCOPE         => 'after',
     RCURLY_SCOPE         => 'after',
@@ -531,8 +532,10 @@ msvsAttributeAny ::= msvsAttribute*
 event 'declaratordirectDeclarator[]' = nulled <declaratordirectDeclarator>
 declaratordirectDeclarator ::=
 declarator
-	::= pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpressionMaybe
-	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpressionMaybe
+	::= pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator
+	| pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpression
+	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator
+	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpression
         #
         # Microsoft hack that does not really declare a declarator
         #
@@ -601,13 +604,12 @@ typeName
 	::= specifierQualifierList abstractDeclarator
 	| specifierQualifierList
 
-gccAsmExpressionMaybe ::= gccAsmExpression
-                        | gccEmptyRule
-
 abstractDeclarator
-	::= pointer msvsAttributeAny directAbstractDeclarator gccAsmExpressionMaybe
+	::= pointer msvsAttributeAny directAbstractDeclarator
+	| pointer msvsAttributeAny directAbstractDeclarator gccAsmExpression
 	| pointer msvsAttributeAny
-	| directAbstractDeclarator gccAsmExpressionMaybe
+	| directAbstractDeclarator
+	| directAbstractDeclarator gccAsmExpression
 
 directAbstractDeclarator
 	::= LPAREN abstractDeclarator RPAREN
@@ -1484,39 +1486,39 @@ MSVS_ASM_SBYTE ~ 'sbyte'
 gccBuiltinType ::= gccTypeof
                  | GCC_BUILTIN_VA_LIST
 
-gccEmptyRule ::=
-
 gccAsmStatement ::= gccAsmExpression SEMICOLON
 
-typeQualifierMaybe ::= typeQualifier
-                     | gccEmptyRule
-
-gccAsmExpression ::= GCC_ASM typeQualifierMaybe LPAREN expression gccAsmInnerOperandListMaybe RPAREN
+gccAsmExpression ::= GCC_ASM LPAREN expression RPAREN
+                   | GCC_ASM LPAREN RPAREN
+                   | GCC_ASM LPAREN expression gccAsmInnerOperandList RPAREN
+                   | GCC_ASM typeQualifier LPAREN expression RPAREN
+                   | GCC_ASM typeQualifier LPAREN expression gccAsmInnerOperandList RPAREN
+                   | GCC_ASM GOTO LPAREN expression gccAsmInnerOperandList gccAsmInnerLabelList RPAREN
 
 gccAsmClobberList ::= gccAsmClobber | gccAsmClobberList COMMA gccAsmClobber
 
 gccAsmOperandList ::= gccAsmOperand | gccAsmOperandList COMMA gccAsmOperand
 
-gccAsmOperandListMaybe ::= gccAsmOperandList | gccEmptyRule
-
 gccAsmInnerClobberList ::= COLON gccAsmClobberList
 
-gccAsmInnerClobberListMaybe ::= gccAsmInnerClobberList | gccEmptyRule
+gccAsmInnerOperandList2 ::= COLON
+                          | COLON gccAsmInnerClobberList
+                          | COLON gccAsmOperandList
+                          | COLON gccAsmOperandList gccAsmInnerClobberList
 
-gccAsmInnerOperandList2 ::= COLON gccAsmOperandListMaybe gccAsmInnerClobberListMaybe
+gccAsmInnerOperandList ::= COLON
+                         | COLON gccAsmInnerOperandList2
+                         | COLON gccAsmOperandList
+                         | COLON gccAsmOperandList gccAsmInnerOperandList2
 
-gccAsmInnerOperandList2Maybe ::= gccAsmInnerOperandList2 | gccEmptyRule
-
-gccAsmInnerOperandList ::= COLON gccAsmOperandListMaybe gccAsmInnerOperandList2Maybe
-
-gccAsmInnerOperandListMaybe ::= gccAsmInnerOperandList | gccEmptyRule
+gccAsmInnerLabelList ::= COLON
+                       | COLON IDENTIFIER
+                       | gccAsmInnerLabelList COMMA IDENTIFIER
 
 gccAsmOperandPrefix ::= LBRACKET IDENTIFIER RBRACKET
 
-gccAsmOperandPrefixMaybe ::= gccAsmOperandPrefix
-                           | gccEmptyRule
-
-gccAsmOperand ::= gccAsmOperandPrefixMaybe string LPAREN expression RPAREN
+gccAsmOperand ::= string LPAREN expression RPAREN
+                | gccAsmOperandPrefix string LPAREN expression RPAREN
 
 gccAsmClobber ::= string
 
