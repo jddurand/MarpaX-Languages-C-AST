@@ -313,7 +313,7 @@ assignmentOperator
 
 expression
 	::= assignmentExpression
-	| (gccExtension) assignmentExpression
+	| assignmentExpression
 	| expression COMMA assignmentExpression
 
 constantExpression
@@ -338,14 +338,11 @@ declaration
 	| declarationCheck
 	| staticAssertDeclaration
 
-gccExtension ::= GCC_EXTENSION
-
 #declarationSpecifiersUnit ::= storageClassSpecifier
 #                            | typeSpecifier
 #                            | typeQualifier
 #                            | functionSpecifier
 #                            | alignmentSpecifier
-#                            | (gccExtension)
 
 declarationSpecifiers ::= declarationSpecifiers0
                         | declarationSpecifiers1
@@ -360,8 +357,7 @@ declarationSpecifiers0 ::=       # List without type specifiers
                          | declarationSpecifiers0 functionSpecifier
                          | alignmentSpecifier
                          | declarationSpecifiers0 alignmentSpecifier
-                         | (gccExtension)
-                         | declarationSpecifiers0 (gccExtension)
+                         | declarationSpecifiers0
 
 declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                            typeSpecifier1
@@ -370,7 +366,7 @@ declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                          | declarationSpecifiers1 typeQualifier
                          | declarationSpecifiers1 functionSpecifier
                          | declarationSpecifiers1 alignmentSpecifier
-                         | declarationSpecifiers1 (gccExtension)
+                         | declarationSpecifiers1
 
 declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                            typeSpecifier2
@@ -380,7 +376,7 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                          | declarationSpecifiers2 typeQualifier
                          | declarationSpecifiers2 functionSpecifier
                          | declarationSpecifiers2 alignmentSpecifier
-                         | declarationSpecifiers2 (gccExtension)
+                         | declarationSpecifiers2
 
 # declarationSpecifiers ::= declarationSpecifiersUnit+
 
@@ -456,7 +452,6 @@ structDeclaration
 
 #specifierQualifierListUnit ::= typeSpecifier
 #                             | typeQualifier
-#                             | (gccExtension)
 
 # specifierQualifierList ::= specifierQualifierListUnit+
 
@@ -467,21 +462,20 @@ specifierQualifierList ::= specifierQualifierList0
 specifierQualifierList0 ::= # List without type specifiers
                             typeQualifier
                           | specifierQualifierList0 typeQualifier
-                          | (gccExtension)
-                          | specifierQualifierList0 (gccExtension)
+                          | specifierQualifierList0
 
 specifierQualifierList1 ::= # List with a single typeSpecifier1
                             typeSpecifier1
                           | specifierQualifierList0 typeSpecifier1
                           | specifierQualifierList1 typeQualifier
-                          | specifierQualifierList1 (gccExtension)
+                          | specifierQualifierList1
 
 specifierQualifierList2 ::= # List with one or more typeSpecifier2
                             typeSpecifier2
                           | specifierQualifierList0 typeSpecifier2
                           | specifierQualifierList2 typeSpecifier2
                           | specifierQualifierList2 typeQualifier
-                          | specifierQualifierList2 (gccExtension)
+                          | specifierQualifierList2
 
 structDeclaratorList
 	::= structDeclarator
