@@ -1,7 +1,109 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.19 2013-07-30T20:40:00
+0.20 2013-09-19T21:18:54
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Back to version with GCC extension in the grammar
+ - Fix errors let by previous commit
+ - Discard GCC __extension__
+ - Removed unused event
+ - More GCC asm tests
+ - New reference data
+ - Removed gccEmptyRule, Support of GCC asm goto
+ - Newline stuff (Marpa i.e. unicode v.s. only \n)
+ - Merge branch 'master' of
+   https://github.com/jddurand/MarpaX-Languages-C-AST
+   
+   merge
+ - Work on newline
+ - Work on typedef priority
+ - Removed ASM pause before preparation
+ - GCC_ASM token can also be "asm"
+ - New version of reference data
+ - Support of binary constants (GCC extension)
+ - __asm G1 preparation
+ - _doPauseAfterLexeme renamed to ->doPauseBefore
+ - <G0 anything but space> replaced by <G0 constant>
+ - GCC __extension__ ony once for expression
+ - GCC __extension__ cannot be in :discard
+ - :discard of __extension (GCC)
+ - :discard of GCC __attribute__
+ - renamed
+ - Move GCC __attribute__ to :discard
+ - Added missing MSVS __thiscall and __clrcall to function modifier
+ - Move MSVS's __inline and __forceinline into generic INLINE lexeme
+ - MSVS __declspec :discard test
+ - Move __declspec to :discard
+ - Try to make grammer more readable (2)
+ - Try to make grammer more readable
+ - Add missing MSVS declspec modifiers
+ - Renamed t/discard_pragma.t to t/discard_MSVS_pragma.t
+ - Remove logging
+ - __pragma vtordisp
+ - __pragma strict_gs_check
+ - __pragma setlocale
+ - __pragma section
+ - __pragma runtime_checks
+ - __pragma region/endregion
+ - __pragma pop_macro/push_macro
+ - __pragma pointers_to_members
+ - __pragma pack
+ - __pragma optimize
+ - __pragma once
+ - __pragma message
+ - __pragma managed/unmanaged
+ - __pragma make_public
+ - __pragma loop
+ - __pragma intrinsic
+ - __pragma inline_recursion
+ - __pragma inline_depth
+ - __pragma include_alias
+ - __pragma hdrstop
+ - __pragma function
+ - __pragma fp_contract
+ - __pragma float_control
+ - __pragma fenv_access
+ - __pragma detect_mismatch
+ - __pragma deprecated
+ - __pragma conform
+ - __pragma component
+ - __pragma comment
+ - bss_seg, code_seg, const_seg and data_seg share the same syntax
+ - __pragma bss_seg fixes, add __pragma check_stack
+ - test pragma bss_seg
+ - pragma bss_seg
+ - add comments
+ - pragma warning fix
+ - pragma test
+ - pragma fix
+ - Missing statement in pragma push
+ - __declspec(deprecated) fix and __pragma alloc_text, auto_inline, warning
+   discard
+ - Support of logInfo __ALL__ continued
+ - Fix reference data
+ - __ALL__ special lexeme survey support, MSVS fixes
+ - Document __ALL__ --lexeme value
+ - Associate user-data to typedef and enum
+ - new function startAndLength
+ - deref nothing, revisit few sequences
+ - Return true is something found
+ - Push dirty files correctly
+ - typedefPerScope and enumAnyScope  accessors
+ - scope object accessor
+ - Fix default callback value
+ - Better comment
+ - Fix pod
+ - Fix pod
+ - Fix pod
+
+0.19 2013-07-30T20:41:04
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - v0.19
+   
+    [Jean-Damien Durand <jeandamiendurand@free.fr>]
+    - Call log only when its level is ok
+    - Remove useless commented block
+    - Remove non-needed events
+    - Tiny optimization
  - Call log only when its level is ok
  - Remove useless commented block
  - Remove non-needed events
