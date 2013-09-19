@@ -529,13 +529,11 @@ alignmentSpecifier
 
 msvsAttributeAny ::= msvsAttribute*
 
-event 'declaratordirectDeclarator[]' = nulled <declaratordirectDeclarator>
-declaratordirectDeclarator ::=
 declarator
-	::= pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator
-	| pointer msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpression
-	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator
-	| msvsAttributeAny (declaratordirectDeclarator) directDeclarator gccAsmExpression
+	::= pointer msvsAttributeAny directDeclarator
+	| pointer msvsAttributeAny directDeclarator gccAsmExpression
+	| msvsAttributeAny directDeclarator
+	| msvsAttributeAny directDeclarator gccAsmExpression
         #
         # Microsoft hack that does not really declare a declarator
         #
