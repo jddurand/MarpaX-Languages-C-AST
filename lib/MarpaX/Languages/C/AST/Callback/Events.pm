@@ -171,7 +171,7 @@ sub new {
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => 'enumerationConstantIdentifier$',
-		     method =>  [ \&_enumerationConstantIdentifier ],
+		     method =>  [ \&_enumerationConstantIdentifier_optimized, $outerSelf->{_impl}, $outerSelf->{_scope} ],
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
 		      condition => [ [ 'auto' ] ],
@@ -190,7 +190,7 @@ sub new {
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
 		    (
 		     description => 'fileScopeDeclarator$',
-		     method => [ \&_set_helper, 'fileScopeDeclarator', 1, 'reenterScope', 0 ],
+		     method => [ \&_set_helper_optimized, 'fileScopeDeclarator', 1, 'reenterScope', 0 ],
                      method_void => 1,
 		     option => MarpaX::Languages::C::AST::Callback::Option->new
 		     (
@@ -264,8 +264,15 @@ sub _resetAnyData {
 sub _enumerationConstantIdentifier {
     my ($method, $callback, $eventsp) = @_;
 
-    my $enum = lastCompleted($callback->hscratchpad('_impl'), 'enumerationConstantIdentifier');
-    $callback->hscratchpad('_scope')->parseEnterEnum($enum, startAndLength($callback->hscratchpad('_impl')));
+    my $impl = $callback->hscratchpad('_impl');
+
+    my $enum = lastCompleted($impl, 'enumerationConstantIdentifier');
+    $callback->hscratchpad('_scope')->parseEnterEnum($enum, startAndLength($impl));
+}
+sub _enumerationConstantIdentifier_optimized {
+    # my ($method, $callback, $eventsp, $impl, $scope) = @_;
+
+    return $_[4]->parseEnterEnum(lastCompleted($_[3], 'enumerationConstantIdentifier'), startAndLength($_[3]));
 }
 # ----------------------------------------------------------------------------------------
 sub _parameterDeclarationCheck {
@@ -355,13 +362,15 @@ sub _declarationCheck {
 	my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
 	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
+    my $scope = $callback->hscratchpad('_scope');
+
     foreach (@{$declarationCheckinitDeclaratorList}) {
 	my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
         if (! $counters{structContext}) {
           if ($nbTypedef >= 0) {
-	    $callback->hscratchpad('_scope')->parseEnterTypedef($last_completed, $start_lengthp);
+	    $scope->parseEnterTypedef($last_completed, $start_lengthp);
           } else {
-	    $callback->hscratchpad('_scope')->parseObscureTypedef($last_completed);
+	    $scope->parseObscureTypedef($last_completed);
           }
         }
     }
@@ -389,16 +398,40 @@ sub _storage_helper {
       $counters{$_} = $counterDatap->[0] || 0;
     }
     #
-    # The event name, by convention, is 'symbol$' or '^$symbol'
+    # The event name, by convention, is 'event$' or '^$event'
     #
-    my $symbol = $event;
     my $rc;
-    if (substr($symbol, 0, 1) eq '^') {
-	substr($symbol, 0, 1, '');
-	$rc = [ startAndLength($callback->hscratchpad('_impl')), lineAndCol($callback->hscratchpad('_impl')), %counters ];
-    } elsif (substr($symbol, -1, 1) eq '$') {
-	substr($symbol, -1, 1, '');
-	$rc = [ startAndLength($callback->hscratchpad('_impl')), lineAndCol($callback->hscratchpad('_impl')), $fixedValue || lastCompleted($callback->hscratchpad('_impl'), $symbol), %counters ];
+    my $impl = $callback->hscratchpad('_impl');
+
+    if (substr($event, 0, 1) eq '^') {
+	$rc = [ startAndLength($impl), lineAndCol($impl), %counters ];
+    } elsif (substr($event, -1, 1) eq '$') {
+	substr($event, -1, 1, '');
+	$rc = [ startAndLength($impl), lineAndCol($impl), $fixedValue || lastCompleted($impl, $event), %counters ];
+    }
+
+    return $rc;
+}
+sub _storage_helper_optimized {
+    my ($method, $callback, $eventsp, $event, $countersHashp, $fixedValue, $impl) = @_;
+    #
+    # Collect the counters
+    #
+    my %counters = ();
+    foreach (keys %{$countersHashp}) {
+      my $counterDatap = $callback->topic_fired_data($_) || [0];
+      $counters{$_} = $counterDatap->[0] || 0;
+    }
+    #
+    # The event name, by convention, is 'event$' or '^$event'
+    #
+    my $rc;
+
+    if (substr($event, 0, 1) eq '^') {
+	$rc = [ startAndLength($_[6]), lineAndCol($_[6]), %counters ];
+    } elsif (substr($event, -1, 1) eq '$') {
+	substr($event, -1, 1, '');
+	$rc = [ startAndLength($_[6]), lineAndCol($_[6]), $_[5] || lastCompleted($_[6], $event), %counters ];
     }
 
     return $rc;
@@ -420,12 +453,22 @@ sub _set_helper {
       $callback->topic_fired_data($_, [ $topic{$_} ]);
     }
 }
+sub _set_helper_optimized {
+    my (undef, undef, undef, %topic) = @_;
+
+    foreach (keys %topic) {
+      $_[1]->topic_fired_data($_, [ $topic{$_} ]);
+    }
+}
 # ----------------------------------------------------------------------------------------
 sub _reset_helper {
     my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
     return @rc;
+}
+sub _reset_helper_optimized {
+    return ();
 }
 # ----------------------------------------------------------------------------------------
 sub _collect_and_reset_helper {
@@ -440,6 +483,19 @@ sub _collect_and_reset_helper {
 
     return @rc;
 }
+sub _collect_and_reset_helper_optimized {
+    #
+    # This routine is called very often, I tried top optimize it
+    #
+    # my ($method, $callback, $eventsp, @topics) = @_;
+
+    map {
+	my $this = $_[1]->topic_fired_data($_);
+	$_[1]->topic_fired_data($_, []);
+	@{$this};
+    } @_[3..$#_];
+
+}
 # ----------------------------------------------------------------------------------------
 sub _subFire {
   my ($method, $callback, $eventsp, $lhs, $subCallback, $filterEventsp, $transformEventsp) = @_;
@@ -452,6 +508,22 @@ sub _subFire {
       $subCallback->exec(@transformEvents);
     } else {
       $subCallback->exec(@subEvents);
+    }
+  }
+}
+sub _subFire_optimized {
+    #
+    # This routine is called very often, I tried top optimize it
+    #
+    # my ($method, $callback, $eventsp, $lhs, $subCallback, $filterEventsp, $transformEventsp) = @_;
+
+  my @subEvents = grep {exists($_[5]->{$_})} @{$_[2]};
+  if (@subEvents) {
+    if (defined($_[6])) {
+      my %tmp = ();
+      $_[4]->exec(grep {++$tmp{$_} == 1} map {$_[6]->{$_} || $_} @subEvents);
+    } else {
+      $_[4]->exec(@subEvents);
     }
   }
 }
@@ -550,7 +622,7 @@ sub _register_rule_callbacks {
 			    (
 			     description => $_,
                              extra_description => "$_ [storage] ",
-			     method =>  [ \&_storage_helper, $_, $countersHashp, $genomeEventValues{$_} ],
+			     method =>  [ \&_storage_helper_optimized, $_, $countersHashp, $genomeEventValues{$_}, $self->hscratchpad('_impl') ],
 			     option => MarpaX::Languages::C::AST::Callback::Option->new
 			     (
 			      topic => {$_ => 1},
@@ -596,7 +668,7 @@ sub _register_rule_callbacks {
 			(
 			 description => $event,
                          extra_description => "$event [process] ",
-			 method =>  [ \&_collect_and_reset_helper, keys %genomeTopicsNotToUpdate ],
+			 method =>  [ \&_collect_and_reset_helper_optimized, keys %genomeTopicsNotToUpdate ],
 			 method_mode => 'push',
 			 option => MarpaX::Languages::C::AST::Callback::Option->new
 			 (
@@ -636,7 +708,7 @@ sub _register_rule_callbacks {
   $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => $lhsResetEvent,
-                   method =>  [ \&_reset_helper, keys %rhsTopicsToUpdate ],
+                   method =>  [ \&_reset_helper_optimized, keys %rhsTopicsToUpdate ],
                    method_mode => 'replace',
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
@@ -655,7 +727,7 @@ sub _register_rule_callbacks {
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => $hashp->{lhs} . ' [intermediary events]',
-                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%rshProcessEvents ],
+                   method => [ \&_subFire_optimized, $hashp->{lhs}, $callback, \%rshProcessEvents ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
@@ -679,7 +751,7 @@ sub _register_rule_callbacks {
   $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                   (
                    description => $lhsProcessEvent,
-                   method => [ \&_subFire, $hashp->{lhs}, $callback, \%lhsProcessEvents, {$hashp->{lhs} . '$' => $lhsProcessEvent} ],
+                   method => [ \&_subFire_optimized, $hashp->{lhs}, $callback, \%lhsProcessEvents, {$hashp->{lhs} . '$' => $lhsProcessEvent} ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
