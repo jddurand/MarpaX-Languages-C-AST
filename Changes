@@ -1,7 +1,13 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.20 2013-09-19T21:18:54
+0.21 2013-09-21T08:54:50
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - runtime optimizations
+ - MSVS's .type could eat C lexemes DOT and 'type'
+
+0.20 2013-09-19T21:20:31
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.20
  - Back to version with GCC extension in the grammar
  - Fix errors let by previous commit
  - Discard GCC __extension__
