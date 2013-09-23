@@ -289,14 +289,24 @@ logicalOrExpression
 	::= logicalAndExpression
 	| logicalOrExpression OR_OP logicalAndExpression
 
+#
+# Following yafce: in C grammar they put conditionalExpression, but in fact it must be
+# assignmentExpression, otherwise pnp ? x : x = 0x388;
+# C.f. http://padator.org/software/project-yacfe/
+#
 conditionalExpression
 	::= logicalOrExpression
-	| logicalOrExpression QUESTION_MARK expression COLON conditionalExpression
-	| logicalOrExpression QUESTION_MARK COLON conditionalExpression          # GCC Extension
+	| logicalOrExpression QUESTION_MARK expression COLON assignmentExpression
+	| logicalOrExpression QUESTION_MARK COLON assignmentExpression          # GCC Extension
 
+#
+# Following yafce: in C grammar they put unaryExpression, but in fact it must be
+# castExpression, otherwise (int * ) xxx = &yy; is not allowed
+# C.f. http://padator.org/software/project-yacfe/
+#
 assignmentExpression
 	::= conditionalExpression
-	| unaryExpression assignmentOperator assignmentExpression
+	| castExpression assignmentOperator assignmentExpression
 
 assignmentOperator
 	::= EQUAL
