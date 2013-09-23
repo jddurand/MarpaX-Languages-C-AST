@@ -173,7 +173,7 @@ constant
 
 event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
 enumerationConstantIdentifier  # before it has been defined as such
-	::= IDENTIFIER
+	::= IDENTIFIER_UNAMBIGUOUS
 
 enumerationConstant            # before it has been defined as such
 	::= enumerationConstantIdentifier
@@ -204,8 +204,8 @@ postfixExpression
         | gccBuiltinVaEnd
         | gccBuiltinVaArg
         | gccBuiltinOffsetof
-	| postfixExpression DOT IDENTIFIER
-	| postfixExpression PTR_OP IDENTIFIER
+	| postfixExpression DOT IDENTIFIER_UNAMBIGUOUS
+	| postfixExpression PTR_OP IDENTIFIER_UNAMBIGUOUS
 	| postfixExpression INC_OP
 	| postfixExpression DEC_OP
 	| LPAREN typeName RPAREN LCURLY initializerList RCURLY
@@ -450,8 +450,8 @@ structContextEnd ::=
 
 structOrUnionSpecifier
 	::= structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion IDENTIFIER LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion IDENTIFIER
+	| structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	| structOrUnion IDENTIFIER_UNAMBIGUOUS
 
 structOrUnion
 	::= STRUCT
@@ -505,9 +505,9 @@ structDeclarator
 enumSpecifier
 	::= ENUM LCURLY enumeratorList RCURLY
 	| ENUM LCURLY enumeratorList COMMA RCURLY
-	| ENUM IDENTIFIER LCURLY enumeratorList RCURLY
-	| ENUM IDENTIFIER LCURLY enumeratorList COMMA RCURLY
-	| ENUM IDENTIFIER
+	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
+	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList COMMA RCURLY
+	| ENUM IDENTIFIER_UNAMBIGUOUS
 
 enumeratorList
 	::= enumerator
@@ -661,7 +661,7 @@ designatorList ::= designator+
 
 designator
 	::= LBRACKET constantExpression RBRACKET
-	| DOT IDENTIFIER
+	| DOT IDENTIFIER_UNAMBIGUOUS
         | LBRACKET constantExpression ELLIPSIS constantExpression RBRACKET # GCC Extension
 
 staticAssertDeclaration
@@ -710,7 +710,7 @@ iterationStatement
 	| FOR LPAREN declaration expressionStatement expression RPAREN statement
 
 jumpStatement
-	::= GOTO IDENTIFIER SEMICOLON
+	::= GOTO IDENTIFIER_UNAMBIGUOUS SEMICOLON
 	| CONTINUE SEMICOLON
 	| BREAK SEMICOLON
 	| RETURN SEMICOLON
@@ -927,9 +927,11 @@ FUNC_NAME     ~ '__func__'
 :lexeme ~ <TYPEDEF_NAME>         priority => -100
 :lexeme ~ <ENUMERATION_CONSTANT> priority => -100
 :lexeme ~ <IDENTIFIER>           priority => -100
-TYPEDEF_NAME         ~ L A_any
-ENUMERATION_CONSTANT ~ L A_any
-IDENTIFIER           ~ L A_any
+_IDENTIFIER          ~ L A_any
+TYPEDEF_NAME         ~ _IDENTIFIER
+ENUMERATION_CONSTANT ~ _IDENTIFIER
+IDENTIFIER           ~ _IDENTIFIER
+IDENTIFIER_UNAMBIGUOUS ~ _IDENTIFIER
 
 :lexeme ~ <I_CONSTANT>         priority => -101
 I_CONSTANT ~ HP H_many IS_maybe
@@ -1520,10 +1522,10 @@ gccAsmInnerOperandList ::= COLON
                          | COLON gccAsmOperandList gccAsmInnerOperandList2
 
 gccAsmInnerLabelList ::= COLON
-                       | COLON IDENTIFIER
-                       | gccAsmInnerLabelList COMMA IDENTIFIER
+                       | COLON IDENTIFIER_UNAMBIGUOUS
+                       | gccAsmInnerLabelList COMMA IDENTIFIER_UNAMBIGUOUS
 
-gccAsmOperandPrefix ::= LBRACKET IDENTIFIER RBRACKET
+gccAsmOperandPrefix ::= LBRACKET IDENTIFIER_UNAMBIGUOUS RBRACKET
 
 gccAsmOperand ::= string LPAREN expression RPAREN
                 | gccAsmOperandPrefix string LPAREN expression RPAREN
@@ -1561,8 +1563,8 @@ gccTypeof ::= GCC_TYPEOF LPAREN typeName RPAREN
 
 gccBuiltinOffsetof ::= GCC_BUILTIN_OFFSETOF LPAREN typeName COMMA offsetofMemberDesignator RPAREN
 
-offsetofMemberDesignator ::=   IDENTIFIER
-                               | offsetofMemberDesignator DOT IDENTIFIER
+offsetofMemberDesignator ::=   IDENTIFIER_UNAMBIGUOUS
+                               | offsetofMemberDesignator DOT IDENTIFIER_UNAMBIGUOUS
                                | offsetofMemberDesignator LBRACKET expression RBRACKET
 
 #
@@ -1587,8 +1589,8 @@ msvsAsmDirective ::= msvsAsmLabelDef msvsAsmSegmentDirective
                    | msvsAsmSegmentDirective
                    | msvsAsmLabelDef
 
-msvsAsmLabelDef ::= IDENTIFIER COLON
-                  | IDENTIFIER COLON COLON
+msvsAsmLabelDef ::= IDENTIFIER_UNAMBIGUOUS COLON
+                  | IDENTIFIER_UNAMBIGUOUS COLON COLON
                   | MSVS_AT MSVS_AT COLON
 
 #
@@ -1620,7 +1622,7 @@ msvsAsmInstruction ::= msvsAsmInstrPrefix msvsAsmMnemonic msvsAsmExprList
 
 msvsAsmInstrPrefix ::= MSVS_ASM_REP | MSVS_ASM_REPE | MSVS_ASM_REPZ | MSVS_ASM_REPNE | MSVS_ASM_REPNZ | MSVS_ASM_LOCK
 
-msvsAsmMnemonic ::= IDENTIFIER | MSVS_ASM_AND | MSVS_ASM_MOD | MSVS_ASM_NOT | MSVS_ASM_OR | MSVS_ASM_SEG | MSVS_ASM_SHL | MSVS_ASM_SHLD | MSVS_ASM_MOV | MSVS_ASM_SHR | MSVS_ASM_XOR
+msvsAsmMnemonic ::= IDENTIFIER_UNAMBIGUOUS | MSVS_ASM_AND | MSVS_ASM_MOD | MSVS_ASM_NOT | MSVS_ASM_OR | MSVS_ASM_SEG | MSVS_ASM_SHL | MSVS_ASM_SHLD | MSVS_ASM_MOV | MSVS_ASM_SHR | MSVS_ASM_XOR
 
 #
 # msvsAsmExpr ::=   MSVS_ASM_SHORT  msvsAsmExpr05
@@ -1673,7 +1675,7 @@ msvsAsmExpr08 ::=   MSVS_ASM_HIGH     msvsAsmExpr09
                     | msvsAsmExpr09
 
 #
-# .type could eat C lexemes DOT and IDENTIFIER. Since we do not really mind about
+# .type could eat C lexemes DOT and IDENTIFIER_UNAMBIGUOUS. Since we do not really mind about
 # MSVS __asm accuracy, this is splitted explicitely into '.' and '.type'
 #
 msvsAsmDotType ::= MSVS_ASM_DOT MSVS_ASM_TYPE
@@ -1694,17 +1696,17 @@ msvsAsmExpr10 ::=   msvsAsmExpr10 MSVS_ASM_DOT msvsAsmExpr11
 #
 # msvsAsmExpr11 ::=   LPAREN msvsAsmExpr RPAREN
 #                     | MSVS_ASM_LBRACKET msvsAsmExpr MSVS_ASM_RBRACKET
-#                     | MSVS_ASM_WIDTH IDENTIFIER
-#                     | MSVS_ASM_MASK  IDENTIFIER
+#                     | MSVS_ASM_WIDTH IDENTIFIER_UNAMBIGUOUS
+#                     | MSVS_ASM_MASK  IDENTIFIER_UNAMBIGUOUS
 #                     | MSVS_ASM_SIZE    msvsAsmSizeArg
 #                     | MSVS_ASM_SIZEOF  msvsAsmSizeArg
-#                     | MSVS_ASM_LENGTH   IDENTIFIER
-#                     | MSVS_ASM_LENGTHOF IDENTIFIER
+#                     | MSVS_ASM_LENGTH   IDENTIFIER_UNAMBIGUOUS
+#                     | MSVS_ASM_LENGTHOF IDENTIFIER_UNAMBIGUOUS
 #                     | msvsAsmEecordConst
 #                     | msvsAsmString
 #                     | msvsAsmConstant
 #                     | msvsAsmType
-#                     | IDENTIFIER
+#                     | IDENTIFIER_UNAMBIGUOUS
 #                     | MSVS_ASM_DOLLAR
 #                     | msvsAsmSegmentRegister
 #                     | msvsAsmRegister
@@ -1717,12 +1719,12 @@ msvsAsmExpr11 ::=   LPAREN msvsAsmExpr RPAREN
                     | MSVS_ASM_LBRACKET msvsAsmExpr MSVS_ASM_RBRACKET
                     | msvsAsmConstant
                     | msvsAsmType
-                    | IDENTIFIER
+                    | IDENTIFIER_UNAMBIGUOUS
                     | MSVS_ASM_DOLLAR
                     | msvsAsmSegmentRegister
                     | msvsAsmRegister
 
-msvsAsmType ::=   IDENTIFIER
+msvsAsmType ::=   IDENTIFIER_UNAMBIGUOUS
                   | msvsAsmDistance
                   | msvsAsmDataType
 
