@@ -1778,7 +1778,7 @@ msvsAsmConstant ::= I_CONSTANT
 #####################
 # G0 specific "tools"
 #####################
-<G0 identifier> ~ WS_any L A_any WS_any
+<G0 identifier> ~ WS_any _IDENTIFIER WS_any
 <_G0 number> ~ [\d]+
 <G0 number> ~ WS_any <_G0 number> WS_any
 <G0 string unit> ~ WS_any '"' STRING_LITERAL_INSIDE_any '"' WS_any
