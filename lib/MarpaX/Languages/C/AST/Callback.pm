@@ -179,6 +179,7 @@ sub exec {
   # Localize cache mode for faster lookup
   #
   my $cache = $self->hscratchpad('_cache') || 0;
+  local $__PACKAGE__::_ncb                           = $cache ? $self->hscratchpad('_ncb')                          : undef;
   local $__PACKAGE__::_cacheOptionp                  = $cache ? $self->hscratchpad('_cacheOption')                  : undef;
   local $__PACKAGE__::_cacheOptionConditionModep     = $cache ? $self->hscratchpad('_cacheOptionConditionMode')     : undef;
   local $__PACKAGE__::_cacheOptionConditionp         = $cache ? $self->hscratchpad('_cacheOptionCondition')         : undef;
@@ -208,7 +209,7 @@ sub exec {
 sub _inventory_condition_tofire {
   my $self = shift;
   my $nbNewTopics = 0;
-  my $ncb = $self->ncb;
+  my $ncb = defined($__PACKAGE__::_ncb) ? $__PACKAGE__::_ncb : $self->ncb;
   my $prioritized_cbp = $self->prioritized_cb;
   my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
   my $selfArguments = $self->arguments();
@@ -315,6 +316,7 @@ sub cache {
     push(@cacheCbMethod, $cb->method);
     push(@cacheCbMethod_void, $cb->method_void);
   }
+  $self->hscratchpad('_ncb', $ncb);
   $self->hscratchpad('_cacheOption', \@cacheOption);
   $self->hscratchpad('_cacheOptionConditionMode', \@cacheOptionConditionMode);
   $self->hscratchpad('_cacheOptionCondition', \@cacheOptionCondition);
@@ -340,7 +342,7 @@ sub _fire {
   # or unregistration. Thus all dependencies are expressed in the beginning.
   # This mean that nay on-the-flu registration/unregistration will happend at NEXT round.
   #
-  my $ncb = $self->ncb;
+  my $ncb = defined($__PACKAGE__::_ncb) ? $__PACKAGE__::_ncb : $self->ncb;
   my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
   my $prioritized_cb_firedp = $self->prioritized_cb_fired;
   my $prioritized_cbp = $self->prioritized_cb;
@@ -459,12 +461,12 @@ sub _inventory_initialize_topic {
 
 sub _inventory_initialize_tofire {
   my $self = shift;
-  $self->prioritized_cb_tofire([ (0) x $self->ncb ]);
+  $self->prioritized_cb_tofire([ (0) x (defined($__PACKAGE__::_ncb) ? $__PACKAGE__::_ncb : $self->ncb) ]);
 }
 
 sub _inventory_initialize_fired {
   my $self = shift;
-  $self->prioritized_cb_fired([ (0) x $self->ncb ]);
+  $self->prioritized_cb_fired([ (0) x (defined($__PACKAGE__::_ncb) ? $__PACKAGE__::_ncb : $self->ncb) ]);
 }
 
 sub _inventory_fire {
@@ -499,7 +501,7 @@ sub _inventory_subscription_tofire {
   #
   my $nbNewTopics = 0;
   my $nbSubscriptionOK = 0;
-  my $ncb = $self->ncb;
+  my $ncb = defined($__PACKAGE__::_ncb) ? $__PACKAGE__::_ncb : $self->ncb;
   my $prioritized_cbp = $self->prioritized_cb;
   my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
 
