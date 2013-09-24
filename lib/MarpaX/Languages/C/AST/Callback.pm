@@ -4,7 +4,6 @@ use warnings FATAL => 'all';
 package MarpaX::Languages::C::AST::Callback;
 use MarpaX::Languages::C::AST::Util qw/whoami/;
 use MarpaX::Languages::C::AST::Callback::Method;
-use Clone qw/clone/;
 
 use Class::Struct
   #
@@ -174,12 +173,17 @@ sub exec {
   #
   # Remember our arguments, if the callback need it
   #
-  $self->arguments([@_]);
+  my $argumentsp = \@_;
+  $self->arguments($argumentsp);
   #
   # Localize cache mode for faster lookup
   #
   my $cache = $self->hscratchpad('_cache') || 0;
   local $__PACKAGE__::_cacheNcb                      = $cache ? $self->hscratchpad('_cacheNcb')                     : undef;
+  local $__PACKAGE__::_cacheArgumentsp               = $cache ? $argumentsp                                         : undef;
+  local $__PACKAGE__::_cachePrioritized_cbp          = $cache ? $self->hscratchpad('_cachePrioritized_cb')          : undef;
+  local $__PACKAGE__::_cachePrioritized_cb_tofirep   = $cache ? $self->hscratchpad('_cachePrioritized_cb_tofire')   : undef;
+  local $__PACKAGE__::_cachePrioritized_cb_firedp    = $cache ? $self->hscratchpad('_cachePrioritized_cb_fired')    : undef;
   local $__PACKAGE__::_cacheOptionp                  = $cache ? $self->hscratchpad('_cacheOption')                  : undef;
   local $__PACKAGE__::_cacheOptionConditionModep     = $cache ? $self->hscratchpad('_cacheOptionConditionMode')     : undef;
   local $__PACKAGE__::_cacheOptionConditionp         = $cache ? $self->hscratchpad('_cacheOptionCondition')         : undef;
@@ -209,10 +213,13 @@ sub exec {
 sub _inventory_condition_tofire {
   my $self = shift;
   my $nbNewTopics = 0;
-  my $ncb = defined($__PACKAGE__::_cacheNcb) ? $__PACKAGE__::_cacheNcb : $self->ncb;
-  my $prioritized_cbp = $self->prioritized_cb;
-  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
-  my $selfArguments = $self->arguments();
+  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $self->prioritized_cb;
+  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $self->prioritized_cb_tofire;
+  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $self->arguments;
+  my $topic_firedp = $self->topic_fired;
+  my $topic_fired_datap = $self->topic_fired_data;
+  my $topic_fired_persistencep = $self->topic_fired_persistence;
 
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
@@ -224,12 +231,12 @@ sub _inventory_condition_tofire {
     foreach my $condition (defined($__PACKAGE__::_cacheOptionConditionp) ? @{$__PACKAGE__::_cacheOptionConditionp->[$i]} : @{$option->condition}) {
 	my ($coderef, @arguments) = @{$condition};
 	if (ref($coderef) eq 'CODE') {
-	    push(@condition, &$coderef($cb, $self, $selfArguments, @arguments) ? 1 :0);
+	    push(@condition, &$coderef($cb, $self, $argumentsp, @arguments) ? 1 :0);
 	} elsif (defined($description)) {
 	    #
 	    # Per def condition is the string 'auto'
 	    #
-	    push(@condition, (grep {$_ eq $description} @{$selfArguments}) ? 1 :0);
+	    push(@condition, (grep {$_ eq $description} @{$argumentsp}) ? 1 :0);
 	}
     }
     #
@@ -263,11 +270,11 @@ sub _inventory_condition_tofire {
       foreach my $topic (keys %{defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i] : $option->topic}) {
         next if (! defined(defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)));
         next if (! (defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)));
-        if (! defined($self->topic_fired($topic))) {
-          $self->topic_fired($topic, 1);
-          $self->topic_fired_persistence($topic, defined($__PACKAGE__::_cacheOptionTopic_persistencep) ? $__PACKAGE__::_cacheOptionTopic_persistencep->[$i] : $option->topic_persistence);
-          if (! defined($self->topic_fired_data($topic))) {
-            $self->topic_fired_data($topic, []);
+        if (! defined($topic_firedp->{$topic})) {
+          $topic_firedp->{$topic} = 1;
+          $topic_fired_persistencep->{$topic} = defined($__PACKAGE__::_cacheOptionTopic_persistencep) ? $__PACKAGE__::_cacheOptionTopic_persistencep->[$i] : $option->topic_persistence;
+          if (! defined($topic_fired_datap->{$topic})) {
+            $topic_fired_datap->{$topic} = [];
 	    ++$nbNewTopics;
           }
         }
@@ -301,6 +308,8 @@ sub cache {
   my @cacheCbMethod = ();
   my @cacheCbMethod_void = ();
   my $prioritized_cbp = $self->prioritized_cb;
+  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
+  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
   my $ncb = $self->ncb;
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
@@ -317,6 +326,9 @@ sub cache {
     push(@cacheCbMethod_void, $cb->method_void);
   }
   $self->hscratchpad('_cacheNcb', $ncb);
+  $self->hscratchpad('_cachePrioritized_cb', $prioritized_cbp);
+  $self->hscratchpad('_cachePrioritized_cb_tofire', $prioritized_cb_tofirep);
+  $self->hscratchpad('_cachePrioritized_cb_fired', $prioritized_cb_firedp);
   $self->hscratchpad('_cacheOption', \@cacheOption);
   $self->hscratchpad('_cacheOptionConditionMode', \@cacheOptionConditionMode);
   $self->hscratchpad('_cacheOptionCondition', \@cacheOptionCondition);
@@ -342,11 +354,12 @@ sub _fire {
   # or unregistration. Thus all dependencies are expressed in the beginning.
   # This mean that nay on-the-flu registration/unregistration will happend at NEXT round.
   #
-  my $ncb = defined($__PACKAGE__::_cacheNcb) ? $__PACKAGE__::_cacheNcb : $self->ncb;
-  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
-  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
-  my $prioritized_cbp = $self->prioritized_cb;
-  my $selfArguments = $self->arguments();
+  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $self->prioritized_cb_tofire;
+  my $prioritized_cb_firedp = $__PACKAGE__::_cachePrioritized_cb_firedp // $self->prioritized_cb_fired;
+  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $self->prioritized_cb;
+  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $self->arguments;
+  my $topic_fired_datap = $self->topic_fired_data;
 
   foreach (my $i = 0; $i < $ncb; $i++) {
     if ($prioritized_cb_tofirep->[$i] <= 0) {
@@ -370,12 +383,12 @@ sub _fire {
       if (ref($method) eq 'ARRAY') {
         my ($method, @arguments) = @{$method};
 	if (ref($method) eq 'CODE') {
-	    @rc = &$method($cb, $self, $selfArguments, @arguments);
+	    @rc = &$method($cb, $self, $argumentsp, @arguments);
 	} else {
 	    #
 	    # Per def method is the string 'auto'
 	    #
-	    @rc = $self->topic_fired_data($cb->description) || [];
+	    @rc = $topic_fired_datap->{$cb->description} || [];
 	}
       }
       #
@@ -387,7 +400,7 @@ sub _fire {
         foreach my $topic (keys %{defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i] : $option->topic}) {
           next if (! defined(defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)));
           next if ((defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)) != 1);
-          my $topic_fired_data = $self->topic_fired_data($topic) || [];
+          my $topic_fired_data = $topic_fired_datap->{$topic} || [];
           if (ref($cb->method) eq 'ARRAY') {
             if ($cb->method_mode eq 'push') {
               push(@{$topic_fired_data}, @rc);
@@ -401,7 +414,7 @@ sub _fire {
               @{$topic_fired_data} = @rc;
             }
           }
-          $self->topic_fired_data($topic, $topic_fired_data);
+          $topic_fired_datap->{$topic} = $topic_fired_data;
         }
       }
     }
@@ -430,11 +443,11 @@ sub topic_level_fired_data {
 	}
         return $self->topic_fired_data($topic);
     } else {
-	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
+	my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level($level)};
 	if (@_) {
-	    $old_topic_data->{$topic} = shift;
+	    $old_topic_datap->{$topic} = shift;
 	}
-        return $old_topic_data->{$topic};
+        return $old_topic_datap->{$topic};
     }
 }
 
@@ -443,34 +456,49 @@ sub _inventory_initialize_topic {
   #
   # For topics, we want to keep those that have a persistence of 'level' or 'any'
   #
-  my $keep_topic_fired = {};
-  my $keep_topic_fired_persistence = {};
-  my $keep_topic_fired_data = {};
-  foreach my $topic (keys %{$self->topic_fired}) {
-    my $persistence = $self->topic_fired_persistence($topic);
+  my $topic_firedp = $self->topic_fired;
+  my $topic_fired_datap = $self->topic_fired_data;
+  my $topic_fired_persistencep = $self->topic_fired_persistence;
+
+  my $keep_topic_firedp = {};
+  my $keep_topic_fired_persistencep = {};
+  my $keep_topic_fired_datap = {};
+
+  foreach my $topic (keys %{$topic_firedp}) {
+    my $persistence = $topic_fired_persistencep->{$topic};
     if (grep {$_ eq $persistence} qw/any level/) {
-      $keep_topic_fired->{$topic} = $self->topic_fired($topic);
-      $keep_topic_fired_persistence->{$topic} = $self->topic_fired_persistence($topic);
-      $keep_topic_fired_data->{$topic} = $self->topic_fired_data($topic);
+      $keep_topic_firedp->{$topic} = $topic_firedp->{$topic};
+      $keep_topic_fired_persistencep->{$topic} = $topic_fired_persistencep->{$topic};
+      $keep_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic};
     }
   }
-  $self->topic_fired($keep_topic_fired);
-  $self->topic_fired_persistence($keep_topic_fired_persistence);
-  $self->topic_fired_data($keep_topic_fired_data);
+  $self->topic_fired($keep_topic_firedp);
+  $self->topic_fired_persistence($keep_topic_fired_persistencep);
+  $self->topic_fired_data($keep_topic_fired_datap);
 }
 
 sub _inventory_initialize_tofire {
-  my $self = shift;
-  $self->prioritized_cb_tofire([ (0) x (defined($__PACKAGE__::_cacheNcb) ? $__PACKAGE__::_cacheNcb : $self->ncb) ]);
+  my ($self) = @_;
+  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  my $prioritized_cb_tofirep = [ (0) x $ncb ];
+  $self->prioritized_cb_tofire($prioritized_cb_tofirep);
+  if (defined($__PACKAGE__::_cachePrioritized_cb_tofirep)) {
+    $__PACKAGE__::_cachePrioritized_cb_tofirep = $prioritized_cb_tofirep;
+  }
 }
 
 sub _inventory_initialize_fired {
-  my $self = shift;
-  $self->prioritized_cb_fired([ (0) x (defined($__PACKAGE__::_cacheNcb) ? $__PACKAGE__::_cacheNcb : $self->ncb) ]);
+  my ($self) = @_;
+  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  my $prioritized_cb_firedp = [ (0) x $ncb ];
+  $self->prioritized_cb_fired($prioritized_cb_firedp);
+  if (defined($__PACKAGE__::_cachePrioritized_cb_firedp)) {
+    $__PACKAGE__::_cachePrioritized_cb_firedp = $prioritized_cb_firedp;
+  }
 }
 
 sub _inventory_fire {
-  my $self = shift;
+  my ($self) = @_;
 
   #
   # Inventory
@@ -480,7 +508,7 @@ sub _inventory_fire {
 }
 
 sub _inventory {
-  my $self = shift;
+  my ($self) = @_;
   my $nbTopicsCreated = 0;
   do {
       $self->_inventory_initialize_tofire();
@@ -501,9 +529,13 @@ sub _inventory_subscription_tofire {
   #
   my $nbNewTopics = 0;
   my $nbSubscriptionOK = 0;
-  my $ncb = defined($__PACKAGE__::_cacheNcb) ? $__PACKAGE__::_cacheNcb : $self->ncb;
+  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
   my $prioritized_cbp = $self->prioritized_cb;
   my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
+  my $topic_firedp = $self->topic_fired;
+  my $topic_fired_datap = $self->topic_fired_data;
+  my $topic_fired_persistencep = $self->topic_fired_persistence;
+  my @keys_topic_fired = keys %{$topic_firedp};
 
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
@@ -522,13 +554,13 @@ sub _inventory_subscription_tofire {
       next if (! (defined($__PACKAGE__::_cacheOptionSubscriptionp) ? $__PACKAGE__::_cacheOptionSubscriptionp->[$i]->{$subscription} : $option->subscription($subscription)));
       ++$nbSubscription;
       if (ref($subscription) eq 'Regexp') {
-        foreach (keys %{$self->topic_fired}) {
+        foreach (@keys_topic_fired) {
           if ($_ =~ $subscription) {
             $subscribed{$_} = 1;
           }
         }
       } else {
-        foreach (keys %{$self->topic_fired}) {
+        foreach (@keys_topic_fired) {
           if ("$_" eq "$subscription") {
             $subscribed{$_} = 1;
           }
@@ -563,10 +595,10 @@ sub _inventory_subscription_tofire {
     foreach my $topic (keys %{defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i] : $option->topic}) {
       next if (! defined(defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)));
       next if (! (defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i]->{$topic} : $option->topic($topic)));
-      if (! defined($self->topic_fired($topic))) {
-        $self->topic_fired($topic, 1);
-        $self->topic_fired_persistence($topic, $option->topic_persistence);
-        $self->topic_fired_data($topic, []);
+      if (! defined($topic_firedp->{$topic})) {
+        $topic_firedp->{$topic} = 1;
+        $topic_fired_persistencep->{$topic} = $option->topic_persistence;
+        $topic_fired_datap->{$topic} = [];
         ++$nbNewTopics;
       }
     }
@@ -584,27 +616,36 @@ sub currentTopicLevel {
 sub pushTopicLevel {
   my $self = shift;
 
+  my $topic_firedp = $self->topic_fired;
+  my $topic_fired_datap = $self->topic_fired_data;
+  my $topic_fired_persistencep = $self->topic_fired_persistence;
+
   #
-  # We push current topics and their persistence into the topic_level
+  # Since we are going to replace the entire hash, keeping a copy of them
+  # in @{$self->topic_level} is enough
   #
-  push(@{$self->topic_level}, [ clone($self->topic_fired), clone($self->topic_fired_persistence), $self->topic_fired_data ]);
+  push(@{$self->topic_level}, [ $topic_firedp, $topic_fired_persistencep, $topic_fired_datap ]);
   #
   # We remove from current topics those that do not have the 'any' persistence
   #
-  my $new_topic_fired = {};
-  my $new_topic_fired_persistence = {};
-  my $new_topic_fired_data = {};
-  foreach my $topic (keys %{$self->topic_fired}) {
-    my $persistence = $self->topic_fired_persistence($topic);
+  my $new_topic_firedp = {};
+  my $new_topic_fired_persistencep = {};
+  my $new_topic_fired_datap = {};
+  foreach my $topic (keys %{$topic_firedp}) {
+    my $persistence = $topic_fired_persistencep->{$topic};
     if (grep {$_ eq $persistence} qw/any/) {
-      $new_topic_fired->{$topic} = $self->topic_fired($topic);
-      $new_topic_fired_persistence->{$topic} = $self->topic_fired_persistence($topic);
-      $new_topic_fired_data->{$topic} = $self->topic_fired_data($topic);
+      $new_topic_firedp->{$topic} = $topic_firedp->{$topic};
+      $new_topic_fired_persistencep->{$topic} = $topic_fired_persistencep->{$topic};
+      $new_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic};
     }
   }
-  $self->topic_fired($new_topic_fired);
-  $self->topic_fired_persistence($new_topic_fired_persistence);
-  $self->topic_fired_data($new_topic_fired_data);
+  #
+  # These lines guarantee that what we have pushed will not be touched using $self->topic_fired() etc... accessors
+  # because we replace the entire hash.
+  #
+  $self->topic_fired($new_topic_firedp);
+  $self->topic_fired_persistence($new_topic_fired_persistencep);
+  $self->topic_fired_data($new_topic_fired_datap);
 
 }
 
@@ -614,11 +655,11 @@ sub popTopicLevel {
   #
   # We pop current topics and their persistence from the topic_level
   #
-  my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level(-1)};
+  my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level(-1)};
   pop(@{$self->topic_level});
-  $self->topic_fired($old_topic_fired);
-  $self->topic_fired_persistence($old_topic_persistence);
-  $self->topic_fired_data($old_topic_data);
+  $self->topic_fired($old_topic_firedp);
+  $self->topic_fired_persistence($old_topic_persistencep);
+  $self->topic_fired_data($old_topic_datap);
 
 }
 
