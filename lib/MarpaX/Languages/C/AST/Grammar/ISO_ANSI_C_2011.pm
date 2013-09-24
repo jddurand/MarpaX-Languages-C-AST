@@ -153,12 +153,8 @@ lexeme default = action => [start,length,value]
 #
 :start ::= translationUnit
 
-event 'primaryExpressionIdentifier$' = completed <primaryExpressionIdentifier>
-primaryExpressionIdentifier
-	::= IDENTIFIER
-
 primaryExpression
-	::= primaryExpressionIdentifier
+	::= IDENTIFIER
 	| constant
 	| string
 	| LPAREN expression RPAREN
