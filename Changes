@@ -1,7 +1,23 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.21 2013-09-21T08:54:50
+0.22 2013-09-24T19:48:05
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Remove unused event
+ - Runtime optimization
+ - Remove usage of clone
+ - Fix show source when failure is on paused lexeme
+ - use Clone instead of Storable
+ - Removed unused import
+ - runtime optimization
+ - renamed cached ncb from _ncb to _cacheNcb
+ - runtime optimization
+ - Avoid one internal match
+ - Cases where IDENTIFIER is not ambiguous
+ - Modifications as per yafce
+
+0.21 2013-09-21T08:56:11
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.21
  - runtime optimizations
  - MSVS's .type could eat C lexemes DOT and 'type'
 
