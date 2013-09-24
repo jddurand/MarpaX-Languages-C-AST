@@ -8,7 +8,6 @@ use parent qw/MarpaX::Languages::C::AST::Callback/;
 # ABSTRACT: Events callback when translating a C source to an AST
 
 use Carp qw/croak/;
-use Storable qw/dclone/;
 use SUPER;
 use constant LHS_RESET_EVENT => '<reset>';
 use constant LHS_PROCESS_EVENT => '<process>';
