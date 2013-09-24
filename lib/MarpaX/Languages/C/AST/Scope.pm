@@ -6,7 +6,6 @@ use MarpaX::Languages::C::AST::Util qw/whoami/;
 
 # ABSTRACT: Scope management when translating a C source to an AST
 
-use Clone qw/clone/;
 use Log::Any qw/$log/;
 use Carp qw/croak/;
 
@@ -102,7 +101,14 @@ sub parseEnterScope {
   if ($log->is_debug) {
       $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $self->{_nscope}, $self->{_nscope} + 1);
   }
-  push(@{$self->{_typedefPerScope}}, clone($self->{_typedefPerScope}->[$self->{_nscope}]));
+  #
+  # calling Clone::clone is overhead for us:
+  # - user data associated to a typedef is assumed to never be modified: copying the $data itself (i.e. usually a reference) is enough
+  # - We just want to make sure this is a new hash, the values inside the hash can remain identical
+  #
+  # Doing \%{$...} is just to make sure this is a new hash instance, with keys pointing to the same values as the origin
+  #
+  push(@{$self->{_typedefPerScope}}, \%{$self->{_typedefPerScope}->[$self->{_nscope}]});
   $self->{_nscope}++;
 
   if (@{$self->{_enterScopeCallback}}) {
