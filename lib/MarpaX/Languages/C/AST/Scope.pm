@@ -6,7 +6,7 @@ use MarpaX::Languages::C::AST::Util qw/whoami/;
 
 # ABSTRACT: Scope management when translating a C source to an AST
 
-use Storable qw/dclone/;
+use Clone qw/clone/;
 use Log::Any qw/$log/;
 use Carp qw/croak/;
 
@@ -102,7 +102,7 @@ sub parseEnterScope {
   if ($log->is_debug) {
       $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $self->{_nscope}, $self->{_nscope} + 1);
   }
-  push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$self->{_nscope}]));
+  push(@{$self->{_typedefPerScope}}, clone($self->{_typedefPerScope}->[$self->{_nscope}]));
   $self->{_nscope}++;
 
   if (@{$self->{_enterScopeCallback}}) {

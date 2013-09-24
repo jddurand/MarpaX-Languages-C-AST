@@ -4,7 +4,7 @@ use warnings FATAL => 'all';
 package MarpaX::Languages::C::AST::Callback;
 use MarpaX::Languages::C::AST::Util qw/whoami/;
 use MarpaX::Languages::C::AST::Callback::Method;
-use Storable qw/dclone/;
+use Clone qw/clone/;
 
 use Class::Struct
   #
@@ -587,7 +587,7 @@ sub pushTopicLevel {
   #
   # We push current topics and their persistence into the topic_level
   #
-  push(@{$self->topic_level}, [ dclone($self->topic_fired), dclone($self->topic_fired_persistence), $self->topic_fired_data ]);
+  push(@{$self->topic_level}, [ clone($self->topic_fired), clone($self->topic_fired_persistence), $self->topic_fired_data ]);
   #
   # We remove from current topics those that do not have the 'any' persistence
   #
