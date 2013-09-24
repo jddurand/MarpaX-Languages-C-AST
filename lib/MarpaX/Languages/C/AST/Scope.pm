@@ -52,6 +52,7 @@ sub new {
   my ($class) = @_;
 
   my $self  = {
+      _nscope => 0,
       _typedefPerScope => [ {} ],
       _enumAnyScope => {},
       _delay => 0,
@@ -98,11 +99,11 @@ sub parseEnterScope {
 
   # $self->condExitScope();
 
-  my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
-      $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $scope, $scope + 1);
+      $log->debugf('[%s] Duplicating scope %d to %d', whoami(__PACKAGE__), $self->{_nscope}, $self->{_nscope} + 1);
   }
-  push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$scope]));
+  push(@{$self->{_typedefPerScope}}, dclone($self->{_typedefPerScope}->[$self->{_nscope}]));
+  $self->{_nscope}++;
 
   if (@{$self->{_enterScopeCallback}}) {
       my ($ref, @args) = @{$self->{_enterScopeCallback}};
@@ -120,10 +121,9 @@ Returns/Set current delay flag.
 sub parseDelay {
   my $self = shift;
   if (@_) {
-    my $scope = $self->parseScopeLevel;
     my $value = shift;
     if ($log->is_debug) {
-	$log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $scope);
+	$log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $self->{_nscope});
     }
     $self->{_delay} = $value;
   }
@@ -139,7 +139,7 @@ Returns current scope level, starting at number 0.
 sub parseScopeLevel {
   my ($self) = @_;
 
-  return $#{$self->{_typedefPerScope}};
+  return $self->{_nscope};
 }
 
 =head2 parseEnterScopeCallback($self, $ref, @args)
@@ -192,9 +192,8 @@ Reenter previous scope.
 sub parseReenterScope {
   my ($self) = @_;
 
-  my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
-      $log->debugf('[%s] Reenter scope at scope %d', whoami(__PACKAGE__), $scope);
+      $log->debugf('[%s] Reenter scope at scope %d', whoami(__PACKAGE__), $self->{_nscope});
   }
   $self->parseDelay(0);
 
@@ -223,11 +222,11 @@ Leave current scope.
 sub doExitScope {
   my ($self) = @_;
 
-  my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
-      $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $scope);
+      $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $self->{_nscope});
   }
   pop(@{$self->{_typedefPerScope}});
+  $self->{_nscope}--;
 
   if (@{$self->{_exitScopeCallback}}) {
       my ($ref, @args) = @{$self->{_exitScopeCallback}};
@@ -247,11 +246,10 @@ sub parseEnterTypedef {
 
   $data //= 1;
 
-  my $scope = $self->parseScopeLevel;
-  $self->{_typedefPerScope}->[$scope]->{$token} = $data;
+  $self->{_typedefPerScope}->[$self->{_nscope}]->{$token} = $data;
 
   if ($log->is_debug) {
-      $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+      $log->debugf('[%s] "%s" typedef entered at scope %d', whoami(__PACKAGE__), $token, $self->{_nscope});
   }
 }
 
@@ -267,9 +265,8 @@ sub parseEnterEnum {
   $data //= 1;
 
   $self->{_enumAnyScope}->{$token} = $data;
-  my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
-      $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $scope);
+      $log->debugf('[%s] "%s" enum entered at scope %d', whoami(__PACKAGE__), $token, $self->{_nscope});
   }
   #
   # Enum wins from now on and forever
@@ -288,7 +285,7 @@ Obscures a typedef named $token.
 sub parseObscureTypedef {
   my ($self, $token, $scope) = @_;
 
-  $scope //= $self->parseScopeLevel;
+  $scope //= $self->{_nscope};
   $self->{_typedefPerScope}->[$scope]->{$token} = undef;
 
   if ($log->is_debug) {
@@ -305,7 +302,7 @@ Return a true value if $token is a typedef.
 sub parseIsTypedef {
   my ($self, $token) = @_;
 
-  my $scope = $self->parseScopeLevel;
+  my $scope = $self->{_nscope};
   my $rc = (exists($self->{_typedefPerScope}->[$scope]->{$token}) && defined($self->{_typedefPerScope}->[$scope]->{$token})) ? 1 : 0;
 
   if ($log->is_debug) {
@@ -326,9 +323,8 @@ sub parseIsEnum {
 
   my $rc = (exists($self->{_enumAnyScope}->{$token}) && $self->{_enumAnyScope}->{$token}) ? 1 : 0;
 
-  my $scope = $self->parseScopeLevel;
   if ($log->is_debug) {
-      $log->debugf('[%s] "%s" is an enum at scope %d? %s', whoami(__PACKAGE__), $token, $scope, $rc ? 'yes' : 'no');
+      $log->debugf('[%s] "%s" is an enum at scope %d? %s', whoami(__PACKAGE__), $token, $self->{_nscope}, $rc ? 'yes' : 'no');
   }
 
   return($rc);
