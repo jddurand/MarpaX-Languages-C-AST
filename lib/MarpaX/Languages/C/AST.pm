@@ -509,7 +509,7 @@ sub _doPauseBeforeLexeme {
 	      $newlexeme = 'IDENTIFIER';
 	  } else {
 	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
 	  }
 	  #
 	  # Push the unambiguated lexeme
