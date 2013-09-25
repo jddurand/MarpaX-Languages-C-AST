@@ -1,7 +1,12 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.22 2013-09-24T19:48:05
+0.23 2013-09-25T16:44:26
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Fixed reference data
+
+0.22 2013-09-24T19:49:26
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.22
  - Remove unused event
  - Runtime optimization
  - Remove usage of clone
