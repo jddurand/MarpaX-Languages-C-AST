@@ -1,7 +1,24 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.23 2013-09-25T16:44:26
+0.24 2013-12-25T06:11:25
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - bin/c2ast.pl: typo in usage
+ - t/gcc_extension.t: tests
+ - ISO_ANSI_C_2011.pm: restored (gccExtension) rhs in specifiers
+   declarations
+ - ISO_ANSI_C_2011.pm: moved misplaced (gccExtension) rhs
+
+ [Jeffrey Kegler <JKEGL@cpan.org>]
+ - Revise --cppfile help
+
+ [jddurand <jeandamiendurand@free.fr>]
+ - Merge pull request #6 from jeffreykegler/cppfile
+   
+   Revise --cppfile help
+
+0.23 2013-09-25T16:45:49
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.23
  - Fixed reference data
 
 0.22 2013-09-24T19:49:26
