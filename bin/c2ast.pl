@@ -392,7 +392,7 @@ where options can be:
 
                      Note that tracing Marpa library itself is possible, but only using environment variable MARPA_TRACE /and/ saying --loglevel TRACE.
 
-                     In case of trouble, typical debuggin of c2ast is:
+                     In case of trouble, typical debugging phases c2ast are:
                      --loglevel INFO
                      then:
                      --loglevel DEBUG
