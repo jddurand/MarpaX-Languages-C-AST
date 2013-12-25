@@ -920,9 +920,10 @@ FUNC_NAME     ~ '__func__'
 #
 ## DETERMINED AT RUN TIME
 #
-:lexeme ~ <TYPEDEF_NAME>         priority => -100
-:lexeme ~ <ENUMERATION_CONSTANT> priority => -100
-:lexeme ~ <IDENTIFIER>           priority => -100
+:lexeme ~ <TYPEDEF_NAME>           priority => -100
+:lexeme ~ <ENUMERATION_CONSTANT>   priority => -100
+:lexeme ~ <IDENTIFIER>             priority => -100
+:lexeme ~ <IDENTIFIER_UNAMBIGUOUS> priority => -100
 _IDENTIFIER          ~ L A_any
 TYPEDEF_NAME         ~ _IDENTIFIER
 ENUMERATION_CONSTANT ~ _IDENTIFIER
