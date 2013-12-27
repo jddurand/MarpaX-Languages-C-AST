@@ -15,6 +15,7 @@ use Data::Dumper;
 use Log::Log4perl qw/:easy/;
 use Log::Any::Adapter;
 use Log::Any qw/$log/;
+use File::Spec;
 
 autoflush STDOUT 1;
 
@@ -108,7 +109,7 @@ if ($cppdup) {
 # -----------------
 # Callback argument
 # -----------------
-my %lexemeCallbackHash = (file => $cppfile,
+my %lexemeCallbackHash = (file => File::Spec->canonpath($cppfile),
 			  lexeme => {},
 			  internalLexeme => {},
 			  progress => undef,
@@ -286,7 +287,7 @@ sub lexemeCallback {
 	    $lexemeCallbackHashp->{curfile} = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
 	    $lexemeCallbackHashp->{allfiles}->{$lexemeCallbackHashp->{curfile}}++;
 	    if (! $lexemeCallbackHashp->{file}) {
-		$lexemeCallbackHashp->{file} = $lexemeCallbackHashp->{curfile};
+		$lexemeCallbackHashp->{file} = File::Spec->canonpath($lexemeCallbackHashp->{curfile});
 	    }
 	    if (! defined($lexemeCallbackHashp->{tryToAlignMax})) {
 		$lexemeCallbackHashp->{tryToAlignMax} = length(sprintf('%s(%d)', $lexemeCallbackHashp->{file}, 1000000)); # a pretty good max -;
@@ -306,11 +307,11 @@ sub lexemeCallback {
 
 	if (defined($lexemeCallbackHashp->{file}) &&
 	    defined($lexemeCallbackHashp->{curfile}) &&
-	    $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
+	    $lexemeCallbackHashp->{file} eq File::Spec->canonpath($lexemeCallbackHashp->{curfile})) {
 	    my $line = $lexemeCallbackHashp->{curline} + ($lexemeHashp->{line} - $lexemeCallbackHashp->{curline_real} - 1);
 	    $lexemeCallbackHashp->{position2line}->{$lexemeHashp->{start}} = $line;
 	    if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}})) {
-		my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{curfile}, $line);
+		my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{file}, $line);
 		printf "%-*s %-30s %s\n", $lexemeCallbackHashp->{tryToAlignMax}, $tryToAlign, $lexemeHashp->{name}, $lexemeHashp->{value};
 	    }
 	}
