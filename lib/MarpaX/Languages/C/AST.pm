@@ -338,7 +338,7 @@ sub _doPreprocessing {
     #
     my $previous = pos(${$self->{_sourcep}});
     my $delta = 0;
-    my $line = 0;
+    my $line = 1;
     if ($pos > $[) {
       my $line_columnp = lineAndCol($self->{_impl});
       $line = $line_columnp->[0];
@@ -376,7 +376,7 @@ sub _doPreprocessing {
         #
         $line += ($pre =~ tr/\n//);
 	#
-	# If this is a #line, fake an callback event PREPROCESSOR_LINE_DIRECTIVE
+	# If this is a #line, fake a callback event PREPROCESSOR_LINE_DIRECTIVE
 	#
 	if ($directive eq 'line' || $directive =~ /^\d+$/) {
 	    my %lexeme = ();
