@@ -1,7 +1,17 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.25 2013-12-25T09:32:14
+0.26 2013-12-27T19:37:44
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Merge branch 'master' of
+   https://github.com/jddurand/MarpaX-Languages-C-AST
+ - AST.pm: Initial line number should be 1 instead of 0
+ - c2ast.pl: move File::Spec->canonpath at a better place
+ - c2ast.pl: use File::Spec->canonpath before file comparison
+ - comment #7
+
+0.25 2013-12-25T09:33:40
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.25
  - Grammar/ISO_ANSI_C_2011.pm: Added missing priority for
    IDENTIFIER_UNAMBIGUOUS
 
