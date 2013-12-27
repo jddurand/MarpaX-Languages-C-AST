@@ -284,7 +284,7 @@ sub lexemeCallback {
 	if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
 	    $lexemeCallbackHashp->{curline} = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
 	    $lexemeCallbackHashp->{curline_real} = $lexemeHashp->{line};
-	    $lexemeCallbackHashp->{curfile} = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
+	    $lexemeCallbackHashp->{curfile} = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
 	    $lexemeCallbackHashp->{allfiles}->{$lexemeCallbackHashp->{curfile}}++;
 	    if (! $lexemeCallbackHashp->{file}) {
 		$lexemeCallbackHashp->{file} = File::Spec->canonpath($lexemeCallbackHashp->{curfile});
@@ -307,7 +307,7 @@ sub lexemeCallback {
 
 	if (defined($lexemeCallbackHashp->{file}) &&
 	    defined($lexemeCallbackHashp->{curfile}) &&
-	    $lexemeCallbackHashp->{file} eq File::Spec->canonpath($lexemeCallbackHashp->{curfile})) {
+	    $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
 	    my $line = $lexemeCallbackHashp->{curline} + ($lexemeHashp->{line} - $lexemeCallbackHashp->{curline_real} - 1);
 	    $lexemeCallbackHashp->{position2line}->{$lexemeHashp->{start}} = $line;
 	    if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}})) {
