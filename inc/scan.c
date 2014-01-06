@@ -18,7 +18,7 @@ int func2(int x1, double *x2, float *(*f1)(int x11, double x12));
 int func3(int   , double *  , float *(*  )(int    , double    ));
 int func4(int   , double *  , float *(*  )(int    , double    ));
 /*
-  typedef_hash test
+  typedef_hash, typedef_texts, typedefs_maybe tests
 */
 typedef int myInt_type;
 typedef enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t;

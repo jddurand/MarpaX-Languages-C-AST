@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 6;
+use Test::More tests => 8;
 use File::Spec;
 use Data::Dumper;
 
@@ -199,4 +199,29 @@ is_deeply($c->typedef_hash,
                           ]
 },
           'typedef_hash');
-
+is_deeply($c->typedef_texts,
+    [
+     'enum myEnum1_e {X11 = 0, X12} myEnumType1_t',
+     'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t',
+     'enum {X21 = 0, X22} myEnumType2_t',
+     'enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t',
+     'int myInt_type',
+     'struct myStruct1 {int x;} myStructType1_t',
+     'struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t',
+     'struct {int x;} myStructType2_t',
+     'struct {int x;} myStructType2_t, *myStructType2p_t'
+    ],
+    'typedef_texts');
+is_deeply($c->typedefs_maybe,
+    [
+     'myEnumType1_t',
+     'myEnumType1p_t',
+     'myEnumType2_t',
+     'myEnumType2p_t',
+     'myInt_type',
+     'myStructType1_t',
+     'myStructType1p_t',
+     'myStructType2_t',
+     'myStructType2p_t'
+    ],
+    'typedefs_maybe');
