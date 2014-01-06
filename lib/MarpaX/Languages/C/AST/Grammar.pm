@@ -12,11 +12,14 @@ use Carp qw/croak/;
 
 =head1 DESCRIPTION
 
-This modules returns C grammar(s) written in Marpa BNF.
-Current grammars are:
+This modules returns C grammar(s) written in Marpa BNF. Current grammars are:
+
 =over
-=item *
-ISO-ANSI-C-2011. The ISO grammar of ANSI C 2011, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2011.html> and L<http://www.quut.com/c/ANSI-C-grammar-l.html>.
+
+=item ISO-ANSI-C-2011
+
+The ISO grammar of ANSI C 2011, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2011.html> and L<http://www.quut.com/c/ANSI-C-grammar-l.html>.
+
 =back
 
 =head1 SYNOPSIS
