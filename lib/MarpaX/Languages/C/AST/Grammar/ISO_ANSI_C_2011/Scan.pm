@@ -124,7 +124,7 @@ The methods defines_args() and defines_no_args() are not subject to the filename
 
 This module will croak on any error.
 
-=head1 PARSED INFORMATION FORMAT
+=head1 PARSED DECLARATION FORMAT
 
 If $asHash is a true value in the constructor, then parsed declaration is an array reference of hashes, otherwise this is an array reference of array references (which is the default).
 
@@ -2976,7 +2976,7 @@ sub _posprocess_heuristics {
 
 =head1 NOTES
 
-There is no default for function return type without any type specifier: the C standard says this is (also, bw the way) 'int'.
+The default return type for functions without type specifier is fixed to 'int', as per the C standard.
 
 =head1 SEE ALSO
 
