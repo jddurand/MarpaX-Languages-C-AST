@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 2;
+use Test::More tests => 3;
 use File::Spec;
 use Data::Dumper;
 
@@ -13,5 +13,26 @@ BEGIN {
 my $filename = File::Spec->catfile('inc', 'scan.c');
 my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 my $ast = $c->ast();
-ok(defined($ast), 'Output from ast() is ok');
-print STDERR Dumper($c->defines_no_args);
+is_deeply($c->defines_no_args,
+          {
+              'MACRO_NO_ARGS_01' => '',
+              'MACRO_NO_ARGS_02' => 'something'
+          },
+          'defines_no_args');
+is_deeply($c->defines_args,
+          {
+              'MACRO_NO_ARGS_02' => [
+                  [
+                   'b',
+                   'c'
+                  ],
+                  "something(b) + else(c) \\\ncontinued"
+                  ],
+                  'MACRO_NO_ARGS_01' => [
+                      [
+                       'a'
+                      ],
+                      ''
+                  ]
+          },
+          'defines_args');
