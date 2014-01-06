@@ -1208,18 +1208,21 @@ sub _setRcp {
 sub _appendRcp {
     my ($self, $rcp, $key, $value) = @_;
 
-    if ($self->{_asHash}) {
+    if (defined($value)) {
+
+      if ($self->{_asHash}) {
 	if (defined($rcp->{$key}) && length($rcp->{$key}) > 0) {
-	    $rcp->{$key} .= " $value";
+          $rcp->{$key} .= " $value";
 	} else {
-	    $self->_setRcp($rcp, $key, $value);
+          $self->_setRcp($rcp, $key, $value);
 	}
-    } else {
+      } else {
 	if (defined($rcp->[$KEY2ID{$key}]) && length($rcp->[$KEY2ID{$key}]) > 0) {
-	    $rcp->[$KEY2ID{$key}] .= " $value";
+          $rcp->[$KEY2ID{$key}] .= " $value";
 	} else {
-	    $self->_setRcp($rcp, $key, $value);
+          $self->_setRcp($rcp, $key, $value);
 	}
+      }
     }
 }
 
@@ -1228,18 +1231,21 @@ sub _appendRcp {
 sub _prependRcp {
     my ($self, $rcp, $key, $value) = @_;
 
-    if ($self->{_asHash}) {
+    if (defined($value)) {
+
+      if ($self->{_asHash}) {
 	if (defined($rcp->{$key}) && length($rcp->{$key}) > 0) {
-	    $rcp->{$key} = "$value $rcp->{$key}";
+          $rcp->{$key} = "$value $rcp->{$key}";
 	} else {
-	    $self->_setRcp($rcp, $key, $value);
+          $self->_setRcp($rcp, $key, $value);
 	}
-    } else {
+      } else {
 	if (defined($rcp->[$KEY2ID{$key}]) && length($rcp->[$KEY2ID{$key}]) > 0) {
-	    $rcp->[$KEY2ID{$key}] = "$value $rcp->[$KEY2ID{$key}]";
+          $rcp->[$KEY2ID{$key}] = "$value $rcp->[$KEY2ID{$key}]";
 	} else {
-	    $self->_setRcp($rcp, $key, $value);
+          $self->_setRcp($rcp, $key, $value);
 	}
+      }
     }
 }
 
@@ -2383,7 +2389,7 @@ sub _analyseDirectDeclarator {
 	#
 	# When an rcp becomes a func, everything that was a type before becomes a return type
 	#
-	$self->_setRcp($rcp, 'rt', $self->_getRcp($rcp, 'ty'));
+	$self->_appendRcp($rcp, 'rt', $self->_getRcp($rcp, 'ty'));
 	$self->_deleteRcp($rcp, 'ty');
 	if (! $self->_analyseDirectDeclarator($stdout_buf, $directDeclarator->[0], $rcp)) {
 	    return 0;
@@ -2476,8 +2482,8 @@ sub _analyseDirectAbstractDeclarator {
     my $secondElementReftype = reftype($secondElement) || '';
 
     my $lastButOneElement = $directAbstractDeclarator->[-2];
-    my $lastButOneElementBlessed = blessed($secondElement) || '';
-    my $lastButOneElementReftype = reftype($secondElement) || '';
+    my $lastButOneElementBlessed = blessed($lastButOneElement) || '';
+    my $lastButOneElementReftype = reftype($lastButOneElement) || '';
 
     #
     # Lexeme available: check if position is ok
@@ -2550,7 +2556,7 @@ sub _analyseDirectAbstractDeclarator {
 	#
 	# When an rcp becomes a func, everything that was a type before becomes a return type
 	#
-	$self->_setRcp($rcp, 'rt', $self->_getRcp($rcp, 'ty'));
+	$self->_appendRcp($rcp, 'rt', $self->_getRcp($rcp, 'ty'));
 	$self->_deleteRcp($rcp, 'ty');
 	if ($firstElementBlessed eq 'C::AST::directAbstractDeclarator') {
 	    if (! $self->_analyseDirectAbstractDeclarator($stdout_buf, $firstElement, $rcp)) {
