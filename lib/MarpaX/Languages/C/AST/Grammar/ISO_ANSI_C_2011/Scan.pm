@@ -42,9 +42,10 @@ our %KEY2ID = (
     struct         => 12,
     union          => 13,
     structOrUnion  => 14,
-    type           => 15,
-    var            => 16,
-    _MAX           => 17,           # Internal usage only
+    enum           => 15,
+    type           => 16,
+    var            => 17,
+    _MAX           => 18,           # Internal usage only
     _startPosition => 90,           # Internal usage only
 );
 
@@ -493,7 +494,7 @@ sub inlines {
 
 =head2 typedef_hash($self)
 
-Hopefully C::Scan compatible reference to a hash which contains known typedefs as keys. The values of the hash may not be compatible with C::Scan output. In our case these are array references of length 2, with at index 0 the full text used to parsed this typedef (maybe inclusing more than needed, but always what is necessary), and at index 1 an empty string.
+Reference to a hash which contains known typedefs as keys. Values of the hash are array references of length 2, with what should be put before/after the type for a standalone typedef declaration (but without the typedef substring). Note that it is the minimal full text of the C source that is used to obtain the before/after strings, so this /can/ contain definition of other variables.
 
 =cut
 
@@ -522,7 +523,7 @@ sub typedef_hash {
 	      #
 	      $ft =~ s/\s*typedef\s*/ /;
 	  }
-	  $hash{$nm} = [ $ft, '' ];
+	  $hash{$nm} = [ $self->_beforeAndAfter($ft, $nm) ];
       }
   }
 
@@ -540,7 +541,8 @@ Returns a reference to a list which contains known expansions of typedefs. This 
 sub typedef_texts {
   my ($self) = @_;
 
-  return [ sort map {$_->[0]} values %{$self->typedef_hash} ];
+  my $hash = $self->typedef_hash;
+  return [ sort map {join('', $hash->{$_}->[0], $_, $hash->{$_}->[1])} keys %{$hash} ];
 
 }
 
@@ -577,7 +579,7 @@ sub vdecls {
 
 =head2 vdecl_hash($self)
 
-Hopefully C::Scan compatible reference to a hash of parsed extern variable declarations, containing the variable names as keys.  The values of the hash may not be compatible with C::Scan output. In our case these are array references of length 2, with at index 0 the full text used to parsed this typedef (maybe inclusing more than needed, but always what is necessary), and at index 1 an empty string.
+Reference to a hash of parsed extern variable declarations, containing the variable names as keys. Values of the hash are array references of length 2, with what should be put before/after the name for a standalone extern variable declaration (but without the extern substring). Note that it is the minimal full text of the C source that is used to obtain the before/after strings, so this /can/ contain definition of other variables.
 
 =cut
 
@@ -606,7 +608,7 @@ sub vdecl_hash {
 	      #
 	      $ft =~ s/\s*extern\s*/ /;
 	  }
-	  $hash{$nm} = [ $ft, '' ];
+	  $hash{$nm} = [ $self->_beforeAndAfter($ft, $nm) ];
       }
   }
 
@@ -614,6 +616,24 @@ sub vdecl_hash {
 }
 
 # ----------------------------------------------------------------------------------------
+
+sub _beforeAndAfter {
+  my ($self, $ft, $nm) = @_;
+
+  my $before = '';
+  my $after = '';
+
+  if ($ft =~ /^(.+?)\b$nm\b(.+)$/) {
+    $before = substr($ft, $-[1], $+[1] - $-[1]);
+    $after = substr($ft, $-[2], $+[2] - $-[2]);
+  } elsif ($ft =~ /^$nm\b(.+)$/) {
+    $after = substr($ft, $-[1], $+[1] - $-[1]);
+  } elsif ($ft =~ /^(.+?)\b$nm$/) {
+    $before = substr($ft, $-[1], $+[1] - $-[1]);
+  }
+
+  return ($before, $after);
+}
 
 =head2 typedef_structs($self)
 
@@ -628,27 +648,47 @@ sub typedef_structs {
 
   foreach (@{$self->decls}) {
       if ($self->_existsRcp($_, 'typedef') && $self->_getRcp($_, 'typedef')) {
-	  my $nm = $self->_getRcp($_, 'nm');
-	  my $ft = $self->_getRcp($_, 'ft');
-	  if ($ft =~ /^\s*typedef\s*/) {
-	      #
-	      # typedef is at the beginning
-	      #
-	      $ft =~ s/^\s*typedef\s*//;
-	  } elsif ($ft =~ /\s*typedef\s*$/) {
-	      #
-	      # typedef is at the end (huh, impossible in fact)
-	      #
-	      $ft =~ s/\s*typedef\s*$//;
-	  } else {
-	      #
-	      # Somewhere else
-	      #
-	      $ft =~ s/\s*typedef\s*/ /;
-	  }
-	  $hash{$nm} = [ $ft, '' ];
+        my $ty = $self->_getRcp($_, 'ty');
+        #
+        # In case of typedef struct, the type is: struct STRUCTTYPE
+        #
+        if ($ty =~ /^struct\s+([\w]+)$/) {
+          $ty = substr($ty, $-[1], $+[1] - $-[1]);
+        }
+        my $nm = $self->_getRcp($_, 'nm');
+        #
+        # If the type is a struct or an union, then there must
+        # exist another entry at the toplevel with that name that
+        # have the flag 'structOrUnion'
+        #
+        my @structOrUnion = grep {
+          $self->_getRcp($_, 'structOrUnion') &&
+            $self->_getRcp($_, 'nm') eq $ty
+          } @{$self->decls};
+        if (! @structOrUnion) {
+          $hash{$nm} = undef;
+        } else {
+          my $structOrUnion = $structOrUnion[-1];
+          my @elements = ();
+          foreach (@{$self->_getRcp($structOrUnion, 'args')}) {
+            #
+            # Because a struct or union can very well have
+            # defined inner types: ye are only interested by
+            # variables
+            #
+            if ($self->_getRcp($_, 'var')) {
+              push(@elements,
+                   [
+                    $self->_beforeAndAfter($self->_getRcp($_, 'ft'), $self->_getRcp($_, 'nm')),
+                    $self->_getRcp($_, 'nm')
+                   ]
+                  );
+            }
+            $hash{$nm} = \@elements;
+          }
+        }
       }
-  }
+    }
 
   return \%hash;
 }
