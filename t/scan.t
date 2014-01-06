@@ -24,7 +24,7 @@ eq_or_diff($c->defines_no_args,
           'defines_no_args');
 eq_or_diff($c->defines_args,
           {
-              'MACRO_NO_ARGS_02' =>
+              'MACRO_NO_ARGS_04' =>
                   [
                    [
                     'b',
@@ -32,7 +32,7 @@ eq_or_diff($c->defines_args,
                    ],
                    "something(b) + else(c) \\\ncontinued"
                   ],
-                   'MACRO_NO_ARGS_01' =>
+                   'MACRO_NO_ARGS_03' =>
                    [
                     [
                      'a'

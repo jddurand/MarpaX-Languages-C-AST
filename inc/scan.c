@@ -7,8 +7,8 @@
 /*
   defines_args test
 */
-#define MACRO_NO_ARGS_01(a)
-#define MACRO_NO_ARGS_02 (b,    c) something(b) + else(c) \
+#define MACRO_NO_ARGS_03(a)
+#define MACRO_NO_ARGS_04 (b,    c) something(b) + else(c) \
 continued
 /*
   parsed_fdecls test

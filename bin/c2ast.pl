@@ -24,6 +24,8 @@ autoflush STDOUT 1;
 
 # VERSION
 
+# PODNAME: c2ast.pl
+
 my $help = 0;
 my @cpp = ();
 my $cppfile = '';
