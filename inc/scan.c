@@ -5,4 +5,7 @@
 #define MACRO_NO_ARGS_02 (b,    c) something(b) + else(c) \
 continued
 
-int intVar;
+int func1(int x1, double *x2, float *( f1)(int x11, double x12));
+int func2(int x1, double *x2, float *(*f1)(int x11, double x12));
+int func3(int   , double *  , float *(*  )(int    , double    ));
+int func4(int   , double *  , float *(*  )(int    , double    ));
