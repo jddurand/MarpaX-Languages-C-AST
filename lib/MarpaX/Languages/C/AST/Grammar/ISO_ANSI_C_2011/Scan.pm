@@ -547,7 +547,7 @@ Returns a reference to a list which contains known expansions of typedefs. This 
 sub typedef_texts {
   my ($self) = @_;
 
-  return [ map {$_->[0]} values %{$self->typedef_hash} ];
+  return [ sort map {$_->[0]} values %{$self->typedef_hash} ];
 
 }
 
@@ -562,7 +562,7 @@ Returns a reference to a list of typedefed names. This is just the "key" part of
 sub typedefs_maybe {
   my ($self) = @_;
 
-  return [ keys %{$self->typedef_hash} ];
+  return [ sort keys %{$self->typedef_hash} ];
 
 }
 
@@ -577,7 +577,7 @@ Returns a reference to a list of extern variable declarations.
 sub vdecls {
   my ($self) = @_;
 
-  return [ map { $self->_getRcp($_, 'nm') } grep { $self->_getRcp($_, 'extern') } @{$self->decls} ];
+  return [ sort map { $self->_getRcp($_, 'nm') } grep { $self->_getRcp($_, 'extern') } @{$self->decls} ];
 }
 
 # ----------------------------------------------------------------------------------------
