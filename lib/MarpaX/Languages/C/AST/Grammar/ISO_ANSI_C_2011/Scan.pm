@@ -48,7 +48,7 @@ our %KEY2ID = (
     _startPosition => 90,           # Internal usage only
 );
 
-our @PURGE_KEYS = sort {$KEY2ID{$b} <=> $KEY2ID{$a}} grep {$KEY2ID{$_} >= $KEY2ID{_MAX}} keys %KEY2ID;
+our @PURGE_KEYS = sort {$KEY2ID{$a} <=> $KEY2ID{$b}} grep {$KEY2ID{$_} >= $KEY2ID{_MAX}} keys %KEY2ID;
 our $PURGE_IDX  = $KEY2ID{$PURGE_KEYS[0]};
 
 # VERSION
@@ -2633,22 +2633,6 @@ sub _newRcp {
 
 }
 
-# ----------------------------------------------------------------------------------------
-
-sub _copyRcp {
-    my ($self, $rcp) = @_;
-
-    my $newRcp = $self->_newRcp();
-
-    foreach (keys %KEY2ID) {
-	if ($self->_existsRcp($rcp, $_)) {
-	    $self->_setRcp($newRcp, $_, $self->_getRcp($rcp, $_));
-	}
-    }
-
-    return $newRcp;
-
-}
 # ----------------------------------------------------------------------------------------
 
 sub _analyseParameterList {
