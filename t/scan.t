@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 10;
+use Test::More tests => 11;
 use File::Spec;
 use Data::Dumper;
 
@@ -11,7 +11,7 @@ BEGIN {
 }
 
 my $filename = File::Spec->catfile('inc', 'scan.c');
-my $c = MarpaX::Languages::C::Scan->new(filename => $filename, asHash => 1);
+my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 my $ast = $c->ast();
 is_deeply($c->defines_no_args,
           {
@@ -161,42 +161,42 @@ is_deeply($c->parsed_fdecls,
           'parsed_fdecls');
 is_deeply($c->typedef_hash,
 {
-          'myStructType2_t' => [
-                                 'struct {int x;} myStructType2_t',
-                                 ''
-                               ],
-          'myEnumType1_t' => [
-                               'enum myEnum1_e {X11 = 0, X12} myEnumType1_t',
-                               ''
-                             ],
           'myStructType1p_t' => [
-                                  'struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t',
+                                  'struct myStruct1 {int x;} myStructType1_t, *',
                                   ''
                                 ],
           'myEnumType2p_t' => [
-                                'enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t',
+                                'enum {X21 = 0, X22} myEnumType2_t, *',
                                 ''
                               ],
           'myStructType1_t' => [
-                                 'struct myStruct1 {int x;} myStructType1_t',
+                                 'struct myStruct1 {int x;} ',
                                  ''
                                ],
-          'myStructType2p_t' => [
-                                  'struct {int x;} myStructType2_t, *myStructType2p_t',
-                                  ''
-                                ],
           'myEnumType2_t' => [
-                               'enum {X21 = 0, X22} myEnumType2_t',
+                               'enum {X21 = 0, X22} ',
                                ''
                              ],
+          'myStructType2p_t' => [
+                                  'struct {int x;} myStructType2_t, *',
+                                  ''
+                                ],
+          'myStructType2_t' => [
+                                 'struct {int x;} ',
+                                 ''
+                               ],
+          'myInt_type' => [
+                            'int ',
+                            ''
+                          ],
           'myEnumType1p_t' => [
-                                'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t',
+                                'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *',
                                 ''
                               ],
-          'myInt_type' => [
-                            'int myInt_type',
-                            ''
-                          ]
+          'myEnumType1_t' => [
+                               'enum myEnum1_e {X11 = 0, X12} ',
+                               ''
+                             ]
 },
           'typedef_hash');
 is_deeply($c->typedef_texts,
@@ -233,13 +233,37 @@ is_deeply($c->vdecls,
     'vdecls');
 is_deeply($c->vdecl_hash,
 {
-    'vint1' => [
-        'int vint1',
+    'vdouble2p' => [
+        'double * ',
         ''
         ],
-        'vdouble2p' => [
-            'double * vdouble2p',
+        'vint1' => [
+            'int ',
             ''
         ]
 },
     'vdecl_hash');
+is_deeply($c->typedef_structs,
+{
+    'myStructType2_t' => [
+        [
+         'int ',
+         '',
+         'x'
+        ]
+        ],
+        'myStructType1_t' => [
+            [
+             'int ',
+             '',
+             'x'
+            ]
+        ],
+            'myEnumType1p_t' => undef,
+            'myStructType2p_t' => undef,
+            'myEnumType1_t' => undef,
+            'myInt_type' => undef,
+            'myEnumType2p_t' => undef,
+            'myEnumType2_t' => undef,
+            'myStructType1p_t' => undef
+}, 'typedef_structs');
