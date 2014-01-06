@@ -1,7 +1,7 @@
-#!perl -T
+#!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 5;
+use Test::More tests => 6;
 use File::Spec;
 use Data::Dumper;
 
@@ -159,3 +159,44 @@ is_deeply($c->parsed_fdecls,
            ]
           ],
           'parsed_fdecls');
+is_deeply($c->typedef_hash,
+{
+          'myStructType2_t' => [
+                                 'struct {int x;} myStructType2_t',
+                                 ''
+                               ],
+          'myEnumType1_t' => [
+                               'enum myEnum1_e {X11 = 0, X12} myEnumType1_t',
+                               ''
+                             ],
+          'myStructType1p_t' => [
+                                  'struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t',
+                                  ''
+                                ],
+          'myEnumType2p_t' => [
+                                'enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t',
+                                ''
+                              ],
+          'myStructType1_t' => [
+                                 'struct myStruct1 {int x;} myStructType1_t',
+                                 ''
+                               ],
+          'myStructType2p_t' => [
+                                  'struct {int x;} myStructType2_t, *myStructType2p_t',
+                                  ''
+                                ],
+          'myEnumType2_t' => [
+                               'enum {X21 = 0, X22} myEnumType2_t',
+                               ''
+                             ],
+          'myEnumType1p_t' => [
+                                'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t',
+                                ''
+                              ],
+          'myInt_type' => [
+                            'int myInt_type',
+                            ''
+                          ]
+},
+          'typedef_hash');
+

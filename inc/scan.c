@@ -17,3 +17,11 @@ int func1(int x1, double *x2, float *( f1)(int x11, double x12));
 int func2(int x1, double *x2, float *(*f1)(int x11, double x12));
 int func3(int   , double *  , float *(*  )(int    , double    ));
 int func4(int   , double *  , float *(*  )(int    , double    ));
+/*
+  typedef_hash test
+*/
+typedef int myInt_type;
+typedef enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t;
+typedef enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t;
+typedef struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t;
+typedef struct {int x;} myStructType2_t, *myStructType2p_t;
