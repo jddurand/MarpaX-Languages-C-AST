@@ -44,7 +44,12 @@ our %KEY2ID = (
     structOrUnion  => 14,
     type           => 15,
     var            => 16,
+    _MAX           => 17,           # Internal usage only
+    _startPosition => 90,           # Internal usage only
 );
+
+our @PURGE_KEYS = sort {$KEY2ID{$b} <=> $KEY2ID{$a}} grep {$KEY2ID{$_} >= $KEY2ID{_MAX}} keys %KEY2ID;
+our $PURGE_IDX  = $KEY2ID{$PURGE_KEYS[0]};
 
 # VERSION
 
@@ -201,27 +206,6 @@ Finally, This module will croak on any error.
 
 sub new {
   my ($class, %opts) = @_;
-
-  if (exists($ENV{PERL_DEVEL})) {
-      #
-      # Autocheck
-      #
-      use File::Slurp;
-      my $source = read_file('lib/MarpaX/Languages/C/Scan.pm');
-      my %call = ();
-      while ($source =~ m/\$self\s*->\s*(\w+)/g) {
-	  ++$call{$1};
-      }
-      my %have = ();
-      while ($source =~ m/^sub\s+(\w+)/sxmg) {
-	  ++$have{$1};
-      }
-      foreach (sort keys %call) {
-	  if (! exists($have{$_})) {
-	      warn "Unknown method $_";
-	  }
-      }
-  }
 
   if (exists($opts{filename}) && exists($opts{content})) {
     croak 'filename and content are mutually exclusive';
@@ -1075,7 +1059,7 @@ sub _buildContext {
     #
     # Add startPosition - used to get full text
     #
-    $contextp->{_startPosition} = $self->_startPosition($specifiersList);
+    $self->_setRcp($contextp, '_startPosition', $self->_startPosition($specifiersList));
 
     return 1;
 }
@@ -1088,7 +1072,7 @@ sub _buildContext {
 sub _pushRcp {
     my ($self, $stdout_buf, $o, $rcp, $listp, $contextp) = @_;
 
-    $contextp //= {};
+    $contextp //= $self->_newRcp();
 
     #
     # The push always takes care of:
@@ -1101,7 +1085,7 @@ sub _pushRcp {
     #
     # - Full text
     #
-    my $ft = $self->_text($stdout_buf, $o, $contextp->{_startPosition});
+    my $ft = $self->_text($stdout_buf, $o, $self->_getRcp($contextp, '_startPosition'));
     $self->_setRcp($rcp, 'ft', $ft);
     #
     # - Final type: rt for a function, ty otherwise, EXCEPT at the
@@ -1145,10 +1129,9 @@ sub _pushRcp {
     }
     #
     #
-    # Internal meaning only: sometimes an $rcp is a context, i.e. it has
-    # an internal member _startPosition. Delete it if any.
+    # Remove any internal meanings
     #
-    delete($rcp->{_startPosition});
+    $self->_purgeRcp($rcp);
 
     push(@{$listp}, $rcp);
 }
@@ -1299,6 +1282,20 @@ sub _deleteRcp {
 	delete($rcp->{$key});
     } else {
 	$rcp->[$KEY2ID{$key}] = undef;
+    }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _purgeRcp {
+    my ($self, $rcp) = @_;
+
+    if ($self->{_asHash}) {
+      foreach (@PURGE_KEYS) {
+	delete($rcp->{$_});
+      }
+    } else {
+	splice(@{$rcp}, $PURGE_IDX);
     }
 }
 
