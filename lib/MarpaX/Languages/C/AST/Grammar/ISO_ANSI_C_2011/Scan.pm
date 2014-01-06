@@ -74,37 +74,37 @@ This module scans a C source and exposes methods compatible with C::Scan module.
     print Dumper($c->get('parsed_fdecls'));
     print Dumper($c->parsed_fdecls);
 
-=head1 SUBROUTINES/METHODS
+=head1 SUBROUTINES
 
 =head2 new($class, %options)
 
-Instantiate a new object. Parameters are are in a hash with the following keys:
+Instantiate a new object. Parameters are in a hash that can contain the following keys:
 
 =over
 
 =item filename
 
-File name to parse
+File name to parse.
 
 =item content
 
-Content to parse
+Content to parse.
 
 =item filename_filter
 
-Filter on filename from cpp output
+Filter on filename from pre-processor output.
 
 =item asHash
 
-Use hash references for parsed information instead of array references
+Use hash references for parsed information instead of the default that is: array references. See the L<PARSED DECLARATION FORMAT> section to knoy how parsed information is organized.
 
 =item cpprun
 
-Preprocessor command
+Preprocessor command, default is $Config{cpprun}.
 
 =item cppflags
 
-Preprocessor flags
+Preprocessor flags, default is $Config{cppflags}.
 
 =item enumType
 
@@ -112,13 +112,23 @@ Default enum type. This is compiler dependant but is usually the default value: 
 
 =back
 
-Please refer to the Config perl documentation for the meaning of these flags. Is not specified, all these keys will have the default perl's values. This module will execute "$cpprun $cppflags $filename", using a temporary filename if $content was given.
+Please refer to the Config perl documentation for the meaning of $Config{cpprun} or $Config{cppflags}.
 
-A working precompiler is required.
+This module will execute "$cpprun $cppflags $filename", using a temporary filename if $content was given. Thus a working precompiler is required.
 
-$filename and $content are mutually exclusive. If $content is used a temporary file will be created using File::Temp (which may fail under taint mode -;). The $filename_filter value limits the output to file names equal to $filename_filter (if this is a SCALAR) or matching $filename_filter (if this is a Regexp): since we use the precompiler, any #include statements is "polluting" the original source, i.e. much more files that just $filename (or $content) are used. Default value is $filename or the generated temporary filename when using $content mode.
+$filename and $content are mutually exclusive. If $content is used a temporary file will be created using File::Temp (which may fail under taint mode -;).
 
-If $asHash is a true value, then parsed declarations will be an array reference of hashes, having the key/value information listed below. If $asHash is a false value, the items below are ordered by indice. Default $asHash is a false value.
+The $filename_filter value limits the output to file names equal to $filename_filter (if this is a SCALAR) or matching $filename_filter (if this is a Regexp): since we use the precompiler, any #include statements is "polluting" the original source, i.e. much more files that just $filename (or $content) are used. Default value is $filename or the generated temporary filename when using $content mode.
+
+The methods defines_args() and defines_no_args() are not subject to the filename_filter parameter: they always apply on the content or filename given /before/ the preprocessing. They are based on heuristic parsing, so their result should not be blindly trusted. A typical example of false positive is a macro inside string or a comment.
+
+This module will croak on any error.
+
+=head1 PARSED INFORMATION FORMAT
+
+If $asHash is a true value in the constructor, then parsed declaration is an array reference of hashes, otherwise this is an array reference of array references (which is the default).
+
+In hash mode the key/value information is listed below. In array mode the items below are ordered by increasing indice.
 
 =over
 
@@ -184,19 +194,7 @@ A flag: true value means this is a variable declaration. If true, it is guarante
 
 =back
 
-The methods defines_args() and defines_no_args() are not subject to the filename_filter parameter, they always apply on the content or filename given /before/ the preprocessing. They are based on heuristic parsing, i.e. their result should not be blindly trusted. A typical example of false positive is a macro inside string or a comment.
-
-Some method have an optional argument:
-
-=over
-
-=item $level
-
-Default C::Scan behaviour is to not give information for inner scopes more than once, corresponding to the default value $level of 1. This correspond to number of inner 'args' array references (c.f. args element described below): if the number of inner 'args' is bigger than $level, then 'args' is forced to undef. For any method that claim to be C::Scan compatible, default $level parameter is 1. You must give a negative value (e.g. -1) for an output with no limit on the number of scopes.
-
-=back
-
-Finally, This module will croak on any error.
+=head1 METHODS
 
 =cut
 
@@ -289,34 +287,30 @@ sub new {
 
 # ----------------------------------------------------------------------------------------
 
-=head2 ast($self, $ast)
+=head2 ast($self)
 
-Getter/setter of the AST of the preprocessed output. if $ast is in the parameter this will set the value and returns it. This must be a parsed tree value as returned by Marpa::C::Languages::AST->value.
+AST of the preprocessed output. This must be a parsed tree value as returned by Marpa::C::Languages::AST->value.
 
 =cut
 
 sub ast {
   my $self = shift;
 
-  if (@_) {
-      $self->{_ast} = shift;
-  }
-
   return $self->{_ast};
 }
 
 # ----------------------------------------------------------------------------------------
 
-=head2 get($self, $attribute, $level)
+=head2 get($self, $attribute)
 
-C::Scan like method, that is a proxy to $self->$attribute. All methods described after can be used as attribute, for example: $self->get('strings'), or $self->get('includes'). The level optional argument has a meaning only on methods that does support this notion. C.f. the L<SYNOPSIS> section.
+C::Scan like method, that is a proxy to $self->$attribute. All methods described after can be used as attribute, for example: $self->get('strings'), or $self->get('includes').
 
 =cut
 
 sub get {
-  my ($self, $attribute, $level) = @_;
+  my ($self, $attribute) = @_;
 
-  return $self->$attribute($level);
+  return $self->$attribute;
 }
 
 # ----------------------------------------------------------------------------------------
@@ -434,7 +428,6 @@ the type 'ty' of f1 is '*', its return type 'rt' is 'float *'. And what C::Scan 
 sub parsed_fdecls {
   my ($self) = @_;
 
-  my $level = 1;
   my @list = ();
 
   foreach (@{$self->decls}) {
