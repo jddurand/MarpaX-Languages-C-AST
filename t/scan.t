@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 8;
+use Test::More tests => 9;
 use File::Spec;
 use Data::Dumper;
 
@@ -225,3 +225,9 @@ is_deeply($c->typedefs_maybe,
      'myStructType2p_t'
     ],
     'typedefs_maybe');
+is_deeply($c->vdecls,
+    [
+     'vdouble2p',
+     'vint1'
+    ],
+    'vdecls');
