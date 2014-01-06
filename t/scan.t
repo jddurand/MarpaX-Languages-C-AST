@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 9;
+use Test::More tests => 10;
 use File::Spec;
 use Data::Dumper;
 
@@ -231,3 +231,15 @@ is_deeply($c->vdecls,
      'vint1'
     ],
     'vdecls');
+is_deeply($c->vdecl_hash,
+{
+    'vint1' => [
+        'int vint1',
+        ''
+        ],
+        'vdouble2p' => [
+            'double * vdouble2p',
+            ''
+        ]
+},
+    'vdecl_hash');

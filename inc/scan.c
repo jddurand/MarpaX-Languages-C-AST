@@ -26,7 +26,7 @@ typedef enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t;
 typedef struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t;
 typedef struct {int x;} myStructType2_t, *myStructType2p_t;
 /*
-  vdecls
+  vdecls, vdecl_hash tests
 */
 extern int vint1;
 extern double * vdouble2p;
