@@ -73,8 +73,6 @@ This module scans a C source and exposes methods compatible with C::Scan module.
     my $c = MarpaX::Languages::C::Scan->new(filename => $filename, %config);
     print Dumper($c->get('parsed_fdecls'));
     print Dumper($c->parsed_fdecls);
-    print Dumper($c->get('parsed_fdecls', 2));
-    print Dumper($c->parsed_fdecls(2));
 
 =head1 SUBROUTINES/METHODS
 
@@ -146,7 +144,7 @@ A string: array modifiers if any (for example: char x[2] will make mod to be: '[
 
 =item ty
 
-A string: type of a declarator. In case of a function, the type will contain eventual stars '*'.
+A string: type of a declarator. In case of a function, the type will contain only eventual stars '*'.
 
 =item extern
 
@@ -423,7 +421,13 @@ sub defs {
 
 =head2 parsed_fdecls($self)
 
-C::Scan compatible reference to list of parsed declarations of functions.
+C::Scan compatible reference to list of parsed declarations of functions. Please note that the arguments, as per C::Scan documents, are an array reference of: (ty, nm, args, ft, mod). In our terminology, if the argument is a function, then the type 'ty' is the return type 'rt'.
+
+For example, in:
+
+int func1(int x1, double *x2, float *(*f1)(int x11, double x12));
+
+the type 'ty' of f1 is '*', its return type 'rt' is 'float *'. And what C::Scan calls 'ty' is in fact the return type of the function.
 
 =cut
 
@@ -450,7 +454,7 @@ sub parsed_fdecls {
 	  foreach (@{$self->_getRcp($_, 'args')}) {
 	      push(@{$argsp},
 		   [
-		    $self->_getRcp($_, 'ty') || '',
+		    ($self->_getRcp($_, 'func') ? $self->_getRcp($_, 'rt') : $self->_getRcp($_, 'ty')) || '',
 		    $self->_getRcp($_, 'nm') || '',
 		    undef,
 		    $self->_getRcp($_, 'ft') || '',
