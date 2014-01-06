@@ -402,6 +402,8 @@ where options can be:
 
 --logstderr          Logs to stderr or not. Default is $logstderr.
 
+Any option not documented upper will be considered as a cpp option, and sent to the underlying the cpp program.
+
 Examples:
 
 $0                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c
