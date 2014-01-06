@@ -1,7 +1,37 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.26 2013-12-27T19:37:44
+0.27 2014-01-06T19:34:00
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - release trial fixes
+ - C::Scan cmp MarpaX::Languages::C::Scan
+ - typedefs_structs test and change following before/after fix
+ - ISO_ANSI_C_2011/Scan.pm : missing enum in KEY2ID and fix before/after as
+   per C::SCan
+ - ISO_ANSI_C_2011/Scan.pm: POD fix
+ - ISO_ANSI_C_2011/Scan: POD fixes
+ - ISO_ANSI_C_2011/Scan: POD fixes
+ - vdecl_hash test
+ - vdecls test
+ - typedef_texts and typedefs_maybe tests
+ - ISO_ANSI_C_2011/Scan: sort explicitely when output is a map on hash
+   result
+ - scan.t: typedef_hash test
+ - scan.t: t+
+ - parsed_fdecls test
+ - ISO_ANSI_C_2011/Scan.pm: Fix bug in _analyseDirectAbstractDeclarator,
+   missing checks in _prependRcp and _appendRcp
+ - ISO_ANSI_C_2011/Scan.pm: Fix POD and 'ty' in parsed_fdecls in case of a
+   function
+ - ISO_ANSI_C_2011/Scan.pm: Fixed PURGE_IDX value, removed unused _copyRcp
+ - C::Scan t+
+ - C::Scan integration: t+
+ - use Pod::Usage
+ - c2ast.pl: say that unknown options are sent to cpp
+ - import C::Scan-like module
+
+0.26 2013-12-27T19:39:06
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.26
  - Merge branch 'master' of
    https://github.com/jddurand/MarpaX-Languages-C-AST
  - AST.pm: Initial line number should be 1 instead of 0
