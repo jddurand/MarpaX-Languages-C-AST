@@ -96,7 +96,7 @@ Filter on filename from pre-processor output.
 
 =item asHash
 
-Use hash references for parsed information instead of the default that is: array references. See the L<PARSED DECLARATION FORMAT> section to knoy how parsed information is organized.
+Use hash references for parsed information instead of the default that is: array references. See the L<PARSED DECLARATION FORMAT> section to know how parsed information is organized.
 
 =item cpprun
 
