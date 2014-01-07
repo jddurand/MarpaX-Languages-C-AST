@@ -8,6 +8,7 @@ use Pod::Usage;
 use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
 use Config;
 use IO::String;
+use Data::Dumper;
 
 # ABSTRACT: C source scan
 
@@ -17,13 +18,15 @@ use IO::String;
 
 my $help = 0;
 my $cpprun = undef;
-my $cppflags = undef;
+my @cppflags = ();
 my $filter = undef;
+my $get = 0;
 
 GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
-            'cppflags=s' => \$cppflags,
-            'filter=s' => \$filter);
+            'cppflags=s' => \@cppflags,
+            'filter=s' => \$filter,
+            'get=s' => \$get);
 
 #
 # We are injecting variables from %Config in POD
@@ -40,20 +43,40 @@ pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if ($#ARGV > 0);
 #
 # If filter starts with '/' assume this is a regexp
 # -------------------------------------------------
-if (substr($filter, 0, 1) eq '/') {
-    $filter = qr/$filter/;
+if (defined($filter)) {
+    if (substr($filter, 0, 1) eq '/') {
+        $filter = eval "qr$filter";
+        die $@ if ($@);
+    }
 }
 
 my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
-$config{cppflags} = $cppflags if ($cppflags);
+$config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
 $config{asHash} = 1;
 
 # -------
 # Parse C
 # -------
-my $c = MarpaX::Languages::C::AST->new(filename => shift, %config);
+my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
+
+# -----------------------
+# Give wanted information
+# -----------------------
+{
+    local $Data::Dumper::Indent    = 1;
+    local $Data::Dumper::Purity    = 0;
+    local $Data::Dumper::Terse     = 1;
+    local $Data::Dumper::Deepcopy  = 1;
+    local $Data::Dumper::Quotekeys = 0;
+    local $Data::Dumper::Sortkeys = 1;
+    foreach (split(/,/, $get)) {
+        next if (! $_ || ! "$_");
+        eval { print Dumper($c->$_) };
+        print STDERR "$@" if ($@);
+    }
+}
 
 exit(EXIT_SUCCESS);
 
@@ -69,11 +92,12 @@ cscan - C source scsan
 
  cscan [options] file
 
- Options:
+ Startup Options:
    --help                Brief help message.
    --cpprun <argument>   Preprocessor run command.
    --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after proprocessing. Defaults to file argument.
+   --get <argument,...>  Dump the result of getting <argument>.
 
 =head1 OPTIONS
 
@@ -89,10 +113,112 @@ cpp run command. Default is the value when perl was compiled, i.e.:
 
 $CPPRUN (if you read this message, do not worry: this is replaced by correct value at run-time)
 
+This option can be repeated.
+
 =item B<--cppflags <argument>>
 
 cpp flags. Default is the value when perl was compiled, i.e.:
 
 $CPPFLAGS (if you read this message, do not worry: this is replaced by correct value at run-time)
 
+=item B<--filter <argument>>
+
+File to look at after proprocessing. Defaults to file argument.
+
+cscan is using the preprocessor. Every #include statement in your original source code is telling the preprocessor to look at another file, this is marked down by a line like:
+
+ #line ... "information on the file processed"
+
+in the generated output. The --filter argument is used to select which processed file is of interest, and obviously defaults to one given on the command-line. If $filter is starting with a slash "/" it is assumed to be a full regular expression (including modifier flags).
+
+=item B<--get <argument,...>>
+
+Dump the result of getting <argument> using perl module Data::Dumper. A comma "," is the separator for multiple arguments.
+
+<argument> is exactly one of the methods supported by MarpaX::languages::C::Scan, i.e.:
+
+=over
+
+=item ast
+
+The AST (Abstract Syntax Tree)
+
+=item decls
+
+All declarations.
+
+=item defines_args
+
+Macros with arguments.
+
+=item defines_no_args
+
+Macros without arguments.
+
+=item defs
+
+All definitions.
+
+=item fdecls
+
+Declarations of functions.
+
+=item includes
+
+Included files.
+
+=item inlines
+
+Definitions of functions.
+
+=item macros
+
+List of macros
+
+=item parsed_fdecls
+
+List of parsed functions declarations.
+
+=item strings
+
+List of strings.
+
+=item typedef_hash
+
+List of hash which contains known typedefs as keys.
+
+=item typedef_structs
+
+Hash which known typedefs as keys.
+
+=item typedef_texts
+
+List of known expansions of typedef.
+
+=item typedefs_maybe
+
+List of typedefed names.
+
+=item vdecl_hash
+
+Hash of parsed extern variable declarations.
+
+=item vdecls
+
+List of extern variable declarations.
+
 =back
+
+=back
+
+=head1 EXAMPLES
+
+ cscan --get strings                                                                        /tmp/file.c
+ cscan --get strings,macros --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c
+ cscan --get strings        --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c
+
+=head1 SEE ALSO
+
+L<MarpaX::Languages::C::Scan>
+
+L<Data::Dumper>
