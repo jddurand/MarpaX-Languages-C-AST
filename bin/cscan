@@ -20,12 +20,14 @@ my $help = 0;
 my $cpprun = undef;
 my @cppflags = ();
 my $filter = undef;
+my $xpath = undef;
 my $get = 0;
 
 GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'filter=s' => \$filter,
+            'xpath=s' => \$xpath,
             'get=s' => \$get);
 
 #
@@ -76,6 +78,8 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
         eval { print Dumper($c->$_) };
         print STDERR "$@" if ($@);
     }
+    if ($xpath) {
+    }
 }
 
 exit(EXIT_SUCCESS);
@@ -98,6 +102,7 @@ cscan - C source scsan
    --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after proprocessing. Defaults to file argument.
    --get <argument,...>  Dump the result of getting <argument>.
+   --xpath <argument>    Dump the result of an xpath query on declarations and definitions.
 
 =head1 OPTIONS
 
@@ -208,6 +213,19 @@ Hash of parsed extern variable declarations.
 List of extern variable declarations.
 
 =back
+
+=item B<--xpath <argument>>
+
+Dump the result of an xpath query on declarations and definitions.
+
+A temporary XML having this structure:
+
+ <C>
+   <decls>...</decls>
+   <defs>...</defs>
+ </C>
+
+is build, and the xpath search is done on it. The dump of all nodes that matches is returned.
 
 =back
 
