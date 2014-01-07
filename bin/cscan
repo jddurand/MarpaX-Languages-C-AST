@@ -1,0 +1,96 @@
+#!/usr/bin/perl
+use strict;
+use warnings FATAL => 'all';
+use diagnostics;
+use MarpaX::Languages::C::Scan;
+use Getopt::Long;
+use Pod::Usage;
+use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
+use Config;
+use IO::String;
+
+# ABSTRACT: C source scan
+
+# VERSION
+
+# PODNAME: cscan
+
+my $help = 0;
+my $cpprun = undef;
+my $cppflags = undef;
+my $filter = undef;
+
+GetOptions ('help!' => \$help,
+            'cpprun=s' => \$cpprun,
+            'cppflags=s' => \$cppflags,
+            'filter=s' => \$filter);
+
+#
+# We are injecting variables from %Config in POD
+#
+my $pod = do {local $/; <DATA>};
+$pod =~ s/\$CPPRUN\b/$Config{cpprun}/g;
+$pod =~ s/\$CPPFLAGS\b/$Config{cppflags}/g;
+my $podfh = IO::String->new($pod);
+pod2usage(-input => $podfh, -exitval => EXIT_SUCCESS) if ($help);
+pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if (! @ARGV);
+pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if ($#ARGV > 0);
+
+#
+# If filter starts with '/' assume this is a regexp
+# -------------------------------------------------
+if (substr($filter, 0, 1) eq '/') {
+    $filter = qr/$filter/;
+}
+
+my %config = ();
+$config{cpprun} = $cpprun if ($cpprun);
+$config{cppflags} = $cppflags if ($cppflags);
+$config{filename_filter} = $filter if ($filter);
+$config{asHash} = 1;
+
+# -------
+# Parse C
+# -------
+my $c = MarpaX::Languages::C::AST->new(filename => shift, %config);
+
+exit(EXIT_SUCCESS);
+
+__DATA__
+
+# --------------------------------------------------------------------------------------
+
+=head1 NAME
+
+cscan - C source scsan
+
+=head1 SYNOPSIS
+
+cscan [options] file
+
+ Options:
+   --help                Brief help message.
+   --cpprun <argument>   cpp run command.
+   --cppflags <argument> cpp flags.
+   --filter <argument>   File to look at after proprocessing. Defaults to file argument.
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+This help
+
+=item B<--cpprun <argument>>
+
+cpp run command. Default is the value when perl was compiled, i.e.:
+
+$CPPRUN
+
+=item B<--cppflags <argument>>
+
+cpp flags. Default is the value when perl was compiled, i.e.:
+
+$CPPFLAGS
+
