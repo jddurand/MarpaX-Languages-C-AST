@@ -1144,7 +1144,13 @@ sub _pushRcp {
     #
     foreach (keys %KEY2ID) {
 	if (! $self->_definedRcp($rcp, $_) && $self->_definedRcp($contextp, $_)) {
+          #
+          # Everything is always inherited except for type of a function, setted by
+          # function itself and never overwritable
+          #
+          if ($_ ne 'ty' || ! $self->_definedRcp($rcp, 'func')) {
 	    $self->_setRcp($rcp, $_, $self->_getRcp($contextp, $_));
+          }
 	}
     }
     #
