@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 20;
+use Test::More tests => 11;
 use Test::Differences;
 use File::Spec;
 use Data::Dumper;
@@ -271,25 +271,25 @@ eq_or_diff($c->typedef_structs,
             'myStructType1p_t' => undef
 }, 'typedef_structs');
 
-TODO: {
-    local $TODO = 'C::Scan cmp MarpaX::Languages::C::Scan';
-    print STDERR <<BIGWARN;
-
-=====================================================
-The following tests are likely to fail - do not worry
-=====================================================
-
-BIGWARN
-    foreach (qw/defines_no_args
-                defines_args
-                includes
-                parsed_fdecls
-                typedef_hash
-                typedef_texts
-                typedefs_maybe
-                vdecls
-                vdecl_hash
-                typedef_structs/) {               
-        eval {eq_or_diff($cscan->get($_), $c->get($_), , $_)};
-    }
-}
+#TODO: {
+#    local $TODO = 'C::Scan cmp MarpaX::Languages::C::Scan';
+#    print STDERR <<BIGWARN;
+#
+#=====================================================
+#The following tests are likely to fail - do not worry
+#=====================================================
+#
+#BIGWARN
+#    foreach (qw/defines_no_args
+#                defines_args
+#                includes
+#                parsed_fdecls
+#                typedef_hash
+#                typedef_texts
+#                typedefs_maybe
+#                vdecls
+#                vdecl_hash
+#                typedef_structs/) {
+#        eval {eq_or_diff($cscan->get($_), $c->get($_), , $_)};
+#    }
+#}
