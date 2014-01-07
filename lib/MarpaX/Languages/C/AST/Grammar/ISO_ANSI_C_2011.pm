@@ -4,6 +4,7 @@ use warnings FATAL => 'all';
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011;
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions;
 use Carp qw/croak/;
+use IO::String;
 
 # ABSTRACT: ISO ANSI C 2011 grammar written in Marpa BNF
 
@@ -47,6 +48,8 @@ our %DEFAULT_PAUSE = (
     RPAREN_SCOPE         => 'after',
 );
 
+our $DATA = do {local $/; <DATA>};
+
 sub new {
   my ($class, $pausep) = @_;
 
@@ -70,7 +73,8 @@ sub new {
 
   $self->{_content} = '';
   my $allb = exists($pause{__ALL__});
-  while (defined($_ = <DATA>)) {
+  my $data = IO::String->new($DATA);
+  while (defined($_ = <$data>)) {
       my $line = $_;
       if ($line =~ /^\s*:lexeme\s*~\s*<(\w+)>/) {
 	  my $lexeme = substr($line, $-[1], $+[1] - $-[1]);
