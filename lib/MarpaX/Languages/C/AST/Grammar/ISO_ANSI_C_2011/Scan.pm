@@ -1662,7 +1662,7 @@ sub _analyseEnumSpecifier {
 	}
     }
 
-    push($self->{_decls}, $newRcp);
+    push(@{$self->{_decls}}, $newRcp);
 
     $self->_appendRcp($rcp, 'ty', $self->_getRcp($newRcp, 'nm'));
 
