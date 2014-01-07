@@ -1,7 +1,14 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.27 2014-01-06T19:34:00
+0.28 2014-01-07T05:23:49
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Commented C::Scan comparison in tests - too many failures
+ - Yet POD fixes
+ - Scan.pm: update SYNOPSIS
+
+0.27 2014-01-06T19:35:31
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.27
  - release trial fixes
  - C::Scan cmp MarpaX::Languages::C::Scan
  - typedefs_structs test and change following before/after fix
