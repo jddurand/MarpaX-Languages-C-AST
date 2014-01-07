@@ -5,7 +5,7 @@ use Test::More tests => 11;
 use Test::Differences;
 use File::Spec;
 use Data::Dumper;
-use C::Scan;
+#use C::Scan;
 
 BEGIN {
     push(@INC, 'inc');
