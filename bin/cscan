@@ -71,8 +71,8 @@ cscan - C source scsan
 
  Options:
    --help                Brief help message.
-   --cpprun <argument>   cpp run command.
-   --cppflags <argument> cpp flags.
+   --cpprun <argument>   Preprocessor run command.
+   --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after proprocessing. Defaults to file argument.
 
 =head1 OPTIONS
