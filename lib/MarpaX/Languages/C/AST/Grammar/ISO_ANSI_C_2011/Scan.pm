@@ -3003,7 +3003,7 @@ sub _posprocess_heuristics {
 	    my $value = substr($_, $-[3], $+[3] - $-[3]);
 	    substr($args,  0, 1, '');  # '('
 	    substr($args, -1, 1, '');  # ')'
-	    my @args = map {s/\s//g; $_;} split(/,/, $args);
+	    my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
 	    $self->{_defines_args}->{$name} = [ [ @args ], $value ];
 	} else {
 	    /(\w+)\s*(.*)/s;
