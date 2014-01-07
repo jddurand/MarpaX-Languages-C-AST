@@ -1,7 +1,18 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.28 2014-01-07T05:23:49
+0.29 2014-01-07T06:57:51
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - t/scan.t: fix following removal of use C::Scan
+ - ISO_ANSI_C_2011/Scan.pm: typo that exhibits under perl <= 5.12
+ - t/scan.t: remove use C::Scan
+ - use #!perl for shebang (same effect as #!/usr/bin/perl but I prefer the
+   former)
+ - bin/c2ast.pl: fix some POD formatting
+ - cscan cmdline prototype
+
+0.28 2014-01-07T05:25:27
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.28
  - Commented C::Scan comparison in tests - too many failures
  - Yet POD fixes
  - Scan.pm: update SYNOPSIS
