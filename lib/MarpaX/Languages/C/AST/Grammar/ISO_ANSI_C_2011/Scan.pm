@@ -224,31 +224,26 @@ sub new {
   #
   $self->{_anonCount} = 0;
 
-  my $local_filename = '';
-  my $local_fh = undef;
   if (exists($opts{content})) {
     if (! defined($opts{content})) {
       croak 'Undefined content';
     }
     $self->{_content2fh} = File::Temp->new(UNLINK => 1, SUFFIX => '.c');
-    $self->{_filename} = File::Spec->canonpath($self->{_content2fh}->filename);
+    my $filename = $self->{_orig_filename} = $self->{_content2fh}->filename;
     #
     # We open twice the temporary file to make sure it is not deleted
     # physically on disk and still visible for our process
     #
-    $self->{_tmpfh} = IO::File->new($self->{_filename}, 'r') || croak "Cannot open $self->{_filename}, $!";
+    $self->{_tmpfh} = IO::File->new($filename, 'r') || croak "Cannot open $filename, $!";
     print($self->{_content2fh}, $opts{content});
     close($self->{_content2fh}) || warn "Cannot close $self->{_content2fh}, $!";
     $self->{_content} = $opts{content};
   } else {
-    if (! defined($opts{filename})) {
-      if ($local_filename) {
-        unlink($local_filename);
-      }
+    if (! exists($opts{filename}) || ! defined($opts{filename})) {
       croak 'Undefined filename';
     }
-    $self->{_tmpfh} = IO::File->new($opts{filename}, 'r') || croak "Cannot open $opts{filename}, $!";
-    $self->{_filename} = File::Spec->canonpath($opts{filename});
+    my $filename = $self->{_orig_filename} = $opts{filename};
+    $self->{_tmpfh} = IO::File->new($filename, 'r') || croak "Cannot open $filename, $!";
   }
 
   if (defined($self->{_filename_filter})) {
@@ -262,11 +257,7 @@ sub new {
 	      #
 	      $self->{_filename_filter_re} = $self->{_filename_filter};
 	  }
-      } else {
-	  $self->{_filename_filter} = File::Spec->canonpath($self->{_filename_filter});
       }
-  } else {
-      $self->{_filename_filter} = $self->{_filename};
   }
 
   bless($self, $class);
@@ -310,6 +301,11 @@ C::Scan like method, that is a proxy to $self->$attribute. All methods described
 
 sub get {
   my ($self, $attribute) = @_;
+
+  if ($attribute eq 'get' ||
+      $attribute eq 'new') {
+    croak "$attribute attribute is not supported";
+  }
 
   return $self->$attribute;
 }
@@ -360,7 +356,7 @@ sub macros {
 
 =head2 defines_args($self)
 
-Returns a reference to a hash of macros with arguments. This is a post-processing of $self->macros.
+Returns a reference to hash of macros with arguments. The values are references to an array of length 2, the first element is a reference to the list of arguments, the second one being the expansion.
 
 =cut
 
@@ -374,7 +370,7 @@ sub defines_args {
 
 =head2 defines_no_args($self)
 
-Returns a reference to a hash of macros with no argument. This is also a post-processing of $self->macros.
+Returns a reference to hash of macros without arguments.
 
 =cut
 
@@ -698,7 +694,7 @@ sub typedef_structs {
 sub _init {
     my ($self) = @_;
 
-    my $cmd = "$self->{_cpprun} $self->{_cppflags} $self->{_filename}";
+    my $cmd = "$self->{_cpprun} $self->{_cppflags} $self->{_orig_filename}";
 
     my ($success, $error_code, undef, $stdout_bufp, $stderr_bufp) = run(command => $cmd);
 
@@ -2892,11 +2888,20 @@ sub _lexemeCallback {
   #
   if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
     if ($lexemeHashp->{value} =~ /[\d]+\s*\"([^\"]+)\"/) {
-	my $currentFile = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]));
-	#
-	# It can very well be that current file from cpp point of view is an internal thing.
-	# Not a real file. For example: '<command-line>', says GCC.
-	#
+	my $currentFile = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
+        if (! defined($self->{_filename})) {
+          #
+          # The very first filename is always the original source.
+          #
+          $self->{_filename} = $currentFile;
+        }
+        if (! defined($self->{_filename_filter})) {
+          #
+          # Some precompilers like gcc from mingw like to double the backslashes.
+          # We are independant of preprocessing style by doing it like that.
+          #
+          $self->{_filename_filter} = $self->{_filename};
+        }
 	$tmpHashp->{_currentFile} = $currentFile;
 	$self->{_position2File}->{$lexemeHashp->{start}} = $tmpHashp->{_currentFile};
 	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}}++;
