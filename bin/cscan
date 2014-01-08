@@ -384,6 +384,51 @@ giving:
    </defs>
  </C>
 
+while the following source code:
+
+ struct s1_ {
+   int x;
+   enum {E1, E2} e;
+   struct {
+     long y;
+     double z;
+     char *s[1024][32];
+   } innerStructure;
+ };
+
+will give the following XML:
+
+ <C>
+   <decls enum="1" nm="ANON0" ty="ANON0" type="1">
+     <args file="test.c" ft="E1" line="3" nm="E1" ty="int" var="1" />
+   </decls>
+   <decls nm="s1_" struct="1" structOrUnion="1" ty="struct s1_" type="1">
+     <args file="test.c" ft="int x" line="2" nm="x" ty="int" var="1" />
+     <args file="test.c" ft="enum {E1, E2} e" line="3" nm="e" ty="ANON0" var="1" />
+     <args nm="ANON1" struct="1" structOrUnion="1" ty="struct ANON1" type="1">
+       <args file="test.c" ft="long y" line="5" nm="y" ty="long" var="1" />
+       <args file="test.c" ft="double z" line="6" nm="z" ty="double" var="1" />
+       <args file="test.c" ft="char *s[1024][32]" line="7" mod="[1024]" nm="s" ty="char *" var="1" />
+     </args>
+     <args file="test.c" ft="struct {
+     long y;
+     double z;
+     char *s[1024][32];
+   } innerStructure" line="4" nm="innerStructure" ty="struct ANON1" var="1" />
+   </decls>
+   <decls file="test.c" ft="struct s1_ {
+   int x;
+   enum {E1, E2} e;
+   struct {
+     long y;
+     double z;
+     char *s[1024][32];
+   } innerStructure;
+ };" line="1" nm="ANON2" ty="struct s1_" var="1" />
+ </C>
+
+In the later example you see that I<anonymous> types can be in an arg element. They do not have the attribute "var". Anonymous types are of two categeries: structOrUnion (divided again in struct or union), and enum. Per definition, enum types are I<always> global, wherever and whenever they appear, i.e. they will always be a direct child of <decls/>. On contrary, structOrUnion types always stay in the scope of their declaration.
+
 
 =head1 SEE ALSO
 
