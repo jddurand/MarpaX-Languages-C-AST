@@ -45,7 +45,9 @@ our %KEY2ID = (
     enum           => 15,
     type           => 16,
     var            => 17,
-    _MAX           => 18,           # Internal usage only
+    file           => 18,
+    line           => 19,
+    _MAX           => 20,           # Internal usage only
     _startPosition => 90,           # Internal usage only
 );
 
@@ -192,6 +194,14 @@ A flag: true value means this is a type declaration. If true, it is guaranteed t
 =item var
 
 A flag: true value means this is a variable declaration. If true, it is guaranteed that the 'type' flag is false.
+
+=item file
+
+A string: filename where this parsed statement occurs
+
+=item line
+
+A string: line number within filename where is beginning the full text 'ft'.
 
 =back
 
@@ -704,9 +714,35 @@ sub _init {
 
     my $stdout_buf = join('',@{$stdout_bufp});
 
+    $self->_initInternals();
     $self->_analyse_with_grammar($stdout_buf);
     $self->_analyse_with_heuristics($stdout_buf);
     $self->_posprocess_heuristics();
+    $self->_cleanInternals();
+
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _initInternals {
+    my ($self) = @_;
+
+    $self->{_position2File} = {};
+    $self->{_position2Line} = {};
+    $self->{_position2LineReal} = {};
+    $self->{_sortedPosition2File} = [];
+
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _cleanInternals {
+    my ($self) = @_;
+
+    delete($self->{_position2File});
+    delete($self->{_position2Line});
+    delete($self->{_position2LineReal});
+    delete($self->{_sortedPosition2File});
 
 }
 
@@ -724,7 +760,6 @@ sub _getAst {
   #
   $self->{_includes} = {};
   $self->{_strings} = [];
-  $self->{_position2File} = {};
   #
   # Plus from our module: strings detection
   #
@@ -1116,10 +1151,16 @@ sub _pushRcp {
 	$self->_setRcp($rcp, 'nm', $nm);
     }
     #
-    # - Full text
+    # - Full text and file/line information
     #
-    my $ft = $self->_text($stdout_buf, $o, $self->_getRcp($contextp, '_startPosition'));
+    my ($file, $line) = ('', -1);
+    my $ft = $self->_text($stdout_buf, $o, $self->_getRcp($contextp, '_startPosition'), undef, \$file, \$line);
     $self->_setRcp($rcp, 'ft', $ft);
+    if (! exists($ENV{MARPAX_LANGUAGES_C_AST_SCAN_TEST})) {
+	$self->_setRcp($rcp, 'file', $file);
+	$self->_setRcp($rcp, 'line', $line);
+    }
+
     #
     # - Final type: rt for a function, ty otherwise, EXCEPT at the
     #   top level of functionDefinition, where there is no type
@@ -1459,7 +1500,7 @@ sub _startPosition {
 # ----------------------------------------------------------------------------------------
 
 sub _text {
-    my ($self, $stdout_buf, $o, $startPosition, $endPosition) = @_;
+    my ($self, $stdout_buf, $o, $startPosition, $endPosition, $filep, $linep) = @_;
 
     if (! defined($startPosition) || ! defined($endPosition)) {
 
@@ -1490,6 +1531,20 @@ sub _text {
     #$text =~ s/^\s*//;
     #$text =~ s/\s$//;
     #$text =~ s/\s+/ /g;
+
+    if (defined($filep) || defined($linep)) {
+	my $file = '';
+	my $line = -1;
+
+	if ($self->_positionOk($startPosition, $stdout_buf, \$file, \$line)) {
+	    if (defined($filep)) {
+		${$filep} = $file;
+	    }
+	    if (defined($linep)) {
+		${$linep} = $line;
+	    }
+	}
+    }
 
     return $text;
 }
@@ -2893,8 +2948,9 @@ sub _lexemeCallback {
   # We wait until the first #line information: this will give the name of current file
   #
   if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
-    if ($lexemeHashp->{value} =~ /[\d]+\s*\"([^\"]+)\"/) {
-	my $currentFile = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
+    if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
+	my $currentLine = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
+	my $currentFile = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
         if (! defined($self->{_filename})) {
           #
           # The very first filename is always the original source.
@@ -2908,8 +2964,15 @@ sub _lexemeCallback {
           #
           $self->{_filename_filter} = $self->{_filename};
         }
+
 	$tmpHashp->{_currentFile} = $currentFile;
+	$tmpHashp->{_currentLine} = $currentLine;
+	$tmpHashp->{_currentLineReal} = $lexemeHashp->{line};
+
 	$self->{_position2File}->{$lexemeHashp->{start}} = $tmpHashp->{_currentFile};
+	$self->{_position2Line}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLine};
+	$self->{_position2LineReal}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLineReal};
+
 	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}}++;
     }
     #
@@ -2945,7 +3008,7 @@ sub _lexemeCallback {
 # ----------------------------------------------------------------------------------------
 
 sub _positionOk {
-    my ($self, $position) = @_;
+    my ($self, $position, $stdout_buf, $filep, $linep) = @_;
 
     #
     # A position is OK if:
@@ -2953,11 +3016,31 @@ sub _positionOk {
     # previous known position passes filename_filter
     #
     if (exists($self->{_position2File}->{$position})) {
+	my $rc;
 	if (exists($self->{_filename_filter_re})) {
-	    return $self->{_position2File}->{$position} =~ $self->{_filename_filter_re};
+	    $rc = ($self->{_position2File}->{$position} =~ $self->{_filename_filter_re}) ? 1 : 0;
 	} else {
-	    return $self->{_position2File}->{$position} eq $self->{_filename_filter};
+	    $rc = ($self->{_position2File}->{$position} eq $self->{_filename_filter}) ? 1 : 0;
 	}
+	if ($rc && (defined($filep) || defined($linep))) {
+	    #
+	    # Get file/line information
+	    #
+	    my $file = $self->{_position2File}->{$position};
+	    #
+	    # We need to know the number of lines between $self->{_position2LineReal}->{$position} and $position
+	    #
+	    my $delta = substr($stdout_buf, $self->{_position2LineReal}->{$position}, $position);
+	    my $nbLines = ($delta =~ tr/\n//);
+	    my $line = $self->{_position2Line}->{$position} + ($nbLines - 1);
+	    if (defined($filep)) {
+		${$filep} = $file;
+	    }
+	    if (defined($linep)) {
+		${$linep} = $line;
+	    }
+	}
+	return $rc;
     }
     my $previousPosition = undef;
     foreach (@{$self->{_sortedPosition2File}}) {
@@ -2972,7 +3055,7 @@ sub _positionOk {
     if (! defined($previousPosition)) {
 	return 0;
     }
-    return $self->_positionOk($previousPosition);
+    return $self->_positionOk($previousPosition, $stdout_buf, $filep, $linep);
 }
 
 # ----------------------------------------------------------------------------------------
