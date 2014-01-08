@@ -12,6 +12,11 @@ BEGIN {
     use_ok( 'MarpaX::Languages::C::Scan' ) || print "Bail out!\n";
 }
 
+#
+# I do not want to bother with file/line - too much OS/compiler specific
+#
+$ENV{MARPAX_LANGUAGES_C_AST_SCAN_TEST} = 1;
+
 my $filename = File::Spec->catfile('inc', 'scan.c');
 my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 #my $cscan = C::Scan->new(filename => $filename, filename_filter => $filename);
