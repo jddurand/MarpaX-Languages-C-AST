@@ -51,7 +51,7 @@ pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if ($#ARGV > 0);
 # -------------------------------------------------
 if (defined($filter)) {
     if (substr($filter, 0, 1) eq '/') {
-        $filter = eval "qr$filter"; # no critic
+        $filter = eval "qr$filter"; ## no critic (ProhibitStringyEval)
         die $@ if ($@);
     }
 }
