@@ -533,6 +533,10 @@ sub _doPauseBeforeLexeme {
   return $delta;
 }
 
+=head1 INCOMPATIBILITIES
+
+Since version 0.30, the c2ast.pl script is named c2ast (i.e. without extension).
+
 =head1 SEE ALSO
 
 L<Log::Any>, L<Marpa::R2>
