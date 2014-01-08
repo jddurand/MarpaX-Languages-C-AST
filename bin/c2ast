@@ -82,11 +82,12 @@ my @cmd = (@cpp, @ARGV);
 $log->debugf('Executing preprocessor: %s', \@cmd);
 run(\@cmd, \undef, \$preprocessedOutput);
 if ($cppdup) {
-  if (! open(CPP, '>', $cppdup)) {
+    my $fh;
+  if (! open($fh, '>', $cppdup)) {
     warn "Cannot open $cppdup, $!\n";
   } else {
-    print CPP $preprocessedOutput;
-    if (! close(CPP)) {
+    print $fh $preprocessedOutput;
+    if (! close($fh)) {
       warn "Cannot close $cppdup, $!\n";
     }
   }
@@ -155,11 +156,12 @@ if ($dump || $dumpfile || %check) {
       print Dumper($value);
     }
     if ($dumpfile) {
-      if (! open(DUMP, '>', $dumpfile)) {
+	my $fh;
+      if (! open($fh, '>', $dumpfile)) {
         warn "Cannot open $dumpfile, $!\n";
       } else {
-        print DUMP $dump;
-        if (! close(DUMP)) {
+        print $fh $dump;
+        if (! close($fh)) {
           warn "Cannot close $dumpfile, $!\n";
         }
       }
