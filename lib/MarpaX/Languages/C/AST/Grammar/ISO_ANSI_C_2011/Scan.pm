@@ -197,7 +197,7 @@ A flag: true value means this is a variable declaration. If true, it is guarante
 
 =item file
 
-A string: filename where this parsed statement occurs
+A string: filename where this parsed statement occurs. The filename is derived from the preprocessor output, with no modification.
 
 =item line
 
@@ -727,6 +727,7 @@ sub _init {
 sub _initInternals {
     my ($self) = @_;
 
+    $self->{_preprocessorNbNewlinesInFront} = {};
     $self->{_position2File} = {};
     $self->{_position2Line} = {};
     $self->{_position2LineReal} = {};
@@ -739,6 +740,7 @@ sub _initInternals {
 sub _cleanInternals {
     my ($self) = @_;
 
+    delete($self->{_preprocessorNbNewlinesInFront});
     delete($self->{_position2File});
     delete($self->{_position2Line});
     delete($self->{_position2LineReal});
@@ -2972,6 +2974,12 @@ sub _lexemeCallback {
 	$self->{_position2File}->{$lexemeHashp->{start}} = $tmpHashp->{_currentFile};
 	$self->{_position2Line}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLine};
 	$self->{_position2LineReal}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLineReal};
+        if ($lexemeHashp->{value} =~ /^\s+/) {
+          my $front = substr($lexemeHashp->{value}, $-[0], $+[0] - $-[0]);
+          $self->{_preprocessorNbNewlinesInFront}->{$lexemeHashp->{start}} = ($front =~ tr/\n//);
+        } else {
+          $self->{_preprocessorNbNewlinesInFront}->{$lexemeHashp->{start}} = 0;
+        }
 
 	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}}++;
     }
@@ -3008,7 +3016,9 @@ sub _lexemeCallback {
 # ----------------------------------------------------------------------------------------
 
 sub _positionOk {
-    my ($self, $position, $stdout_buf, $filep, $linep) = @_;
+    my ($self, $position, $stdout_buf, $filep, $linep, $origPosition) = @_;
+
+    $origPosition //= $position;
 
     #
     # A position is OK if:
@@ -3028,11 +3038,16 @@ sub _positionOk {
 	    #
 	    my $file = $self->{_position2File}->{$position};
 	    #
-	    # We need to know the number of lines between $self->{_position2LineReal}->{$position} and $position
-	    #
-	    my $delta = substr($stdout_buf, $self->{_position2LineReal}->{$position}, $position);
-	    my $nbLines = ($delta =~ tr/\n//);
-	    my $line = $self->{_position2Line}->{$position} + ($nbLines - 1);
+	    # $self->{_position2LineReal}->{$position} is the line number in $stdout_buf
+            # $self->{_position2Line}->{$position}     is the line number as per the preprocessor
+            #
+	    # We need to know the number of lines between $position and $origPosition
+            # The line number within original (i.e. before the preprocessing) will be this delta plus
+            # $self->{_position2Line}->{$position}.
+            #
+	    my $deltaBuf = substr($stdout_buf, $position, $origPosition - $position);
+	    my $nbLines = ($deltaBuf =~ tr/\n//);
+	    my $line = $self->{_position2Line}->{$position} + ($nbLines - 1 - $self->{_preprocessorNbNewlinesInFront}->{$position});
 	    if (defined($filep)) {
 		${$filep} = $file;
 	    }
@@ -3055,7 +3070,7 @@ sub _positionOk {
     if (! defined($previousPosition)) {
 	return 0;
     }
-    return $self->_positionOk($previousPosition, $stdout_buf, $filep, $linep);
+    return $self->_positionOk($previousPosition, $stdout_buf, $filep, $linep, $origPosition);
 }
 
 # ----------------------------------------------------------------------------------------
