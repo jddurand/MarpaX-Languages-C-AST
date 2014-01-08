@@ -344,9 +344,10 @@ Dump the result of an XPath (version 1) query on the XML structure described abo
 
 =head1 EXAMPLES
 
- cscan --get strings                                                                        /tmp/file.c
- cscan --get strings,macros --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c
- cscan --get strings        --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c
+ cscan --get strings                                                                         /tmp/file.c
+ cscan --get strings,macros --cppflags "-I/tmp/dir1            -DMYDEFINE"                   /tmp/file.c
+ cscan --get strings,macros --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c
+ cscan --get strings        --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c
 
 The parsing result for the following source code, in filename test.c:
 
