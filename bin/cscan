@@ -9,6 +9,8 @@ use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
 use Config;
 use IO::String;
 use Data::Dumper;
+use XML::Simple;
+use XML::LibXML;
 
 # ABSTRACT: C source scan
 
@@ -21,12 +23,14 @@ my $cpprun = undef;
 my @cppflags = ();
 my $filter = undef;
 my $xpath = undef;
+my $xml = 0;
 my $get = 0;
 
 GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'filter=s' => \$filter,
+            'xml!' => \$xml,
             'xpath=s' => \$xpath,
             'get=s' => \$get);
 
@@ -78,7 +82,28 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
         eval { print Dumper($c->$_) };
         print STDERR "$@" if ($@);
     }
-    if ($xpath) {
+    if ($xpath || $xml) {
+        #
+        # Do an XML out of decls and defs
+        #
+        my $xmlHash = {
+            decls => $c->decls,
+            defs => $c->defs
+        };
+        my $xml = XMLout($xmlHash, RootName => 'C');
+        if ($xml) {
+            print $xml;
+        }
+        if ($xpath) {
+            my $dom = XML::LibXML->load_xml(string => $xml);
+            print STDERR "DOING xpath=<$xpath>\n";
+            my $compiled_xpath = XML::LibXML::XPathExpression->new($xpath);
+            my $nodeset = $dom->findnodes($xpath);
+            foreach ($nodeset->get_nodelist) {
+                my $node = $_;
+                print Dumper(XMLin($node->toString));
+            }
+        }
     }
 }
 
@@ -102,6 +127,7 @@ cscan - C source scsan
    --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after proprocessing. Defaults to file argument.
    --get <argument,...>  Dump the result of getting <argument>.
+   --xml                 Print out an XML view of all declarations and definitions.
    --xpath <argument>    Dump the result of an xpath query on declarations and definitions.
 
 =head1 OPTIONS
@@ -214,18 +240,105 @@ List of extern variable declarations.
 
 =back
 
-=item B<--xpath <argument>>
+=item B<--xml>
 
-Dump the result of an xpath query on declarations and definitions.
+Print out an XML view of all declarations and definitions.
 
-A temporary XML having this structure:
+The XML will have this structure:
 
  <C>
    <decls>...</decls>
+   <decls>...</decls>
+   ...
+   <defs>...</defs>
    <defs>...</defs>
  </C>
 
-is build, and the xpath search is done on it. The dump of all nodes that matches is returned.
+There is one <decl/> element per declaration, one <defs/> element per function definition. Both can have the following attributes:
+
+=over
+
+=item rt
+
+Return type of a function.
+
+=item nm
+
+Identifier
+
+=item ft
+
+Full text used to get this information.
+
+=item mod
+
+Array modifiers if any (for example: char x[2] will make mod to be: '[2]').
+
+=item ty
+
+Type of a declarator. In case of a function, the type will contain only eventual stars '*'.
+
+=item extern
+
+"1" value means this is an 'extern' declaration.
+
+=item typedef
+
+"1" value means this is an 'typedef' declaration.
+
+=item init
+
+Declarator initialization, if any. For example, with char *x = "value" init will be the string "value".
+
+=item func
+
+"1" means this is an function declaration.
+
+=item struct
+
+"1" means this is a struct declaration.
+
+=item union
+
+"1" means this is a union declaration.
+
+=item structOrUnion
+
+"1" means this is a struct or union declaration. If true, it is guaranteed that one of 'struct' or 'union' attributes is true.
+
+=item type
+
+"1" means this is a type declaration. If true, it is guaranteed that one of 'typedef' or 'structOrUnion' attribute is true, and that the 'var' attribute (see below) is false.
+
+=item var
+
+"1" means this is a variable declaration. If true, it is guaranteed that the 'type' attribute is false.
+
+=item file
+
+Filename where this parsed statement occurs. The filename is derived from the preprocessor output, with no modification.
+
+=item line
+
+Line number within filename where is beginning the attribute 'ft'.
+
+=back
+
+The only possible child element is:
+
+=over
+
+=item args
+
+Array reference of arguments parsed declarations, which can have same attributes as listed below, and other args children.
+
+=back
+
+=item B<--xpath <argument>>
+
+Dump the result of an XPath (version 1) query on the XML structure described above. Found nodes are converted to hashes for readibility and printed out. For example, to find all nodes having an identifier named "x":
+
+ cscan --xpath "//*[contains(@nm,'x')]" /tmp/file.c
 
 =back
 
@@ -234,6 +347,43 @@ is build, and the xpath search is done on it. The dump of all nodes that matches
  cscan --get strings                                                                        /tmp/file.c
  cscan --get strings,macros --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c
  cscan --get strings        --cppflags -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c
+
+The parsing result for the following source code, in filename test.c:
+
+ int func1(int x1, double *x2, float *( f1)(int x11, double x12));
+ int func1(int x1, double *x2, float *( f1)(int x11, double x12)) {
+   char *string = "&";
+   return 0;
+ }
+
+will be converted to xml using:
+
+ cscan --xml test.c
+
+giving:
+
+ <C>
+   <decls file="test.c" ft="int func1(int x1, double *x2, float *( f1)(int x11, double x12))" func="1" line="1" nm="func1" rt="int" var="1">
+     <args file="test.c" ft="int x1" line="1" nm="x1" ty="int" var="1" />
+     <args file="test.c" ft="double *x2" line="1" nm="x2" ty="double *" var="1" />
+     <args file="test.c" ft="float *( f1)(int x11, double x12)" func="1" line="1" nm="f1" rt="float *" var="1">
+       <args file="test.c" ft="int x11" line="1" nm="x11" ty="int" var="1" />
+       <args file="test.c" ft="double x12" line="1" nm="x12" ty="double" var="1" />
+     </args>
+   </decls>
+   <defs file="test.c" ft="int func1(int x1, double *x2, float *( f1)(int x11, double x12)) {
+  char *string = &quot;&amp;&quot;;
+  return 0;
+}" func="1" line="2" nm="func1" rt="int">
+     <args file="test.c" ft="int x1" line="2" nm="x1" ty="int" var="1" />
+     <args file="test.c" ft="double *x2" line="2" nm="x2" ty="double *" var="1" />
+     <args file="test.c" ft="float *( f1)(int x11, double x12)" func="1" line="2" nm="f1" rt="float *" var="1">
+       <args file="test.c" ft="int x11" line="2" nm="x11" ty="int" var="1" />
+       <args file="test.c" ft="double x12" line="2" nm="x12" ty="double" var="1" />
+     </args>
+   </defs>
+ </C>
+
 
 =head1 SEE ALSO
 
