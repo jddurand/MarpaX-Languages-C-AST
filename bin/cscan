@@ -90,12 +90,12 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
             decls => $c->decls,
             defs => $c->defs
         };
-        my $xml = XMLout($xmlHash, RootName => 'C');
+        my $xmlout = XMLout($xmlHash, RootName => 'C');
         if ($xml) {
-            print $xml;
+            print $xmlout;
         }
         if ($xpath) {
-            my $dom = XML::LibXML->load_xml(string => $xml);
+            my $dom = XML::LibXML->load_xml(string => $xmlout);
             my $compiled_xpath = XML::LibXML::XPathExpression->new($xpath);
             my $nodeset = $dom->findnodes($xpath);
             foreach ($nodeset->get_nodelist) {
