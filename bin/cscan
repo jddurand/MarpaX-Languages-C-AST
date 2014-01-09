@@ -339,6 +339,10 @@ Dump the result of an XPath (version 1) query on the XML structure described abo
 
  cscan --xpath "//*[contains(@nm,'x')]" /tmp/file.c
 
+To find all declared strings:
+
+ cscan --xpath "//*[contains(@init,'\"')]" /tmp/file.c
+
 =back
 
 =head1 EXAMPLES
