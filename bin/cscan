@@ -341,7 +341,7 @@ Dump the result of an XPath (version 1) query on the XML structure described abo
 
 To find all declared strings:
 
- cscan --xpath "//*[contains(@init,'\"')]" /tmp/file.c
+ cscan --xpath "//*[starts-with(@init,'\"')]" /tmp/file.c
 
 =back
 
