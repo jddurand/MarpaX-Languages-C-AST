@@ -25,6 +25,8 @@ my $filter = undef;
 my $xpath = undef;
 my $xml = 0;
 my $get = 0;
+my $out = '';
+my $err = '';
 
 GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
@@ -32,11 +34,22 @@ GetOptions ('help!' => \$help,
             'filter=s' => \$filter,
             'xml!' => \$xml,
             'xpath=s' => \$xpath,
+            'out=s' => \$out,
+            'err=s' => \$err,
             'get=s' => \$get);
 
 #
-# We are injecting variables from %Config in POD
+# Do redirection asap, i.e. now, err first.
 #
+my $saveerr = _redirect(\*STDERR, $err);
+my $saveout = _redirect(\*STDOUT, $out);
+
+sub END {
+    _unredirect(\*STDOUT, $saveout);
+    _unredirect(\*STDERR, $saveerr);
+
+}
+
 my $guard = quotemeta('(if you read this message, do not worry: this is replaced by correct value at run-time)');
 my $pod = do {local $/; <DATA>};
 $pod =~ s/\$CPPRUN\b\s*$guard/$Config{cpprun}/g;
@@ -106,6 +119,50 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
     }
 }
 
+sub _redirect {
+    my ($fh, $filename) = @_;
+
+    my $savefh = undef;
+
+    if (defined($filename) && "$filename") {
+        if (! open($savefh, '>&', $fh)) {
+            warn "Cannot save $fh handle, $!";
+        } else {
+            if (! open($fh, '>', $filename)) {
+                warn "Cannot redirect $fh to $filename, $!";
+                if (! open($fh, '>&', $savefh)) {
+                    warn "Cannot restore $fh, $!";
+                }
+                $savefh = undef;
+            } else {
+                #
+                # Unbuffer the redirected filehandle
+                #
+                my $oldfh = select($fh);
+                $| = 1;
+                select($oldfh);
+            }
+        }
+    }
+    return $savefh;
+}
+
+sub _unredirect {
+    my ($fh, $savefh) = @_;
+
+    if (defined($savefh)) {
+        if (! close($fh)) {
+            warn "Cannot close $fh";
+        }
+        #
+        # Unredirect anyway
+        #
+        if (! open($fh, '>&', $savefh)) {
+            warn "Cannot restore $fh, $!";
+        }
+    }
+}
+
 exit(EXIT_SUCCESS);
 
 __DATA__
@@ -127,6 +184,8 @@ cscan - C source scsan
    --filter <argument>   File to look at after proprocessing. Defaults to file argument.
    --get <argument,...>  Dump the result of getting <argument>.
    --xml                 Print out an XML view of all declarations and definitions.
+   --out <argument>      Redirect any output to this filename.
+   --err <argument>      Redirect any error to this filename.
    --xpath <argument>    Dump the result of an xpath query on declarations and definitions.
 
 =head1 OPTIONS
@@ -342,6 +401,18 @@ Dump the result of an XPath (version 1) query on the XML structure described abo
 To find all declared strings:
 
  cscan --xpath "//*[starts-with(@init,'\"')]" /tmp/file.c
+
+To find all function definitions that have at least one argument of type "mytype":
+
+ cscan --xpath "//*[@func=\"1\"]/args[@var=\"1\" and @ty=\"double\"]/.." /tmp/file.c
+
+=item B<--out <argument>>
+
+Redirect any output to this filename.
+
+=item B<--err <argument>>
+
+Redirect any error to this filename.
 
 =back
 
