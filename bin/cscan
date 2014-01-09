@@ -24,6 +24,7 @@ my @cppflags = ();
 my $filter = undef;
 my $xpath = undef;
 my $xml = 0;
+my $in = '';
 my $get = 0;
 my $out = '';
 my $err = '';
@@ -33,6 +34,7 @@ GetOptions ('help!' => \$help,
             'cppflags=s' => \@cppflags,
             'filter=s' => \$filter,
             'xml!' => \$xml,
+            'in=s' => \$in,
             'xpath=s' => \$xpath,
             'out=s' => \$out,
             'err=s' => \$err,
@@ -56,7 +58,7 @@ $pod =~ s/\$CPPRUN\b\s*$guard/$Config{cpprun}/g;
 $pod =~ s/\$CPPFLAGS\b\s*$guard/$Config{cppflags}/g;
 my $podfh = IO::String->new($pod);
 pod2usage(-input => $podfh, -exitval => EXIT_SUCCESS) if ($help);
-pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if (! @ARGV);
+pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if (! @ARGV && ! $in);
 pod2usage(-input => $podfh, -exitval => EXIT_FAILURE) if ($#ARGV > 0);
 
 #
@@ -75,10 +77,10 @@ $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
 $config{asHash} = 1;
 
-# -------
-# Parse C
-# -------
-my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
+# --------------------------
+# Parse C, unless $in option
+# --------------------------
+my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config);
 
 # -----------------------
 # Give wanted information
@@ -90,20 +92,34 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
     local $Data::Dumper::Deepcopy  = 1;
     local $Data::Dumper::Quotekeys = 0;
     local $Data::Dumper::Sortkeys = 1;
-    foreach (split(/,/, $get)) {
-        next if (! $_ || ! "$_");
-        eval { print Dumper($c->$_) };
-        print STDERR "$@" if ($@);
+    if (defined($c)) {
+        foreach (split(/,/, $get)) {
+            next if (! $_ || ! "$_");
+            eval { print Dumper($c->$_) };
+            print STDERR "$@" if ($@);
+        }
     }
     if ($xpath || $xml) {
         #
         # Do an XML out of decls and defs
         #
-        my $xmlHash = {
-            decls => $c->decls,
-            defs => $c->defs
-        };
-        my $xmlout = XMLout($xmlHash, RootName => 'C');
+        my $xmlout = undef;
+        if ($in) {
+            my $infh;
+            if (! open($infh, '<', $in)) {
+                die "Cannot read $in, $!";
+            }
+            $xmlout = do {local $/; <$infh>};
+            if (! close($infh)) {
+                warn "Cannot close $in, $!";
+            }
+        } else {
+            my $xmlHash = {
+                decls => $c->decls,
+                defs => $c->defs
+            };
+            $xmlout = XMLout($xmlHash, RootName => 'C');
+        }
         if ($xml) {
             print $xmlout;
         }
@@ -113,7 +129,7 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
             my $nodeset = $dom->findnodes($xpath);
             foreach ($nodeset->get_nodelist) {
                 my $node = $_;
-                print Dumper(XMLin($node->toString));
+                print Dumper(XMLin($node->toString, ForceArray => [ 'args' ]));
             }
         }
     }
@@ -186,6 +202,7 @@ cscan - C source scsan
    --xml                 Print out an XML view of all declarations and definitions.
    --out <argument>      Redirect any output to this filename.
    --err <argument>      Redirect any error to this filename.
+   --in <argument>       Load a full XML view of all declarations and definitions from this filename.
    --xpath <argument>    Dump the result of an xpath query on declarations and definitions.
 
 =head1 OPTIONS
@@ -391,6 +408,21 @@ The only possible child element is:
 Array reference of arguments parsed declarations, which can have same attributes as listed below, and other args children.
 
 =back
+
+=item B<--in <argument>>
+
+Load a full XML view of all declarations and definitions from this filename.
+
+Doing so will prevent I<any> preprocessor call and analysis: cscan will assume this XML has a correct format. Such option exist because analysing preprocessing output takes time, and often, once the analysis is done, it is easier to reload the result to do xpath queries. For instance, first you create the XML:
+
+ cscan --out /tmp/file.xml --xml /tmp/file.c
+
+then you do xpath queries on the reloaded output:
+
+ cscan --in /tmp/file.xml --xpath "//*[contains(@nm,'x')]"
+ cscan --in /tmp/file.xml --xpath "//*[contains(@nm,'Y')]"
+
+When you use the --in option, the --get option becomes a noop.
 
 =item B<--xpath <argument>>
 
