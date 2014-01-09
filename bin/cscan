@@ -165,7 +165,7 @@ in the generated output. The --filter argument is used to select which processed
 
 Dump the result of getting <argument> using perl module Data::Dumper. A comma "," is the separator for multiple arguments.
 
-<argument> is exactly one of the methods supported by MarpaX::languages::C::Scan, i.e.:
+<argument> is exactly one of the C::Scan like methods supported by MarpaX::languages::C::Scan, i.e.:
 
 =over
 
