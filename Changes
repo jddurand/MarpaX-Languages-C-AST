@@ -1,7 +1,38 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.29 2014-01-07T06:57:51
+0.30 2014-01-11T17:23:52
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - bin/cscan: --in option
+ - bin/cscan: --out and --err options, yet another --xpath example
+ - bin/cscan: fix $xml usage confusion in source
+ - bin/cscan: revisited example to find declared strings
+ - bin/cscan: example for find declared strings
+ - bin/cscan: say that get method are for C::Scan like methods
+ - bin/cscan: removed a debugging print STDERR
+ - bin/cscan: say in the abstract this is a C::Scan alternative
+ - bin/cscan: no critic on the eval (bis)
+ - bin/cscan: no critic on the eval
+ - bin/c2ast: perlcritic
+ - c2ast.pl -> c2ast
+ - say that c2ast.pl is now c2ast
+ - bin/cscan: more examples with --cppflags
+ - bin/cscan: another example taking about inner anonymous types
+ - bin/cscan : implementation of --xml and --xpath options
+ - ISO_ANSI_C_2011/Scan: fix calculation of line number
+ - t/scan.t: skip file/line information in tests dev+
+ - ISO_ANSI_C_2011/Scan.pm: line calculation dev+
+ - ISO_ANSI_C_2011.pm: <DATA> should be loaded once
+ - bin/scan: xpath preparation
+ - ISO_ANSI_C_2011/Scan: function type is not inherited
+ - bin/cscan: generic get argument
+ - ISO_ANSI_C_2011/Scan.pm: original filename processing fix
+ - bin/cscan: POD fix
+ - bin/cscan : a very special replacement for POD not generated at run time
+ - ISO_ANSI_C_2011/Scan.pm: perlcritic on $_
+
+0.29 2014-01-07T06:59:24
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.29
  - t/scan.t: fix following removal of use C::Scan
  - ISO_ANSI_C_2011/Scan.pm: typo that exhibits under perl <= 5.12
  - t/scan.t: remove use C::Scan
