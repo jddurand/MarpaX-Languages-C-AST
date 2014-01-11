@@ -1383,7 +1383,9 @@ sub _purgeRcp {
 	delete($rcp->{$_});
       }
     } else {
-	splice(@{$rcp}, $PURGE_IDX);
+	if ($#{$rcp} >= $PURGE_IDX) {
+	    splice(@{$rcp}, $PURGE_IDX);
+	}
     }
 }
 
