@@ -1,7 +1,13 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.30 2014-01-11T17:23:52
+0.31 2014-01-11T20:10:36
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - ISO_ANSI_C_2011/Scan.pm: no splice if not necessary, exhibits a test
+   failure under perl <= 5.14
+
+0.30 2014-01-11T17:25:42
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.30
  - bin/cscan: --in option
  - bin/cscan: --out and --err options, yet another --xpath example
  - bin/cscan: fix $xml usage confusion in source
