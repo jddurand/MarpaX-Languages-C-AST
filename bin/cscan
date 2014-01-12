@@ -434,7 +434,7 @@ To find all declared strings:
 
  cscan --xpath "//*[starts-with(@init,'\"')]" /tmp/file.c
 
-To find all function definitions that have at least one argument of type "mytype":
+To find all function definitions that have at least one argument of type "double":
 
  cscan --xpath "//*[@func=\"1\"]/args[@var=\"1\" and @ty=\"double\"]/.." /tmp/file.c
 
@@ -515,7 +515,7 @@ will give the following XML:
      <args nm="ANON1" struct="1" structOrUnion="1" ty="struct ANON1" type="1">
        <args file="test.c" ft="long y" line="5" nm="y" ty="long" var="1" />
        <args file="test.c" ft="double z" line="6" nm="z" ty="double" var="1" />
-       <args file="test.c" ft="char *s[1024][32]" line="7" mod="[1024]" nm="s" ty="char *" var="1" />
+       <args file="test.c" ft="char *s[1024][32]" line="7" mod="[1024][32]" nm="s" ty="char *" var="1" />
      </args>
      <args file="test.c" ft="struct {
      long y;
