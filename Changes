@@ -1,7 +1,15 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.31 2014-01-11T20:10:36
+0.32 2014-01-12T08:47:26
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - bin/cscan: fixed mod example, "mytype" should read "double"
+ - ISO_ANSI_C_2011/Scan.pm: mod is setted via an appended, its separator is
+   empty
+ - Removed unused blog file and dir
+
+0.31 2014-01-11T20:13:08
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.31
  - ISO_ANSI_C_2011/Scan.pm: no splice if not necessary, exhibits a test
    failure under perl <= 5.14
 
