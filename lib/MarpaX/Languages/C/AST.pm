@@ -246,23 +246,24 @@ sub value {
   $arrayOfValuesb ||= 0;
 
   my @rc = ();
-  my $nvalue = 0;
+
   my $valuep = $self->{_impl}->value() || logCroak('%s', $self->_show_last_expression());
   if (defined($valuep)) {
     push(@rc, $valuep);
+  } else {
+    logCroak('No parse tree  value.');
   }
   do {
-    ++$nvalue;
     $valuep = $self->{_impl}->value();
     if (defined($valuep)) {
+	if (! $arrayOfValuesb) {
+	    logCroak('There is more than just one parse tree value.');
+	}
       push(@rc, $valuep);
     }
   } while (defined($valuep));
-  if ($#rc != 0 && ! $arrayOfValuesb) {
-    logCroak('Number of parse tree value is %d. Should be 1.', scalar(@rc));
-  }
   if ($arrayOfValuesb) {
-    return [ @rc ];
+    return \@rc;
   } else {
     return $rc[0];
   }
