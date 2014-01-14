@@ -1286,22 +1286,18 @@ sub _setRcp {
 sub _appendRcp {
     my ($self, $rcp, $key, $value, $separator) = @_;
 
-    $separator //= ' ';
-
     if (defined($value)) {
 
-      if ($self->{_asHash}) {
-	if (defined($rcp->{$key}) && length($rcp->{$key}) > 0) {
-          $rcp->{$key} .= "$separator$value";
-	} else {
-          $self->_setRcp($rcp, $key, $value);
-	}
+      if ($self->_definedRcp($rcp, $key) && length($self->_getRcp($rcp, $key)) > 0) {
+        $separator //= ' ';
+        my $append = $separator . $value;
+        if ($self->{_asHash}) {
+          $rcp->{$key} .= $append;
+        } else {
+          $rcp->[$KEY2ID{$key}] .= $append;
+        }
       } else {
-	if (defined($rcp->[$KEY2ID{$key}]) && length($rcp->[$KEY2ID{$key}]) > 0) {
-          $rcp->[$KEY2ID{$key}] .= "$separator$value";
-	} else {
           $self->_setRcp($rcp, $key, $value);
-	}
       }
     }
 }
@@ -1309,22 +1305,20 @@ sub _appendRcp {
 # ----------------------------------------------------------------------------------------
 
 sub _prependRcp {
-    my ($self, $rcp, $key, $value) = @_;
+    my ($self, $rcp, $key, $value, $separator) = @_;
 
     if (defined($value)) {
 
-      if ($self->{_asHash}) {
-	if (defined($rcp->{$key}) && length($rcp->{$key}) > 0) {
-          $rcp->{$key} = "$value $rcp->{$key}";
-	} else {
-          $self->_setRcp($rcp, $key, $value);
-	}
+      if ($self->_definedRcp($rcp, $key) && length($self->_getRcp($rcp, $key)) > 0) {
+        $separator //= ' ';
+        my $prepend = $value . $separator;
+        if ($self->{_asHash}) {
+          $rcp->{$key} = $prepend . $rcp->{$key};
+        } else {
+          $rcp->[$KEY2ID{$key}] = $prepend . $rcp->[$KEY2ID{$key}];
+        }
       } else {
-	if (defined($rcp->[$KEY2ID{$key}]) && length($rcp->[$KEY2ID{$key}]) > 0) {
-          $rcp->[$KEY2ID{$key}] = "$value $rcp->[$KEY2ID{$key}]";
-	} else {
           $self->_setRcp($rcp, $key, $value);
-	}
       }
     }
 }
@@ -1356,7 +1350,7 @@ sub _existsRcp {
 	#
 	# No notion of exists for an array. Using defined will put the  value to undef
 	#
-	return $KEY2ID{$key} >= $#{$rcp};
+	return $#{$rcp} >= $KEY2ID{$key};
     }
 }
 
@@ -1364,6 +1358,10 @@ sub _existsRcp {
 
 sub _deleteRcp {
     my ($self, $rcp, $key) = @_;
+
+    if (! $self->_existsRcp($rcp, $key)) {
+	return;
+    }
 
     if ($self->{_asHash}) {
 	delete($rcp->{$key});
@@ -1392,6 +1390,10 @@ sub _purgeRcp {
 
 sub _getRcp {
     my ($self, $rcp, $key) = @_;
+
+    if (! $self->_existsRcp($rcp, $key)) {
+	return undef;
+    }
 
     if ($self->{_asHash}) {
 	return $rcp->{$key};
