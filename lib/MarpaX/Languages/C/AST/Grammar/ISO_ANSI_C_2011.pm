@@ -1725,8 +1725,7 @@ msvsAsmExpr11 ::=   LPAREN msvsAsmExpr RPAREN
                     | msvsAsmSegmentRegister
                     | msvsAsmRegister
 
-msvsAsmType ::=   IDENTIFIER_UNAMBIGUOUS
-                  | msvsAsmDistance
+msvsAsmType ::=     msvsAsmDistance
                   | msvsAsmDataType
 
 msvsAsmDistance ::=   msvsAsmNearfar
