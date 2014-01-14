@@ -438,7 +438,7 @@ sub parsed_fdecls {
   my @list = ();
 
   foreach (@{$self->decls}) {
-      if (! $self->_getRcp($_, 'func')) {
+      if ($self->_getRcp($_, 'typedef') || ! $self->_getRcp($_, 'func')) {
 	  next;
       }
       my $argsp = [];
@@ -1332,10 +1332,7 @@ sub _prependRcp {
 sub _definedRcp {
     my ($self, $rcp, $key) = @_;
 
-    if ($self->{_asHash} && ! exists($rcp->{$key})) {
-	#
-	# This is preventing undef to be inserted in the hash, in hash mode if any
-	#
+    if (! $self->_existsRcp($rcp, $key)) {
 	return 0;
     }
 
@@ -1357,7 +1354,7 @@ sub _existsRcp {
 	#
 	# No notion of exists for an array. Using defined will put the  value to undef
 	#
-	return $self->_definedRcp($rcp, $key);
+	return $KEY2ID{$key} >= $#{$rcp};
     }
 }
 
