@@ -2,59 +2,354 @@ MASM6.1
 To be upgraded to VS 2013 c.f. http://msdn.microsoft.com/en-us/library/afzk3475.aspx
 
 endOfLineOrComment ::= endOfLine
-		     | comment
+		   |   comment
+
 equalDir	   ::= id '=' immExpr endOfLineOrComment
+
 addOp		   ::= '+'
-		     | '-'
+		   |   '-'
+
 aExpr		   ::= term
-                     | aExpr '&&' term
+                   |   aExpr '&&' term
+
 altId		   ::= id
+
 arbitraryText  	   ::= charList
+
 asmInstruction	   ::= mnemonic
-                     | mnemonic exprList
+                   |   mnemonic exprList
+
 assumeDir	   ::= ASSUME assumeList endOfLineOrComment
-		     | ASSUME NOTHING endOfLineOrComment
+		   |   ASSUME NOTHING endOfLineOrComment
+
 assumeList	   ::= assumeRegister
-		     | assumeList ',' assumeRegister
+		   |   assumeList ',' assumeRegister
+
 assumeReg	   ::= register ':' assumeVal
+
 assumeRegister	   ::= assumeSegReg
-		     | assumeReg
+		   |   assumeReg
+
 assumeSegReg	   ::= segmentRegister ':' assumeSegVal
+
 assumeSegVal	   ::= frameExpr
-		     | NOTHING
-		     | ERROR
+		   |   NOTHING
+		   |   ERROR
+
 assumeVal	   ::= qualifiedType
-		     | NOTHING
-		     | ERROR
+		   |   NOTHING
+		   |   ERROR
+
 bcdConst	   ::= sign decNumber
-		     | decNumber
+		   |   decNumber
+
 binaryOp	   ::= '==' | '!=' | '>=' | '<=' | '>' | '<' | '&'
+
 bitDef		   ::= bitFieldId ':' bitFieldSize
-		     | bitFieldId ':' bitFieldSize '=' constExpr
+		   |   bitFieldId ':' bitFieldSize '=' constExpr
+
 bitDefList	   ::= bitDef
-		     | bitDefList ',' bitDef
-		     | bitDefList ',' endOfLineOrComment bitDef
+		   |   bitDefList ',' bitDef
+		   |   bitDefList ',' endOfLineOrComment
+                       bitDef
+
 bitFieldId	   ::= id
+
 bitFieldSize	   ::= constExpr
+
 blockStatements	   ::= directiveList
-		     | '.CONTINUE'
-		     | '.CONTINUE' '.IF' cExpr
-		     | '.BREAK'
-		     | '.BREAK' '.IF' cExpr
+		   |   '.CONTINUE'
+		   |   '.CONTINUE' '.IF' cExpr
+		   |   '.BREAK'
+		   |   '.BREAK' '.IF' cExpr
+
 bool		   ::= 'TRUE'
-		     | 'FALSE'
+		   |   'FALSE'
+
 byteRegister	   ::= 'AL' | 'AH' | 'BL' | 'BH' | 'CL' | 'CH' | 'DL' | 'DH'
+
 cExpr		   ::= aExpr
-		     | cExpr '||' aExpr
+		   |   cExpr '||' aExpr
+
 character	   ~   [\0-\9,\11-\255]
+
 charList	   ::= character
-		     | charList character
+		   |   charList character
+
 className	   ::= string
+
 nearfarMaybe	   ::= nearfar
 nearfarMaybe	   ::=
+
 langTypeMaybe	   ::= langType
 langType	   ::=
+
 commDecl	   ::= nearfarMaybe langTypeMaybe id ':' commType ':' constExpr
-		     | nearfarMaybe langTypeMaybe id ':' commType
+		   |   nearfarMaybe langTypeMaybe id ':' commType
+
 commDir		   ::= 'COMM' commList endOfLineOrComment
+
 comment		   ::= ';' text endOfLineOrComment
+
+commentDir	   ::= 'COMMENT' delimiter text text delimiter text endOfLineOrComment
+
+commList	   ::= commDecl
+		   |   commList ',' commDecl
+
+commType           ::= type
+		   |   constExpr
+
+constant	   ::= digits
+		   |   digits radixOverride
+
+constExpr	   ::= expr
+
+contextDir	   ::= PUSHCONTEXT contextItemList endOfLineOrComment
+		   |   POPCONTEXT contextItemList endOfLineOrComment
+
+contextItem	   ::= ASSUMES | RADIX | LISTING | CPU | ALL
+
+contextItemList    ::= contextItem
+		   |   contextItemList ',' contextItem
+
+controlBlock	   ::= whileBlock
+		   |   repeatBlock
+
+controlDir	   ::= controlIf
+		   |   controlBlock
+
+controlElseif	   ::= .ELSEIF cExpr endOfLineOrComment
+                       directiveList
+		   |   .ELSEIF cExpr endOfLineOrComment
+                       directiveList controlElseif
+
+controlIf	   ::= .IF cExpr endOfLineOrComment directiveList
+                   |   .IF cExpr endOfLineOrComment directiveList controlElseif .ENDIF endOfLineOrComment
+                   |   .IF cExpr endOfLineOrComment directiveList controlElseif .ELSE endOfLineOrComment directiveList .ENDIF endOfLineOrComment
+
+coprocessor	   ::= .8087 | .287 | .387 | .NO87
+
+crefDir		   ::= crefOption endOfLineOrComment
+
+crefOption	   ::= .CREF
+		   |   .XCREF
+		   |   .XCREF idList
+		   |   .NOCREF
+		   |   .NOCREF idList
+
+cxzExpr		   ::= expr
+		   |   ! expr
+		   |   expr == expr
+		   |   expr != expr
+
+dataDecl	   ::= DB | DW | DD | DF | DQ | DT | dataType | typeId
+
+dataDir		   ::=    dataItem endOfLineOrComment
+		   |   id dataItem endOfLineOrComment
+
+dataItem	   ::= dataDecl  scalarInstList
+		   |   structTag structInstList
+		   |   typeId    structInstList
+		   |   unionTag  structInstList
+		   |   recordTag recordInstList
+
+dataType	   ::= BYTE
+		   |   SBYTE
+		   |   WORD
+		   |   SWORD
+		   |   DWORD
+		   |   SDWORD
+		   |   FWORD
+		   |   QWORD
+		   |   TBYTE
+		   |   REAL4
+		   |   REAL8
+		   |   REAL10
+
+decdigit	   ::= 0
+		   |   1
+		   |   2
+		   |   3
+		   |   4
+		   |   5
+		   |   6
+		   |   7
+		   |   8
+		   |   9
+
+digits		   ::= decdigit
+		   |   digits decdigit
+		   |   digits hexdigit
+
+directive	   ::= generalDir
+		   |   segmentDef
+
+directiveList	   ::= directive
+		   |   directiveList directive
+
+distance	   ::= nearfar
+		   |   NEAR16
+		   |   NEAR32
+		   |   FAR16
+		   |   FAR32
+
+e01		   ::= e01 orOp e02
+		   |   e02
+
+e02		   ::= e02 AND e03
+		   |   e03
+
+e03		   ::= NOT e04
+		   |   e04
+
+e04		   ::= e04 relOp e05
+		   |   e05
+
+e05		   ::= e05 addOp e06
+		   |   e06
+
+e06		   ::= e06 mulOp e07
+		   |   e06 shiftOp e07
+		   |   e07
+
+e07		   ::= e07 addOp e08
+		   |   e08
+
+e08		   ::= HIGH e09
+		   |   LOW e09
+		   |   HIGHWORD e09
+		   |   LOWWORD e09
+		   |   e09
+
+e09		   ::= OFFSET e10
+		   |   SEG e10
+		   |   LROFFSET e10
+		   |   TYPE e10
+		   |   THIS e10
+		   |   e09 PTR e10
+		   |   e09 : e10
+		   |   e10
+
+e10		   ::= e10 . e11
+		   |   e10 [ expr ]
+		   |   e11
+
+e11		   ::= '(' expr ')'
+		   |   '[' expr ']'
+		   |   WIDTH id
+		   |   MASK id
+		   |   SIZE sizeArg
+		   |   SIZEOF sizeArg
+		   |   LENGTH id
+		   |   LENGTHOF id
+		   |   recordConst
+		   |   string
+		   |   constant
+		   |   type
+		   |   id
+		   |   '$'
+		   |   segmentRegister
+		   |   register
+		   |   ST
+		   |   ST '(' expr ')'
+
+echoDir		 ::= ECHO arbitraryText endOfLineOrComment
+		     %OUT arbitraryText endOfLineOrComment
+
+elseifBlock	 ::= elseifStatement endOfLineOrComment
+		     directiveList
+		 |   elseifStatement endOfLineOrComment
+		     directiveList elseifBlock
+
+elseifStatement	 ::= ELSEIF     constExpr
+		 |   ELSEIFE    constExpr
+		 |   ELSEIFB    textItem
+		 |   ELSEIFNB   textItem
+		 |   ELSEIFDEF  id
+		 |   ELSEIFNDEF id
+		 |   ELSEIFDIF  textItem , textItem
+		 |   ELSEIFDIFI textItem , textItem
+		 |   ELSEIFIDN  textItem , textItem
+		 |   ELSEIFIDNI textItem , textItem
+		 |   ELSEIF1
+		 |   ELSEIF2
+
+endDir		 ::= END         endOfLineOrComment
+		 |   END immExpr endOfLineOrComment
+
+endpDir		 ::= procId ENDP endOfLineOrComment
+
+endsDir		 ::= id ENDS endOfLineOrComment
+
+equDir		 ::= textMacroId EQU equType endOfLineOrComment
+
+equType		 ::= immExpr
+		 |   textLiteral
+
+errorDir	 ::= errorOpt endOfLineOrComment
+
+errorOpt	 ::= .ERR
+		 |   .ERR     textItem
+		 |   .ERRE    constExpr
+		 |   .ERRE    constExpr optText
+		 |   .ERRNZ   constExpr
+		 |   .ERRNZ   constExpr optText
+		 |   .ERRB    textItem
+		 |   .ERRB    textItem optText
+		 |   .ERRNB   textItem
+		 |   .ERRNB   textItem optText
+		 |   .ERRDEF  id
+		 |   .ERRDEF  id optText
+		 |   .ERRNDEF id
+		 |   .ERRNDEF id optText
+		 |   .ERRDIF  textItem , textItem
+		 |   .ERRDIF  textItem , textItem optText
+		 |   .ERRDIFI textItem , textItem
+		 |   .ERRDIFI textItem , textItem optText
+		 |   .ERRIDN  textItem , textItem
+		 |   .ERRIDN  textItem , textItem optText
+		 |   .ERRIDNI textItem , textItem
+		 |   .ERRIDNI textItem , textItem optText
+		 |   .ERR1
+		 |   .ERR1    textItem
+		 |   .ERR2
+		 |   .ERR2    textItem
+
+exitDir		 ::= .EXIT      endOfLineOrComment
+		 |   .EXIT expr endOfLineOrComment
+
+exitmDir:	 ::= EXITM
+		 |   EXITM textItem
+
+exponent	 ::= E      decNumber
+                 |   E sign decNumber
+
+expr		 ::= SHORT e05
+		 |   .TYPE e01
+		 |   OPATTR e01
+		 |   e01
+
+exprList	 ::= expr
+		 |   exprList , expr
+
+langTypeMaybe    ::= langType
+langTypeMaybe    ::=
+
+externDef	 ::= langTypeMaybe id           : externType
+		 |   langTypeMaybe id ( altId ) : externType
+
+externDir	 ::= externKey externList endOfLineOrComment
+
+externKey	 ::= EXTRN | EXTERN | EXTERNDEF
+
+externList	 ::= externDef
+		 |   externList , externDef
+		 |   externList , endOfLineOrComment externDef
+
+externType	 ::= ABS
+		 |   qualifiedType
+
+fieldAlign	 ::= constExpr
+
+fieldInit	 ::= [ initValue ]
+		 |   structInstance
