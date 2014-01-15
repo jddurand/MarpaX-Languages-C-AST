@@ -1,0 +1,60 @@
+MASM6.1
+To be upgraded to VS 2013 c.f. http://msdn.microsoft.com/en-us/library/afzk3475.aspx
+
+endOfLineOrComment ::= endOfLine
+		     | comment
+equalDir	   ::= id '=' immExpr endOfLineOrComment
+addOp		   ::= '+'
+		     | '-'
+aExpr		   ::= term
+                     | aExpr '&&' term
+altId		   ::= id
+arbitraryText  	   ::= charList
+asmInstruction	   ::= mnemonic
+                     | mnemonic exprList
+assumeDir	   ::= ASSUME assumeList endOfLineOrComment
+		     | ASSUME NOTHING endOfLineOrComment
+assumeList	   ::= assumeRegister
+		     | assumeList ',' assumeRegister
+assumeReg	   ::= register ':' assumeVal
+assumeRegister	   ::= assumeSegReg
+		     | assumeReg
+assumeSegReg	   ::= segmentRegister ':' assumeSegVal
+assumeSegVal	   ::= frameExpr
+		     | NOTHING
+		     | ERROR
+assumeVal	   ::= qualifiedType
+		     | NOTHING
+		     | ERROR
+bcdConst	   ::= sign decNumber
+		     | decNumber
+binaryOp	   ::= '==' | '!=' | '>=' | '<=' | '>' | '<' | '&'
+bitDef		   ::= bitFieldId ':' bitFieldSize
+		     | bitFieldId ':' bitFieldSize '=' constExpr
+bitDefList	   ::= bitDef
+		     | bitDefList ',' bitDef
+		     | bitDefList ',' endOfLineOrComment bitDef
+bitFieldId	   ::= id
+bitFieldSize	   ::= constExpr
+blockStatements	   ::= directiveList
+		     | '.CONTINUE'
+		     | '.CONTINUE' '.IF' cExpr
+		     | '.BREAK'
+		     | '.BREAK' '.IF' cExpr
+bool		   ::= 'TRUE'
+		     | 'FALSE'
+byteRegister	   ::= 'AL' | 'AH' | 'BL' | 'BH' | 'CL' | 'CH' | 'DL' | 'DH'
+cExpr		   ::= aExpr
+		     | cExpr '||' aExpr
+character	   ~   [\0-\9,\11-\255]
+charList	   ::= character
+		     | charList character
+className	   ::= string
+nearfarMaybe	   ::= nearfar
+nearfarMaybe	   ::=
+langTypeMaybe	   ::= langType
+langType	   ::=
+commDecl	   ::= nearfarMaybe langTypeMaybe id ':' commType ':' constExpr
+		     | nearfarMaybe langTypeMaybe id ':' commType
+commDir		   ::= 'COMM' commList endOfLineOrComment
+comment		   ::= ';' text endOfLineOrComment
