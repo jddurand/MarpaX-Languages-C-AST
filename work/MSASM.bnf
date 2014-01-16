@@ -539,3 +539,113 @@ invokeList	 ::= invokeArg
 		 |   invokeList ','                    invokeArg
 
 keyword		 ::= Any reserved word
+
+keywordList	 ::= keyword
+		 |   keyword keywordList
+
+labelDef	 ::= id :
+		 |   id '::'
+		 |   '@@:'
+
+labelDir	 ::= id 'LABEL':i qualifiedType endOfLineOrComment
+
+langType	 ::= 'C':i
+		 |   'PASCAL:i
+		 |   'FORTRAN:i
+		 |   'BASIC:i
+		 |   'SYSCALL:i
+		 |   'STDCALL:i
+
+listDir		 ::= listOption endOfLineOrComment
+
+listOption	 ::= '.LIST':i
+		 |   '.NOLIST':i
+		 |   '.XLIST':i
+		 |   '.LISTALL':i
+		 |   '.LISTIF':i
+		 |   '.LFCOND':i
+		 |   '.NOLISTIF':i
+		 |   '.SFCOND':i
+		 |   '.TFCOND':i
+		 |   '.LISTMACROALL':i
+		 |   '.LALL':i
+		 |   '.NOLISTMACRO':i
+		 |   '.SALL':i
+		 |   '.LISTMACRO':i
+		 |   '.XALL':i
+
+localDef	 ::= 'LOCAL':i idList endOfLineOrComment
+
+localDir	 ::= 'LOCAL':i parmList endOfLineOrComment
+
+localDirList	 ::= localDir
+		 |   localDirList localDir
+
+localList	 ::= localDef
+		 |   localList localDef
+
+macroArg	 ::= '%' constExpr
+		 |   '%' textMacroId
+		 |   '%' macroFuncId '(' macroArgList ')'
+		 |   string
+		 |   arbitraryText
+		 |   '<' arbitraryText '>'
+
+macroArgList	 ::= macroArg
+		 |   macroArgList ',' macroArg
+
+macroBody	 ::= localList macroStmtList
+		 |             macroStmtList
+
+macroCall	 ::= id macroArgList endOfLineOrComment
+		 |   id '(' macroArgList ')'
+
+macroDir	 ::= id 'MACRO':i macroParmList endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+		 |   id 'MACRO':i               endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+
+macroFor	 ::= forDir forParm ',' '<' macroArgList '>' endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+
+macroForc	 ::= forcDir id ',' textLiteral endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+
+macroFuncId	 ::= id
+
+macroId		 ::= macroProcId
+		 |   macroFuncId
+
+macroIdList	 ::= macroId
+		 |   macroIdList ',' macroId
+
+macroLabel	 ::= id
+
+macroParm	 ::= id ':' parmType
+		 |   id
+
+macroParmList	 ::= macroParm
+		 |   macroParmList ',' endOfLineOrComment macroParm
+		 |   macroParmList ','                    macroParm
+
+macroProcId	 ::= id
+
+macroRepeat	 ::= repeatDir constExpr endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+
+macroStmt	 ::= directive
+		 |   exitmDir
+		 |   ':' macroLabel
+		 |   'GOTO':i macroLabel
+
+macroStmtList	 ::= macroStmt endOfLineOrComment
+		 |   macroStmtList macroStmt endOfLineOrComment
+
+macroWhile	 ::= 'WHILE':i constExpr endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+
+mapType		 ::= 'ALL':i | 'NONE':i | 'NOTPUBLIC':i
+
+memOption	 ::= 'TINY':i
+		 |   'SMALL':i
+		 |   'MEDIUM':i
+		 |   'COMPACT':i
+		 |   'LARGE':i
+		 |   'HUGE':i
+		 |   'FLAT':i
+
+mnemonic	 ::= Instruction name
