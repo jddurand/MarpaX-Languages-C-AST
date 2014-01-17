@@ -1,5 +1,20 @@
-MASM6.1
-To be upgraded to VS 2013 c.f. http://msdn.microsoft.com/en-us/library/afzk3475.aspx
+#!perl
+use strict;
+use diagnostics;
+use Marpa::R2;
+
+my $grammar_source = do { local $/; <DATA> };
+my $grammar = Marpa::R2::Scanless::G->new({ source => \$grammar_source});
+
+__DATA__
+
+# MASM6.1
+# To be upgraded to VS 2013 c.f. http://msdn.microsoft.com/en-us/library/afzk3475.aspx
+:start ::= module
+
+aliasDir           ::= 'ALIAS':i '<' id '>' '=' '<' id '>'
+
+endOfLine          ~ [\n]           # Side effet: last instruction must be on a line ending with newline
 
 endOfLineOrComment ::= endOfLine
 		   |   comment
@@ -69,7 +84,7 @@ byteRegister	   ::= 'AL':i | 'AH':i | 'BL':i | 'BH':i | 'CL':i | 'CH':i | 'DL':i
 cExpr		   ::= aExpr
 		   |   cExpr '||' aExpr
 
-character	   ~   [\0-\9,\11-\255]
+character	   ~   [\0-\011,\013-\255]
 
 charList	   ::= character
 		   |   charList character
@@ -78,9 +93,6 @@ className	   ::= string
 
 nearfarMaybe	   ::= nearfar
 nearfarMaybe	   ::=
-
-langTypeMaybe	   ::= langType
-langType	   ::=
 
 commDecl	   ::= nearfarMaybe langTypeMaybe id ':' commType ':' constExpr
 		   |   nearfarMaybe langTypeMaybe id ':' commType
@@ -165,14 +177,10 @@ dataType	   ::= 'BYTE':i
 
 decdigit	   ::= [0-9]
 
-digits		   ::= decdigit
-		   |   digits decdigit
-		   |   digits hexdigit
-
 decNumber	   ::= decdigit
 		   |   decNumber decdigit
 
-delimiter	   ::= [^\8\9\11-\13\26\32]
+delimiter	   ::= [^\010\011\013-\015\032\040]
 
 digits		   ::= decdigit
 		   |   digits decdigit
@@ -313,11 +321,11 @@ errorOpt	 ::= '.ERR':i
 exitDir		 ::= '.EXIT':i      endOfLineOrComment
 		 |   '.EXIT':i expr endOfLineOrComment
 
-exitmDir:	 ::= 'EXITM':i
+exitmDir	 ::= 'EXITM':i
 		 |   'EXITM':i textItem
 
-exponent	 ::= E      decNumber
-                 |   E sign decNumber
+exponent	 ::= 'E':i      decNumber
+                 |   'E':i sign decNumber
 
 expr		 ::= 'SHORT':i e05
 		 |   '.TYPE':i e01
@@ -377,8 +385,8 @@ floatNumber	 ::= sign decNumber '.' decNumber exponent
 		 |        decNumber '.' decNumber
 		 |        decNumber '.'           exponent
 		 |        decNumber '.'
-		 |   digits R
-		 |   digits r
+		 |   digits 'R'
+		 |   digits 'r'
 
 forcDir		 ::= 'FORC':i
 		 |   'IRPC':i
@@ -457,6 +465,8 @@ groupDir	 ::= groupId 'GROUP':i segIdList
 groupId		 ::= id
 
 hexdigit	 ::= [a-fA-F]
+
+alpha            ~   [A-Za-z]
 
 id		 ::= alpha
 		 |   id alpha
@@ -547,18 +557,18 @@ keyword		 ::= operandsAndSymbols
 keywordList	 ::= keyword
 		 |   keyword keywordList
 
-labelDef	 ::= id :
+labelDef	 ::= id ':'
 		 |   id '::'
 		 |   '@@:'
 
 labelDir	 ::= id 'LABEL':i qualifiedType endOfLineOrComment
 
 langType	 ::= 'C':i
-		 |   'PASCAL:i
-		 |   'FORTRAN:i
-		 |   'BASIC:i
-		 |   'SYSCALL:i
-		 |   'STDCALL:i
+		 |   'PASCAL':i
+		 |   'FORTRAN':i
+		 |   'BASIC':i
+		 |   'SYSCALL':i
+		 |   'STDCALL':i
 
 listDir		 ::= listOption endOfLineOrComment
 
@@ -652,7 +662,7 @@ memOption	 ::= 'TINY':i
 		 |   'HUGE':i
 		 |   'FLAT':i
 
-mnemonic	 ::= Instruction name
+mnemonic	 ::= processorInstructions
 
 modelDir	 ::= '.MODEL':i memOption ',' modelOptlist endOfLineOrComment
 		 |   '.MODEL':i memOption                  endOfLineOrComment
@@ -704,7 +714,7 @@ optionItem	 ::= 'CASEMAP':i ':' mapType
 		 |   'NOLJMP':i
 		 |   'M510':i
 		 |   'NOM510':i
-		 |   'NOKEYWORD ':' '<' keywordList '>'
+		 |   'NOKEYWORD' ':' '<' keywordList '>'
 		 |   'NOSIGNEXTEND':i
 		 |   'OFFSET':i ':' offsetType
 		 |   'OLDMACROS':i
@@ -806,26 +816,26 @@ processorDir	 ::= processor endOfLineOrComment
 
 procId		 ::= id
 
-procParmList	 ::= ',' endOfLineOrComment parmList ',' endOfLineOrComment parmId :VARARG
-		 |   ',' endOfLineOrComment parmList ','                    parmId :VARARG
+procParmList	 ::= ',' endOfLineOrComment parmList ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |   ',' endOfLineOrComment parmList ','                    parmId ':' 'VARARG'
 		 |   ',' endOfLineOrComment parmList
-		 |   ','                    parmList ',' endOfLineOrComment parmId :VARARG
-		 |   ','                    parmList ','                    parmId :VARARG
+		 |   ','                    parmList ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |   ','                    parmList ','                    parmId ':' 'VARARG'
 		 |   ','                    parmList
-		 |                                   ',' endOfLineOrComment parmId :VARARG
-		 |                                   ','                    parmId :VARARG
+		 |                                   ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |                                   ','                    parmId ':' 'VARARG'
 
 protoArg	 ::= id ':' qualifiedType
 		 |      ':' qualifiedType
 
-protoArgList	 ::= ',' endOfLineOrComment protoList ',' endOfLineOrComment id :VARARG
-		 |   ',' endOfLineOrComment protoList ','                    id :VARARG
+protoArgList	 ::= ',' endOfLineOrComment protoList ',' endOfLineOrComment id ':' 'VARARG'
+		 |   ',' endOfLineOrComment protoList ','                    id ':' 'VARARG'
 		 |   ',' endOfLineOrComment protoList
-		 |   ','                    protoList ',' endOfLineOrComment id :VARARG
-		 |   ','                    protoList ','                    id :VARARG
+		 |   ','                    protoList ',' endOfLineOrComment id ':' 'VARARG'
+		 |   ','                    protoList ','                    id ':' 'VARARG'
 		 |   ','                    protoList
-		 |                                    ',' endOfLineOrComment id :VARARG
-		 |                                    ','                    id :VARARG
+		 |                                    ',' endOfLineOrComment id ':' 'VARARG'
+		 |                                    ','                    id ':' 'VARARG'
 
 protoList	 ::= protoArg
 		 |   protoList ',' endOfLineOrComment protoArg
@@ -996,9 +1006,9 @@ sizeArg		 ::= id
 		 |   type
 		 |   e10
 
-specialChars	 ~   [:.|()<>{}+-/*&%!'\=;,"]
-		 |   whiteSpaceCharacter
-		 |   endOfLine
+#specialChars	 ~   [:.|()<>{}+-/*&%!'\=;,"]
+#		 |   whiteSpaceCharacter
+#		 |   endOfLine
 
 specialRegister	 ::= 'CR0':i
 		 |   'CR2':i
@@ -1053,7 +1063,7 @@ structInstance	 ::= '<' fieldInitList '>'
 		 |   '{'                    fieldInitList                    '}'
 		 |   '{'                                  endOfLineOrComment '}'
 		 |   '{'                                                     '}'
-		 |   constExpr DUP '(' structInstList ')'
+		 |   constExpr 'DUP':i '(' structInstList ')'
 
 structInstList	 ::= structInstance
 		 |   structInstList ',' endOfLineOrComment structInstance
@@ -1094,10 +1104,10 @@ textMacroDir	 ::= 'CATSTR':i textList
 		 |   'TEXTEQU':i textList
 		 |   'TEXTEQU':i
 		 |   'SIZESTR':i textItem
-		 |   'SUBSTR':i textItem , textStart ',' textLen
-		 |   'SUBSTR':i textItem , textStart
-		 |   'INSTR':i textStart ',' textItem , textItem
-		 |   'INSTR':i               textItem , textItem
+		 |   'SUBSTR':i textItem ',' textStart ',' textLen
+		 |   'SUBSTR':i textItem ',' textStart
+		 |   'INSTR':i textStart ',' textItem ',' textItem
+		 |   'INSTR':i               textItem ',' textItem
 
 textMacroId	 ::= id
 
@@ -1130,7 +1140,7 @@ usesRegs	 ::= 'USES':i regList
 
 whileBlock	 ::= '.WHILE':i cExpr endOfLineOrComment blockStatements endOfLineOrComment '.ENDW':i
 
-whiteSpaceCharacter  ~ [\8\9\11-\13\26\32]
+#whiteSpaceCharacter  ~ [\010\011\013-\015\032\040]
 
 ##################
 # Reserved words #
