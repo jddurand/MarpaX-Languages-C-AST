@@ -231,6 +231,7 @@ e10		   ::= e10 '.' e11
 		   |   e10 expr
 		   |   e11
 
+e11		   ::=                       # JDD really ?
 e11		   ::= '(' expr ')'
 		   |   expr
 		   |   'WIDTH':i id
@@ -649,3 +650,41 @@ memOption	 ::= 'TINY':i
 		 |   'FLAT':i
 
 mnemonic	 ::= Instruction name
+
+modelDir	 ::= '.MODEL':i memOption ',' modelOptlist endOfLineOrComment
+		 |   '.MODEL':i memOption                  endOfLineOrComment
+
+modelOpt	 ::= langType
+		 |   stackOption
+
+modelOptlist	 ::= modelOpt
+		 |   modelOptlist ',' modelOpt
+
+module		 ::= directiveList endDir
+		 |                 endDir
+
+mulOp		 ::= '*' | '/' | 'MOD':i
+
+nameDir		 ::= 'NAME':i id endOfLineOrComment
+
+nearfar		 ::= 'NEAR':i | 'FAR':i
+
+nestedStruct	 ::= structHdr    endOfLineOrComment structBody 'ENDS':i endOfLineOrComment
+		 |   structHdr id endOfLineOrComment structBody 'ENDS':i endOfLineOrComment
+
+offsetDir	 ::= offsetDirType endOfLineOrComment
+
+offsetDirType	 ::= 'EVEN':i
+		 |   'ORG':i immExpr
+		 |   'ALIGN':i constExpr
+		 |   'ALIGN':i
+
+offsetType	 ::= 'GROUP':i
+		 |   'SEGMENT':i
+		 |   'FLAT':i
+
+oldRecordFieldList ::=                       # JDD really ?
+oldRecordFieldList ::= oldRecordFieldList ',' constExpr
+		   |   oldRecordFieldList ','
+
+optionDir	 ::= 'OPTION':i optionList endOfLineOrComment
