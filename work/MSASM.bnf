@@ -1140,7 +1140,8 @@ usesRegs	 ::= 'USES':i regList
 
 whileBlock	 ::= '.WHILE':i cExpr endOfLineOrComment blockStatements endOfLineOrComment '.ENDW':i
 
-#whiteSpaceCharacter  ~ [\010\011\013-\015\032\040]
+whiteSpaceCharacter  ~ [\010\011\013-\015\032\040]
+:discard             ~ whiteSpaceCharacter
 
 ##################
 # Reserved words #
