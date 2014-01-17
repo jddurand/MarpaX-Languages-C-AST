@@ -6,7 +6,7 @@ endOfLineOrComment ::= endOfLine
 
 equalDir	   ::= id '=' immExpr endOfLineOrComment
 
-addOp		   ::= [+-]
+addOp		   ~   [-+]
 
 aExpr		   ::= term
                    |   aExpr '&&' term
@@ -231,9 +231,8 @@ e10		   ::= e10 '.' e11
 		   |   e10 expr
 		   |   e11
 
-e11		   ::=                       # JDD really ?
 e11		   ::= '(' expr ')'
-		   |   expr
+		   |   '[' expr ']'          # Why the grammar gives double auotes !?
 		   |   'WIDTH':i id
 		   |   'MASK':i id
 		   |   'SIZE':i sizeArg
@@ -539,7 +538,11 @@ invokeList	 ::= invokeArg
 		 |   invokeList ',' endOfLineOrComment invokeArg
 		 |   invokeList ','                    invokeArg
 
-keyword		 ::= Any reserved word
+keyword		 ::= operandsAndSymbols
+		 |   registers
+                 |   operatorsAndDirectives
+		 |   processorInstructions
+		 |   CoprocessorInstructions
 
 keywordList	 ::= keyword
 		 |   keyword keywordList
@@ -683,8 +686,1077 @@ offsetType	 ::= 'GROUP':i
 		 |   'SEGMENT':i
 		 |   'FLAT':i
 
-oldRecordFieldList ::=                       # JDD really ?
-oldRecordFieldList ::= oldRecordFieldList ',' constExpr
-		   |   oldRecordFieldList ','
+oldRecordFieldList ::= constExpr
+ 		   |   oldRecordFieldList ',' constExpr
 
 optionDir	 ::= 'OPTION':i optionList endOfLineOrComment
+
+optionItem	 ::= 'CASEMAP':i ':' mapType
+		 |   'DOTNAME':i
+		 |   'NODOTNAME':i
+		 |   'EMULATOR':i
+		 |   'NOEMULATOR':i
+		 |   'EPILOGUE':i ':' macroId
+		 |   'EXPR16':i
+		 |   'EXPR32':i
+		 |   'LANGUAGE':i ':' langType
+		 |   'LJMP':i
+		 |   'NOLJMP':i
+		 |   'M510':i
+		 |   'NOM510':i
+		 |   'NOKEYWORD ':' '<' keywordList '>'
+		 |   'NOSIGNEXTEND':i
+		 |   'OFFSET':i ':' offsetType
+		 |   'OLDMACROS':i
+		 |   'NOOLDMACROS':i
+		 |   'OLDSTRUCTS':i
+		 |   'NOOLDSTRUCTS':i
+		 |   'PROC':i ':' oVisibility
+		 |   'PROLOGUE':i ':' macroId
+		 |   'READONLY':i
+		 |   'NOREADONLY':i
+		 |   'SCOPED':i
+		 |   'NOSCOPED':i
+		 |   'SEGMENT':i ':' segSize
+		 |   'SETIF2':i ':' bool
+
+optionList	 ::= optionItem
+		 |   optionList ',' endOfLineOrComment optionItem
+		 |   optionList ','                    optionItem
+
+optText		 ::= ',' textItem
+
+orOp		 ::= 'OR':i
+		 |   'XOR':i
+
+oVisibility	 ::= 'PUBLIC':i
+		 |   'PRIVATE':i
+		 |   'EXPORT':i
+
+pageDir		 ::= 'PAGE':i pageExpr endOfLineOrComment
+		 |   'PAGE':i          endOfLineOrComment
+
+pageExpr	 ::= '+'
+		 |   pageLength ',' pageWidth
+		 |   pageLength
+		 |   ',' pageWidth
+
+pageLength	 ::= constExpr
+
+pageWidth	 ::= constExpr
+
+parm		 ::= parmId ':' qualifiedType
+		 |   parmId
+		 |   parmId constExpr ':' qualifiedType
+		 |   parmId constExpr
+		 |   parmId           ':' qualifiedType
+
+parmId		 ::= id
+
+parmList	 ::= parm
+		 |   parmList ',' endOfLineOrComment parm
+		 |   parmList ','                    parm
+
+parmType	 ::= 'REQ':i
+		 |   '=' textLiteral
+		 |   'VARARG':i
+
+pOptions	 ::= distance langType oVisibility
+		 |   distance langType
+		 |   distance          oVisibility
+		 |   distance
+		 |            langType oVisibility
+		 |            langType
+		 |                     oVisibility
+
+primary		 ::= expr binaryOp expr
+		 |   flagName
+		 |   expr
+
+procDir		 ::= procId 'PROC':i pOptions '<' macroArgList '>' usesRegs procParmList
+		 |   procId 'PROC':i pOptions '<' macroArgList '>' usesRegs
+		 |   procId 'PROC':i pOptions '<' macroArgList '>'          procParmList
+		 |   procId 'PROC':i pOptions '<' macroArgList '>'
+		 |   procId 'PROC':i pOptions                      usesRegs procParmList
+		 |   procId 'PROC':i pOptions                      usesRegs
+		 |   procId 'PROC':i pOptions                               procParmList
+		 |   procId 'PROC':i pOptions
+		 |   procId 'PROC':i          '<' macroArgList '>' usesRegs procParmList
+		 |   procId 'PROC':i          '<' macroArgList '>' usesRegs
+		 |   procId 'PROC':i          '<' macroArgList '>'          procParmList
+		 |   procId 'PROC':i          '<' macroArgList '>'
+		 |   procId 'PROC':i                               usesRegs procParmList
+		 |   procId 'PROC':i                               usesRegs
+		 |   procId 'PROC':i                                        procParmList
+		 |   procId 'PROC':i
+
+processor	 ::= '.8086'
+		 |   '.186'
+		 |   '.286'
+		 |   '.286C':i
+		 |   '.286P':i
+		 |   '.386'
+		 |   '.386C':i
+		 |   '.386P':i
+		 |   '.486'
+		 |   '.486P':i
+
+processorDir	 ::= processor endOfLineOrComment
+		 |   coprocessor endOfLineOrComment
+
+procId		 ::= id
+
+procParmList	 ::= ',' endOfLineOrComment parmList ',' endOfLineOrComment parmId :VARARG
+		 |   ',' endOfLineOrComment parmList ','                    parmId :VARARG
+		 |   ',' endOfLineOrComment parmList
+		 |   ','                    parmList ',' endOfLineOrComment parmId :VARARG
+		 |   ','                    parmList ','                    parmId :VARARG
+		 |   ','                    parmList
+		 |                                   ',' endOfLineOrComment parmId :VARARG
+		 |                                   ','                    parmId :VARARG
+
+protoArg	 ::= id ':' qualifiedType
+		 |      ':' qualifiedType
+
+protoArgList	 ::= ',' endOfLineOrComment protoList ',' endOfLineOrComment id :VARARG
+		 |   ',' endOfLineOrComment protoList ','                    id :VARARG
+		 |   ',' endOfLineOrComment protoList
+		 |   ','                    protoList ',' endOfLineOrComment id :VARARG
+		 |   ','                    protoList ','                    id :VARARG
+		 |   ','                    protoList
+		 |                                    ',' endOfLineOrComment id :VARARG
+		 |                                    ','                    id :VARARG
+
+protoList	 ::= protoArg
+		 |   protoList ',' endOfLineOrComment protoArg
+		 |   protoList ','                    protoArg
+
+protoSpec	 ::= distance langType protoArgList
+		 |   distance langType
+		 |   distance          protoArgList
+		 |   distance
+		 |            langType protoArgList
+		 |            langType
+		 |                     protoArgList
+		 |   typeId
+
+protoTypeDir	 ::= id 'PROTO':i protoSpec
+
+pubDef		 ::= langType id
+		 |            id
+
+publicDir	 ::= 'PUBLIC':i pubList endOfLineOrComment
+
+
+pubList		 ::= pubDef
+		 |   pubList ',' endOfLineOrComment pubDef
+		 |   pubList ','                    pubDef
+
+purgeDir	 ::= 'PURGE':i macroIdList
+
+qualifiedType	 ::= type
+		 | distance 'PTR':i qualifiedType
+		 | distance 'PTR':i
+		 |          'PTR':i qualifiedType
+		 |          'PTR':i
+
+qualifier	 ::= qualifiedType
+		 |   'PROTO':i protoSpec
+
+quote		 ~ '"'
+		 | [']
+
+radixDir	 ::= '.RADIX':i constExpr endOfLineOrComment
+
+radixOverride	 ~ [hoqtyHOQTY]
+
+recordConst	 ::= recordTag '{' oldRecordFieldList '}'
+		 |   recordTag '<' oldRecordFieldList '>'
+
+recordDir	 ::= recordTag 'RECORD':i bitDefList endOfLineOrComment
+
+recordFieldList	 ::= constExpr
+		 |   recordFieldList ',' endOfLineOrComment constExpr
+		 |   recordFieldList ','                    constExpr
+
+recordInstance	 ::= '{' endOfLineOrComment recordFieldList endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment recordFieldList                    '}'
+		 |   '{'                    recordFieldList endOfLineOrComment '}'
+		 |   '{'                    recordFieldList                    '}'
+		 |   '<' oldRecordFieldList '>'
+		 |   constExpr 'DUP':i '(' recordInstance ')'
+
+recordInstList	 ::= recordInstance
+		 |   recordInstList ',' endOfLineOrComment recordInstance
+		 |   recordInstList ','                    recordInstance
+
+recordTag	 ::= id
+
+register	 ::= specialRegister
+		 |   gpRegister
+		 |   byteRegister
+
+regList		 ::= register
+		 |   regList register
+
+relOp		 ::= 'EQ':i
+		 |   'NE':i
+		 |   'LT':i
+		 |   'LE':i
+		 |   'GT':i
+		 |   'GE':i
+
+repeatBlock	 ::= '.REPEAT' endOfLineOrComment blockStatements endOfLineOrComment untilDir endOfLineOrComment
+
+repeatDir	 ::= 'REPEAT':i
+		 |   'REPT':i
+
+scalarInstList	 ::= initValue
+		 |   scalarInstList ',' endOfLineOrComment initValue
+		 |   scalarInstList ','                    initValue
+
+segAlign	 ::= 'BYTE':i
+		 |   'WORD':i
+		 |   'DWORD':i
+		 |   'PARA':i
+		 |   'PAGE':i
+
+segAttrib	 ::= 'PUBLIC':i
+		 |   'STACK':i
+		 |   'COMMON':i
+		 |   'MEMORY':i
+		 |   'AT':i constExpr
+		 |   'PRIVATE':i
+
+segDir		 ::= '.CODE':i segId
+		 |   '.CODE':i
+		 |   '.DATA':i
+		 |   '.DATA?':i
+		 |   '.CONST':i
+		 |   '.FARDATA':i segId
+		 |   '.FARDATA':i
+		 |   '.FARDATA?':i segId
+		 |   '.FARDATA?':i
+		 |   '.STACK':i constExpr
+		 |   '.STACK':i
+
+segId		 ::= id
+
+segIdList	 ::= segId
+		 |   segIdList ',' segId
+
+segmentDef	 ::= segmentDir   inSegDirList endsDir
+		 |   segmentDir                endsDir
+		 |   simpleSegDir inSegDirList endsDir
+		 |   simpleSegDir inSegDirList
+		 |   simpleSegDir              endsDir
+		 |   simpleSegDir
+
+segmentDir	 ::= segId 'SEGMENT':i segOptionList endOfLineOrComment
+		 |   segId 'SEGMENT':i               endOfLineOrComment
+
+segmentRegister	 ::= 'CS':i
+		 |   'DS':i
+		 |   'ES':i
+		 |   'FS':i
+		 |   'GS':i
+		 |   'SS':i
+
+segOption	 ::= segAlign
+		 |   segRO
+		 |   segAttrib
+		 |   segSize
+		 |   className
+
+segOptionList	 ::= segOption
+		 |   segOptionList segOption
+
+segOrderDir	 ::= '.ALPHA':i
+		 |   '.SEQ':i
+		 |   '.DOSSEG':i
+		 |   'DOSSEG':i
+
+segRO		 ::= 'READONLY':i
+
+segSize		 ::= 'USE16':i
+		 |   'USE32':i
+		 |   'FLAT':i
+
+shiftOp		 ::= 'SHR':i
+		 |   'SHL':i
+
+sign		 ~   [-+]
+
+simpleExpr	 ::= '(' cExpr ')'
+		 |   primary
+
+simpleSegDir	 ::= segDir endOfLineOrComment
+
+sizeArg		 ::= id
+		 |   type
+		 |   e10
+
+specialChars	 ~   [:.|()<>{}+-/*&%!'\=;,"]
+		 |   whiteSpaceCharacter
+		 |   endOfLine
+
+specialRegister	 ::= 'CR0':i
+		 |   'CR2':i
+		 |   'CR3':i
+		 |   'DR0':i
+		 |   'DR1':i
+		 |   'DR2':i
+		 |   'DR3':i
+		 |   'DR6':i
+		 |   'DR7':i
+		 |   'TR3':i
+		 |   'TR4':i
+		 |   'TR5':i
+		 |   'TR6':i
+		 |   'TR7':i
+
+stackOption	 ::= 'NEARSTACK':i
+		 |   'FARSTACK':i
+
+startupDir	 ::= '.STARTUP':i endOfLineOrComment
+
+stext		 ::= stringChar
+		 |   stext stringChar
+
+string		 ::= quote stext quote
+		 |   quote       quote
+
+anyCharExceptQuote ~ [^']
+
+stringChar	 ::= quote quote
+		 |   anyCharExceptQuote
+
+structBody	 ::= structItem endOfLineOrComment
+		 |   structBody structItem endOfLineOrComment
+
+structDir	 ::= structTag structHdr fieldAlign ',' 'NONUNIQUE':i endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr fieldAlign                   endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr            ',' 'NONUNIQUE':i endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr                              endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+
+structHdr	 ::= 'STRUC':i
+		 |   'STRUCT':i
+		 |   'UNION':i
+
+structInstance	 ::= '<' fieldInitList '>'
+		 |   '<'               '>'
+		 |   '{' endOfLineOrComment fieldInitList endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment fieldInitList                    '}'
+		 |   '{' endOfLineOrComment               endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment                                  '}'
+		 |   '{'                    fieldInitList endOfLineOrComment '}'
+		 |   '{'                    fieldInitList                    '}'
+		 |   '{'                                  endOfLineOrComment '}'
+		 |   '{'                                                     '}'
+		 |   constExpr DUP '(' structInstList ')'
+
+structInstList	 ::= structInstance
+		 |   structInstList ',' endOfLineOrComment structInstance
+		 |   structInstList ','                    structInstance
+
+structItem	 ::= dataDir
+		 |   generalDir
+		 |   offsetDir
+		 |   nestedStruct
+
+structTag	 ::= id
+
+term		 ::= simpleExpr
+		 |   '!' simpleExpr
+
+text		 ::= textLiteral
+		 |   text character
+		 |   '!' character text
+		 |   character
+		 |   '!' character
+
+textDir		 ::= id textMacroDir endOfLineOrComment
+
+textItem	 ::= textLiteral
+		 |   textMacroId
+		 |   '%' constExpr
+
+textLen		 ::= constExpr
+
+textList	 ::= textItem
+		 |   textList ',' endOfLineOrComment textItem
+		 |   textList ','                    textItem
+
+textLiteral	 ::= '<' text '>' endOfLineOrComment
+
+textMacroDir	 ::= 'CATSTR':i textList
+		 |   'CATSTR':i
+		 |   'TEXTEQU':i textList
+		 |   'TEXTEQU':i
+		 |   'SIZESTR':i textItem
+		 |   'SUBSTR':i textItem , textStart ',' textLen
+		 |   'SUBSTR':i textItem , textStart
+		 |   'INSTR':i textStart ',' textItem , textItem
+		 |   'INSTR':i               textItem , textItem
+
+textMacroId	 ::= id
+
+textStart	 ::= constExpr
+
+titleDir	 ::= titleType arbitraryText endOfLineOrComment
+
+titleType	 ::= 'TITLE':i
+		 |   'SUBTITLE':i
+		 |   'SUBTTL':i
+
+type		 ::= structTag
+		 |   unionTag
+		 |   recordTag
+		 |   distance
+		 |   dataType
+		 |   typeId
+
+typedefDir	 ::= typeId 'TYPEDEF':i qualifier
+
+typeId		 ::= id
+
+unionTag	 ::= id
+
+untilDir	 ::= '.UNTIL':i cExpr endOfLineOrComment
+		 |   '.UNTILCXZ':i cxzExpr endOfLineOrComment
+		 |   '.UNTILCXZ':i         endOfLineOrComment
+
+usesRegs	 ::= 'USES':i regList
+
+whileBlock	 ::= '.WHILE':i cExpr endOfLineOrComment blockStatements endOfLineOrComment '.ENDW':i
+
+whiteSpaceCharacter  ~ [\8\9\11-\13\26\32]
+
+##################
+# Reserved words #
+##################
+
+operandsAndSymbols ::= '$':i
+		   |   '?':i
+		   |   '@B':i
+		   |   '@F':i
+		   |   'ADDR':i
+		   |   'BASIC':i
+		   |   'BYTE':i
+		   |   'C':i
+		   |   'CARRY?':i
+		   |   'DWORD':i
+		   |   'FAR':i
+		   |   'FAR16':i
+		   |   'FORTRAN':i
+		   |   'FWORD':i
+		   |   'NEAR':i
+		   |   'NEAR16':i
+		   |   'OVERFLOW?':i
+		   |   'PARITY?':i
+		   |   'PASCAL':i
+		   |   'QWORD':i
+		   |   'REAL4':i
+		   |   'REAL8':i
+		   |   'REAL10':i
+		   |   'SBYTE':i
+		   |   'SDWORD':i
+		   |   'SIGN?':i
+		   |   'STDCALL':i
+		   |   'SWORD':i
+		   |   'SYSCALL':i
+		   |   'TBYTE':i
+		   |   'VARARG':i
+		   |   'WORD':i
+		   |   'ZERO?':i
+		   |   'FLAT':i		# 80386/486
+		   |   'NEAR32':i	# 80386/486
+		   |   'FAR32':i	# 80386/486
+		   |   '@CatStr'	# Case sensitive 
+		   |   '@code'		# Case sensitive 
+		   |   '@CodeSize'	# Case sensitive 
+		   |   '@Cpu'		# Case sensitive 
+		   |   '@CurSeg'	# Case sensitive 
+		   |   '@data'		# Case sensitive 
+		   |   '@DataSize'	# Case sensitive 
+		   |   '@Date'		# Case sensitive 
+		   |   '@Environ'	# Case sensitive 
+		   |   '@fardata'	# Case sensitive 
+		   |   '@fardata?'	# Case sensitive 
+		   |   '@FileCur'	# Case sensitive 
+		   |   '@FileName'	# Case sensitive 
+		   |   '@InStr'		# Case sensitive 
+		   |   '@Interface'	# Case sensitive 
+		   |   '@Line'		# Case sensitive 
+		   |   '@Model'	  	# Case sensitive 
+		   |   '@SizeStr'	# Case sensitive 
+		   |   '@stack'		# Case sensitive 
+		   |   '@SubStr'	# Case sensitive 
+		   |   '@Time'		# Case sensitive 
+		   |   '@Version'	# Case sensitive 
+		   |   '@WordSize'	# Case sensitive 
+
+
+registers	   ::= 'AH':i
+		   |   'AL':i
+		   |   'AX':i
+		   |   'BH':i
+		   |   'BL':i
+		   |   'BP':i
+		   |   'BX':i
+		   |   'CH':i
+		   |   'CL':i
+		   |   'CR0':i
+		   |   'CR2':i
+		   |   'CR3':i
+		   |   'CS':i
+		   |   'CX':i
+		   |   'DH':i
+		   |   'DI':i
+		   |   'DL':i
+		   |   'DR0':i
+		   |   'DR1':i
+		   |   'DR2':i
+		   |   'DR3':i
+		   |   'DR6':i
+		   |   'DR7':i
+		   |   'DS':i
+		   |   'DX':i
+		   |   'EAX':i
+		   |   'EBP':i
+		   |   'EBX':i
+		   |   'ECX':i
+		   |   'EDI':i
+		   |   'EDX':i
+		   |   'ES':i
+		   |   'ESI':i
+		   |   'ESP':i
+		   |   'FS':i
+		   |   'GS':i
+		   |   'SI':i
+		   |   'SP':i
+		   |   'SS':i
+		   |   'ST':i
+		   |   'TR3':i
+		   |   'TR4':i
+		   |   'TR5':i
+		   |   'TR6':i
+		   |   'TR7':i
+
+
+operatorsAndDirectives ::= '.186':i
+		       |   '.286':i
+		       |   '.286C':i
+		       |   '.286P':i
+		       |   '.287':i
+		       |   '.386':i
+		       |   '.386C':i
+		       |   '.386P':i
+		       |   '.387':i
+		       |   '.486':i
+		       |   '.486P':i
+		       |   '.8086':i
+		       |   '.8087':i
+		       |   '.ALPHA':i
+		       |   '.BREAK':i
+		       |   '.CODE':i
+		       |   '.CONST':i
+		       |   '.CONTINUE':i
+		       |   '.CREF':i
+		       |   '.DATA':i
+		       |   '.DATA?':i
+		       |   '.DOSSEG':i
+		       |   '.ELSE':i
+		       |   '.ELSEIF':i
+		       |   '.ENDIF':i
+		       |   '.ENDW':i
+		       |   '.ERR':i
+		       |   '.ERR1':i
+		       |   '.ERR2':i
+		       |   '.ERRB':i
+		       |   '.ERRDEF':i
+		       |   '.ERRDIF':i
+		       |   '.ERRDIFI':i
+		       |   '.ERRE':i
+		       |   '.ERRIDN':i
+		       |   '.ERRIDNI':i
+		       |   '.ERRNB':i
+		       |   '.ERRNDEF':i
+		       |   '.ERRNZ':i
+		       |   '.EXIT':i
+		       |   '.FARDATA':i
+		       |   '.FARDATA?':i
+		       |   '.IF':i
+		       |   '.LALL':i
+		       |   '.LFCOND':i
+		       |   '.LIST':i
+		       |   '.LISTALL':i
+		       |   '.LISTIF':i
+		       |   '.LISTMACRO':i
+		       |   '.LISTMACROALL':i
+		       |   '.MODEL':i
+		       |   '.NO87':i
+		       |   '.NOCREF':i
+		       |   '.NOLIST':i
+		       |   '.NOLISTIF':i
+		       |   '.NOLISTMACRO':i
+		       |   '.RADIX':i
+		       |   '.REPEAT':i
+		       |   '.SALL':i
+		       |   '.SEQ':i
+		       |   '.SFCOND':i
+		       |   '.STACK':i
+		       |   '.STARTUP':i
+		       |   '.TFCOND':i
+		       |   '.TYPE':i
+		       |   '.UNTIL':i
+		       |   '.UNTILCXZ':i
+		       |   '.WHILE':i
+		       |   '.XALL':i
+		       |   '.XCREF':i
+		       |   '.XLIST':i
+		       |   'ALIAS':i
+		       |   'ALIGN':i
+		       |   'ASSUME':i
+		       |   'CATSTR':i
+		       |   'COMM':i
+		       |   'COMMENT':i
+		       |   'DB':i
+		       |   'DD':i
+		       |   'DF':i
+		       |   'DOSSEG':i
+		       |   'DQ':i
+		       |   'DT':i
+		       |   'DUP':i
+		       |   'DW':i
+		       |   'ECHO':i
+		       |   'ELSE':i
+		       |   'ELSEIF':i
+		       |   'ELSEIF1':i
+		       |   'ELSEIF2':i
+		       |   'ELSEIFB':i
+		       |   'ELSEIFDEF':i
+		       |   'ELSEIFDIF':i
+		       |   'ELSEIFDIFI':i
+		       |   'ELSEIFE':i
+		       |   'ELSEIFIDN':i
+		       |   'ELSEIFIDNI':i
+		       |   'ELSEIFNB':i
+		       |   'ELSEIFNDEF':i
+		       |   'END':i
+		       |   'ENDIF':i
+		       |   'ENDM':i
+		       |   'ENDP':i
+		       |   'ENDS':i
+		       |   'EQ':i
+		       |   'EQU':i
+		       |   'EVEN':i
+		       |   'EXITM':i
+		       |   'EXTERN':i
+		       |   'EXTERNDEF':i
+		       |   'EXTRN':i
+		       |   'FOR':i
+		       |   'FORC':i
+		       |   'GE':i
+		       |   'GOTO':i
+		       |   'GROUP':i
+		       |   'GT':i
+		       |   'HIGH':i
+		       |   'HIGHWORD':i
+		       |   'IF':i
+		       |   'IF1':i
+		       |   'IF2':i
+		       |   'IFB':i
+		       |   'IFDEF':i
+		       |   'IFDIF':i
+		       |   'IFDIFI':i
+		       |   'IFE':i
+		       |   'IFIDN':i
+		       |   'IFIDNI':i
+		       |   'IFNB':i
+		       |   'IFNDEF':i
+		       |   'INCLUDE':i
+		       |   'INCLUDELIB':i
+		       |   'INSTR':i
+		       |   'INVOKE':i
+		       |   'IRP':i
+		       |   'IRPC':i
+		       |   'LABEL':i
+		       |   'LE':i
+		       |   'LENGTH':i
+		       |   'LENGTHOF':i
+		       |   'LOCAL':i
+		       |   'LOW':i
+		       |   'LOWWORD':i
+		       |   'LROFFSET':i
+		       |   'LT':i
+		       |   'MACRO':i
+		       |   'MASK':i
+		       |   'MOD':i
+		       |   '.MSFLOAT':i
+		       |   'NAME':i
+		       |   'NE':i
+		       |   'OFFSET':i
+		       |   'OPATTR':i
+		       |   'OPTION':i
+		       |   'ORG':i
+		       |   '%OUT':i
+		       |   'PAGE':i
+		       |   'POPCONTEXT':i
+		       |   'PROC':i
+		       |   'PROTO':i
+		       |   'PTR':i
+		       |   'PUBLIC':i
+		       |   'PURGE':i
+		       |   'PUSHCONTEXT':i
+		       |   'RECORD':i
+		       |   'REPEAT':i
+		       |   'REPT':i
+		       |   'SEG':i
+		       |   'SEGMENT':i
+		       |   'SHORT':i
+		       |   'SIZE':i
+		       |   'SIZEOF':i
+		       |   'SIZESTR':i
+		       |   'STRUC':i
+		       |   'STRUCT':i
+		       |   'SUBSTR':i
+		       |   'SUBTITLE':i
+		       |   'SUBTTL':i
+		       |   'TEXTEQU':i
+		       |   'THIS':i
+		       |   'TITLE':i
+		       |   'TYPE':i
+		       |   'TYPEDEF':i
+		       |   'UNION':i
+		       |   'WHILE':i
+		       |   'WIDTH':i
+
+processorInstructions ::=  'AAA':i
+		       |   'AAD':i
+		       |   'AAM':i
+		       |   'AAS':i
+		       |   'ADC':i
+		       |   'ADD':i
+		       |   'AND':i
+		       |   'CALL':i
+		       |   'CBW':i
+		       |   'CLC':i
+		       |   'CLD':i
+		       |   'CLI':i
+		       |   'CMC':i
+		       |   'CMP':i
+		       |   'CMPS':i
+		       |   'CMPSB':i
+		       |   'CMPSW':i
+		       |   'CWD':i
+		       |   'DAA':i
+		       |   'DAS':i
+		       |   'DEC':i
+		       |   'DIV':i
+		       |   'ESC':i
+		       |   'HLT':i
+		       |   'IDIV':i
+		       |   'IMUL':i
+		       |   'IN':i
+		       |   'INC':i
+		       |   'INT':i
+		       |   'INTO':i
+		       |   'IRET':i
+		       |   'JA':i
+		       |   'JAE':i
+		       |   'JB':i
+		       |   'JBE':i
+		       |   'JC':i
+		       |   'JCXZ':i
+		       |   'JE':i
+		       |   'JG':i
+		       |   'JGE':i
+		       |   'JL':i
+		       |   'JLE':i
+		       |   'JMP':i
+		       |   'JNA':i
+		       |   'JNAE':i
+		       |   'JNB':i
+		       |   'JNBE':i
+		       |   'JNC':i
+		       |   'JNE':i
+		       |   'JNG':i
+		       |   'JNGE':i
+		       |   'JNL':i
+		       |   'JNLE':i
+		       |   'JNO':i
+		       |   'JNP':i
+		       |   'JNS':i
+		       |   'JNZ':i
+		       |   'JO':i
+		       |   'JP':i
+		       |   'JPE':i
+		       |   'JPO':i
+		       |   'JS':i
+		       |   'JZ':i
+		       |   'LAHF':i
+		       |   'LDS':i
+		       |   'LEA':i
+		       |   'LES':i
+		       |   'LODS':i
+		       |   'LODSB':i
+		       |   'LODSW':i
+		       |   'LOOP':i
+		       |   'LOOPE':i
+		       |   'LOOPEW':i
+		       |   'LOOPNE':i
+		       |   'LOOPNEW':i
+		       |   'LOOPNZ':i
+		       |   'LOOPNZW':i
+		       |   'LOOPW':i
+		       |   'LOOPZ':i
+		       |   'LOOPZW':i
+		       |   'MOV':i
+		       |   'MOVS':i
+		       |   'MOVSB':i
+		       |   'MOVSW':i
+		       |   'MUL':i
+		       |   'NEG':i
+		       |   'NOP':i
+		       |   'NOT':i
+		       |   'OR':i
+		       |   'OUT':i
+		       |   'POP':i
+		       |   'POPF':i
+		       |   'PUSH':i
+		       |   'PUSHF':i
+		       |   'RCL':i
+		       |   'RCR':i
+		       |   'RET':i
+		       |   'RETF':i
+		       |   'RETN':i
+		       |   'ROL':i
+		       |   'ROR':i
+		       |   'SAHF':i
+		       |   'SAL':i
+		       |   'SAR':i
+		       |   'SBB':i
+		       |   'SCAS':i
+		       |   'SCASB':i
+		       |   'SCASW':i
+		       |   'SHL':i
+		       |   'SHR':i
+		       |   'STC':i
+		       |   'STD':i
+		       |   'STI':i
+		       |   'STOS':i
+		       |   'STOSB':i
+		       |   'STOSW':i
+		       |   'SUB':i
+		       |   'TEST':i
+		       |   'WAIT':i
+		       |   'XCHG':i
+		       |   'XLAT':i
+		       |   'XLATB':i
+		       |   'XOR':i
+		       |   'BOUND':i
+		       |   'ENTER':i
+		       |   'INS':i
+		       |   'INSB':i
+		       |   'INSW':i
+		       |   'LEAVE':i
+		       |   'OUTS':i
+		       |   'OUTSB':i
+		       |   'OUTSW':i
+		       |   'POPA':i
+		       |   'PUSHA':i
+		       |   'PUSHW':i
+		       |   'ARPL':i
+		       |   'LAR':i
+		       |   'LSL':i
+		       |   'SGDT':i
+		       |   'SIDT':i
+		       |   'SLDT':i
+		       |   'SMSW':i
+		       |   'STR':i
+		       |   'VERR':i
+		       |   'VERW':i
+		       |   'CLTS':i
+		       |   'LGDT':i
+		       |   'LIDT':i
+		       |   'LLDT':i
+		       |   'LMSW':i
+		       |   'LTR':i
+		       |   'BSF':i
+		       |   'BSR':i
+		       |   'BT':i
+		       |   'BTC':i
+		       |   'BTR':i
+		       |   'BTS':i
+		       |   'CDQ':i
+		       |   'CMPSD':i
+		       |   'CWDE':i
+		       |   'INSD':i
+		       |   'IRETD':i
+		       |   'IRETDF':i
+		       |   'IRETF':i
+		       |   'JECXZ':i
+		       |   'LFS':i
+		       |   'LGS':i
+		       |   'LODSD':i
+		       |   'LOOPD':i
+		       |   'LOOPED':i
+		       |   'LOOPNED':i
+		       |   'LOOPNZD':i
+		       |   'LOOPZD':i
+		       |   'LSS':i
+		       |   'MOVSD':i
+		       |   'MOVSX':i
+		       |   'MOVZX':i
+		       |   'OUTSD':i
+		       |   'POPAD':i
+		       |   'POPFD':i
+		       |   'PUSHAD':i
+		       |   'PUSHD':i
+		       |   'PUSHFD':i
+		       |   'SCASD':i
+		       |   'SETA':i
+		       |   'SETAE':i
+		       |   'SETB':i
+		       |   'SETBE':i
+		       |   'SETC':i
+		       |   'SETE':i
+		       |   'SETG':i
+		       |   'SETGE':i
+		       |   'SETL':i
+		       |   'SETLE':i
+		       |   'SETNA':i
+		       |   'SETNAE':i
+		       |   'SETNB':i
+		       |   'SETNBE':i
+		       |   'SETNC':i
+		       |   'SETNE':i
+		       |   'SETNG':i
+		       |   'SETNGE':i
+		       |   'SETNL':i
+		       |   'SETNLE':i
+		       |   'SETNO':i
+		       |   'SETNP':i
+		       |   'SETNS':i
+		       |   'SETNZ':i
+		       |   'SETO':i
+		       |   'SETP':i
+		       |   'SETPE':i
+		       |   'SETPO':i
+		       |   'SETS':i
+		       |   'SETZ':i
+		       |   'SHLD':i
+		       |   'SHRD':i
+		       |   'STOSD':i
+		       |   'BSWAP':i
+		       |   'CMPXCHG':i
+		       |   'INVD':i
+		       |   'INVLPG':i
+		       |   'WBINVD':i
+		       |   'XADD':i
+		       |   'LOCK':i
+		       |   'REP':i
+		       |   'REPE':i
+		       |   'REPNE':i
+		       |   'REPNZ':i
+		       |   'REPZ':i
+
+
+CoprocessorInstructions ::= 'F2XM1':i
+		       |   'FABS':i
+		       |   'FADD':i
+		       |   'FADDP':i
+		       |   'FBLD':i
+		       |   'FBSTP':i
+		       |   'FCHS':i
+		       |   'FCLEX':i
+		       |   'FCOM':i
+		       |   'FCOMP':i
+		       |   'FCOMPP':i
+		       |   'FDECSTP':i
+		       |   'FDISI':i
+		       |   'FDIV':i
+		       |   'FDIVP':i
+		       |   'FDIVR':i
+		       |   'FDIVRP':i
+		       |   'FENI':i
+		       |   'FFREE':i
+		       |   'FIADD':i
+		       |   'FICOM':i
+		       |   'FICOMP':i
+		       |   'FIDIV':i
+		       |   'FIDIVR':i
+		       |   'FILD':i
+		       |   'FIMUL':i
+		       |   'FINCSTP':i
+		       |   'FINIT':i
+		       |   'FIST':i
+		       |   'FISTP':i
+		       |   'FISUB':i
+		       |   'FISUBR':i
+		       |   'FLD':i
+		       |   'FLD1':i
+		       |   'FLDCW':i
+		       |   'FLDENV':i
+		       |   'FLDENVW':i
+		       |   'FLDL2E':i
+		       |   'FLDL2T':i
+		       |   'FLDLG2':i
+		       |   'FLDLN2':i
+		       |   'FLDPI':i
+		       |   'FLDZ':i
+		       |   'FMUL':i
+		       |   'FMULP':i
+		       |   'FNCLEX':i
+		       |   'FNDISI':i
+		       |   'FNENI':i
+		       |   'FNINIT':i
+		       |   'FNOP':i
+		       |   'FNSAVE':i
+		       |   'FNSAVEW':i
+		       |   'FNSTCW':i
+		       |   'FNSTENV':i
+		       |   'FNSTENVW':i
+		       |   'FNSTSW':i
+		       |   'FPATAN':i
+		       |   'FPREM':i
+		       |   'FPTAN':i
+		       |   'FRNDINT':i
+		       |   'FRSTOR':i
+		       |   'FRSTORW':i
+		       |   'FSAVE':i
+		       |   'FSAVEW':i
+		       |   'FSCALE':i
+		       |   'FSQRT':i
+		       |   'FST':i
+		       |   'FSTCW':i
+		       |   'FSTENV':i
+		       |   'FSTENVW':i
+		       |   'FSTP':i
+		       |   'FSTSW':i
+		       |   'FSUB':i
+		       |   'FSUBP':i
+		       |   'FSUBR':i
+		       |   'FSUBRP':i
+		       |   'FTST':i
+		       |   'FWAIT':i
+		       |   'FXAM':i
+		       |   'FXCH':i
+		       |   'FXTRACT':i
+		       |   'FYL2X':i
+		       |   'FYL2XP1':i
+		       |   'FSETPM':i
+		       |   'FCOS':i
+		       |   'FLDENVD':i
+		       |   'FNSAVED':i
+		       |   'FNSTENVD':i
+		       |   'FPREM1':i
+		       |   'FRSTORD':i
+		       |   'FSAVED':i
+		       |   'FSIN':i
+		       |   'FSINCOS':i
+		       |   'FSTENVD':i
+		       |   'FUCOM':i
+		       |   'FUCOMP':i
+		       |   'FUCOMPP':i
