@@ -7,12 +7,12 @@ use File::Slurp qw/read_file/;
 my $grammar_source = do { local $/; <DATA> };
 my $grammar = Marpa::R2::Scanless::G->new({ source => \$grammar_source});
 my $input = read_file(shift);
-my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar, trace_terminals => 3 } );
+my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar, trace_terminals => 1 } );
 my $length = length $input;
 eval { $re->read( \$input ); 1 };
 if ($@) {
     print $@;
-    my $progress_report = $re->show_progress( 0, -1 );
+    my $progress_report = $re->show_progress();
     print $progress_report;
 }
 
@@ -21,11 +21,12 @@ __DATA__
 # MASM6.1
 # To be upgraded to VS 2013 c.f. http://msdn.microsoft.com/en-us/library/afzk3475.aspx
 :start ::= module
+lexeme default = forgiving => 1
 
 aliasDir           ::= 'ALIAS':i '<' id '>' '=' '<' id '>'
 
 endOfLine          ~ [\012]
-                   | [\s\S]            # End of buffer
+                   | [^\s\S]            # End of buffer
 
 endOfLineOrComment ::= endOfLine
 		   |   comment
