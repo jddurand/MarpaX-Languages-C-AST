@@ -479,7 +479,7 @@ groupId		 ::= id
 
 hexdigit	 ::= [a-fA-F]
 
-alpha            ~   [A-Za-z]+
+alpha            ~   [A-Za-z]
 
 id		 ::= alpha
 		 |   id alpha
