@@ -24,7 +24,12 @@ __DATA__
 
 aliasDir           ::= 'ALIAS':i '<' id '>' '=' '<' id '>'
 
-equalDir	   ::= id '=' immExpr
+endOfLine          ~ [\n]           # Side effet: last instruction must be on a line ending with newline
+
+endOfLineOrComment ::= endOfLine
+		   |   comment
+
+equalDir	   ::= id '=' immExpr endOfLineOrComment
 
 addOp		   ~   [-+]
 
@@ -38,8 +43,8 @@ arbitraryText  	   ::= charList
 asmInstruction	   ::= mnemonic
                    |   mnemonic exprList
 
-assumeDir	   ::= 'ASSUME':i assumeList
-		   |   'ASSUME':i 'NOTHING':i
+assumeDir	   ::= 'ASSUME':i assumeList endOfLineOrComment
+		   |   'ASSUME':i 'NOTHING':i endOfLineOrComment
 
 assumeList	   ::= assumeRegister
 		   |   assumeList ',' assumeRegister
@@ -69,6 +74,7 @@ bitDef		   ::= bitFieldId ':' bitFieldSize
 
 bitDefList	   ::= bitDef
 		   |   bitDefList ',' bitDef
+		   |   bitDefList ',' endOfLineOrComment  bitDef
 
 bitFieldId	   ::= id
 
@@ -101,9 +107,11 @@ nearfarMaybe	   ::=
 commDecl	   ::= nearfarMaybe langTypeMaybe id ':' commType ':' constExpr
 		   |   nearfarMaybe langTypeMaybe id ':' commType
 
-commDir		   ::= 'COMM':i commList
+commDir		   ::= 'COMM':i commList endOfLineOrComment
 
-commentDir	   ::= 'COMMENT':i delimiter text text delimiter text
+comment		   ::= ';' text endOfLineOrComment
+
+commentDir	   ::= 'COMMENT':i delimiter text text delimiter text endOfLineOrComment
 
 commList	   ::= commDecl
 		   |   commList ',' commDecl
@@ -116,8 +124,8 @@ constant	   ::= digits
 
 constExpr	   ::= expr
 
-contextDir	   ::= 'PUSHCONTEXT':i contextItemList
-		   |   'POPCONTEXT':i contextItemList
+contextDir	   ::= 'PUSHCONTEXT':i contextItemList endOfLineOrComment
+		   |   'POPCONTEXT':i contextItemList endOfLineOrComment
 
 contextItem	   ::= 'ASSUMES':i | 'RADIX':i | 'LISTING':i | 'CPU':i | 'ALL':i
 
@@ -130,17 +138,17 @@ controlBlock	   ::= whileBlock
 controlDir	   ::= controlIf
 		   |   controlBlock
 
-controlElseif	   ::= '.ELSEIF':i cExpr directiveList
-		   |   '.ELSEIF':i cExpr directiveList controlElseif
+controlElseif	   ::= '.ELSEIF':i cExpr endOfLineOrComment directiveList
+		   |   '.ELSEIF':i cExpr endOfLineOrComment directiveList controlElseif
 
-controlIf	   ::= '.IF':i cExpr directiveList                                       '.ENDIF':i
-		     | '.IF':i cExpr directiveList               '.ELSE':i directiveList '.ENDIF':i
-		     | '.IF':i cExpr directiveList controlElseif                         '.ENDIF':i
-		     | '.IF':i cExpr directiveList controlElseif '.ELSE':i directiveList '.ENDIF':i
+controlIf	   ::= '.IF':i cExpr endOfLineOrComment directiveList                                                           '.ENDIF':i endOfLineOrComment
+		     | '.IF':i cExpr endOfLineOrComment directiveList               '.ELSE':i endOfLineOrComment directiveList '.ENDIF':i endOfLineOrComment
+		     | '.IF':i cExpr endOfLineOrComment directiveList controlElseif                                             '.ENDIF':i endOfLineOrComment
+		     | '.IF':i cExpr endOfLineOrComment directiveList controlElseif '.ELSE':i endOfLineOrComment directiveList '.ENDIF':i endOfLineOrComment
 
 coprocessor	   ::= '.8087' | '.287' | '.387' | '.NO87':i
 
-crefDir		   ::= crefOption
+crefDir		   ::= crefOption endOfLineOrComment
 
 crefOption	   ::= '.CREF':i
 		   |   '.XCREF':i
@@ -155,8 +163,8 @@ cxzExpr		   ::= expr
 
 dataDecl	   ::= 'DB':i | 'DW':i | 'DD':i | 'DF':i | 'DQ':i | 'DT':i | dataType | typeId
 
-dataDir		   ::=    dataItem
-		   |   id dataItem
+dataDir		   ::=    dataItem endOfLineOrComment
+		   |   id dataItem endOfLineOrComment
 
 dataItem	   ::= dataDecl  scalarInstList
 		   |   structTag structInstList
@@ -187,6 +195,8 @@ delimiter	   ::= [^\010\011\013-\015\032\040]
 digits		   ::= decdigit
 		   |   digits decdigit
 		   |   digits hexdigit
+
+emptyDir           ::= endOfLineOrComment
 
 directive	   ::= generalDir
 		   |   segmentDef
@@ -261,11 +271,11 @@ e11		   ::= '(' expr ')'
 		   |   'ST':i
 		   |   'ST':i '(' expr ')'
 
-echoDir		 ::= 'ECHO':i arbitraryText
-		     '%OUT':i arbitraryText
+echoDir		 ::= 'ECHO':i arbitraryText endOfLineOrComment
+		     '%OUT':i arbitraryText endOfLineOrComment
 
-elseifBlock	 ::= elseifStatement directiveList
-		 |   elseifStatement directiveList elseifBlock
+elseifBlock	 ::= elseifStatement endOfLineOrComment directiveList
+		 |   elseifStatement endOfLineOrComment directiveList elseifBlock
 
 elseifStatement	 ::= 'ELSEIF':i     constExpr
 		 |   'ELSEIFE':i    constExpr
@@ -280,19 +290,19 @@ elseifStatement	 ::= 'ELSEIF':i     constExpr
 		 |   'ELSEIF1':i
 		 |   'ELSEIF2':i
 
-endDir		 ::= 'END':i
-		 |   'END':i immExpr
+endDir		 ::= 'END':i         endOfLineOrComment
+		 |   'END':i immExpr endOfLineOrComment
 
-endpDir		 ::= procId 'ENDP':i
+endpDir		 ::= procId 'ENDP':i endOfLineOrComment
 
-endsDir		 ::= id 'ENDS':i
+endsDir		 ::= id 'ENDS':i endOfLineOrComment
 
-equDir		 ::= textMacroId 'EQU':i equType
+equDir		 ::= textMacroId 'EQU':i equType endOfLineOrComment
 
 equType		 ::= immExpr
 		 |   textLiteral
 
-errorDir	 ::= errorOpt
+errorDir	 ::= errorOpt endOfLineOrComment
 
 errorOpt	 ::= '.ERR':i
 		 |   '.ERR':i     textItem
@@ -321,8 +331,8 @@ errorOpt	 ::= '.ERR':i
 		 |   '.ERR2':i
 		 |   '.ERR2':i    textItem
 
-exitDir		 ::= '.EXIT':i
-		 |   '.EXIT':i expr
+exitDir		 ::= '.EXIT':i      endOfLineOrComment
+		 |   '.EXIT':i expr endOfLineOrComment
 
 exitmDir	 ::= 'EXITM':i
 		 |   'EXITM':i textItem
@@ -344,14 +354,15 @@ langTypeMaybe    ::=
 externDef	 ::= langTypeMaybe id               ':' externType
 		 |   langTypeMaybe id '(' altId ')' ':' externType
 
-externDir	 ::= externKey externList
+externDir	 ::= externKey externList endOfLineOrComment
 
 externKey	 ::= 'EXTRN':i
 		 |   'EXTERN':i
 		 |   'EXTERNDEF':i
 
 externList	 ::= externDef
-		 |   externList ',' externDef
+		 |   externList ','                    externDef
+		 |   externList ',' endOfLineOrComment externDef
 
 externType	 ::= 'ABS':i
 		 |   qualifiedType
@@ -362,7 +373,8 @@ fieldInit	 ::= initValue
 		 |   structInstance
 
 fieldInitList	 ::= fieldInit
-		 |   fieldInitList ',' fieldInit
+		 |   fieldInitList ','                    fieldInit
+		 |   fieldInitList ',' endOfLineOrComment fieldInit
 
 fileChar	 ::= delimiter
 
@@ -476,10 +488,10 @@ id		 ::= alpha
 idList		 ::= id
 		 |   idList ',' id
 
-ifDir		 ::= ifStatement directiveList elseifBlock 'ELSE':i directiveList 'ENDIF':i
-		 |   ifStatement directiveList elseifBlock                        'ENDIF':i
-		 |   ifStatement directiveList             'ELSE':i directiveList 'ENDIF':i
-		 |   ifStatement directiveList                                    'ENDIF':i
+ifDir		 ::= ifStatement endOfLineOrComment directiveList elseifBlock 'ELSE':i endOfLineOrComment directiveList 'ENDIF':i endOfLineOrComment
+		 |   ifStatement endOfLineOrComment directiveList elseifBlock                                           'ENDIF':i endOfLineOrComment
+		 |   ifStatement endOfLineOrComment directiveList             'ELSE':i endOfLineOrComment directiveList 'ENDIF':i endOfLineOrComment
+		 |   ifStatement endOfLineOrComment directiveList                                                       'ENDIF':i endOfLineOrComment
 
 ifStatement	 ::= 'IF':i constExpr
 		 |   'IFE':i constExpr
@@ -496,9 +508,9 @@ ifStatement	 ::= 'IF':i constExpr
 
 immExpr		 ::= expr
 
-includeDir	 ::= 'INCLUDE':i fileSpec
+includeDir	 ::= 'INCLUDE':i fileSpec endOfLineOrComment
 
-includeLibDir	 ::= 'INCLUDELIB':i fileSpec
+includeLibDir	 ::= 'INCLUDELIB':i fileSpec endOfLineOrComment
 
 initValue	 ::= immExpr
 		 | string
@@ -541,11 +553,13 @@ invokeArg	 ::= register '::' register
 		 |   expr
 		 |   'ADDR':i expr
 
-invokeDir	 ::= 'INVOKE':i expr ',' invokeList
-		 |   'INVOKE':i expr
+invokeDir	 ::= 'INVOKE':i expr ',' endOfLineOrComment invokeList endOfLineOrComment
+		 |   'INVOKE':i expr ','                    invokeList endOfLineOrComment
+		 |   'INVOKE':i expr                                   endOfLineOrComment
 
 invokeList	 ::= invokeArg
-		 |   invokeList ',' invokeArg
+		 |   invokeList ',' endOfLineOrComment invokeArg
+		 |   invokeList ','                    invokeArg
 
 keyword		 ::= operandsAndSymbols
 		 |   registers
@@ -560,7 +574,7 @@ labelDef	 ::= id ':'
 		 |   id '::'
 		 |   '@@:'
 
-labelDir	 ::= id 'LABEL':i qualifiedType
+labelDir	 ::= id 'LABEL':i qualifiedType endOfLineOrComment
 
 langType	 ::= 'C':i
 		 |   'PASCAL':i
@@ -569,7 +583,7 @@ langType	 ::= 'C':i
 		 |   'SYSCALL':i
 		 |   'STDCALL':i
 
-listDir		 ::= listOption
+listDir		 ::= listOption endOfLineOrComment
 
 listOption	 ::= '.LIST':i
 		 |   '.NOLIST':i
@@ -587,9 +601,9 @@ listOption	 ::= '.LIST':i
 		 |   '.LISTMACRO':i
 		 |   '.XALL':i
 
-localDef	 ::= 'LOCAL':i idList
+localDef	 ::= 'LOCAL':i idList endOfLineOrComment
 
-localDir	 ::= 'LOCAL':i parmList
+localDir	 ::= 'LOCAL':i parmList endOfLineOrComment
 
 localDirList	 ::= localDir
 		 |   localDirList localDir
@@ -610,15 +624,15 @@ macroArgList	 ::= macroArg
 macroBody	 ::= localList macroStmtList
 		 |             macroStmtList
 
-macroCall	 ::= id macroArgList
+macroCall	 ::= id macroArgList endOfLineOrComment
 		 |   id '(' macroArgList ')'
 
-macroDir	 ::= id 'MACRO':i macroParmList macroBody 'ENDM':i
-		 |   id 'MACRO':i               macroBody 'ENDM':i
+macroDir	 ::= id 'MACRO':i macroParmList endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
+		 |   id 'MACRO':i               endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
 
-macroFor	 ::= forDir forParm ',' '<' macroArgList '>' macroBody 'ENDM':i
+macroFor	 ::= forDir forParm ',' '<' macroArgList '>' endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
 
-macroForc	 ::= forcDir id ',' textLiteral macroBody 'ENDM':i
+macroForc	 ::= forcDir id ',' textLiteral endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
 
 macroFuncId	 ::= id
 
@@ -634,21 +648,22 @@ macroParm	 ::= id ':' parmType
 		 |   id
 
 macroParmList	 ::= macroParm
-		 |   macroParmList ',' macroParm
+		 |   macroParmList ',' endOfLineOrComment macroParm
+		 |   macroParmList ','                    macroParm
 
 macroProcId	 ::= id
 
-macroRepeat	 ::= repeatDir constExpr macroBody 'ENDM':i
+macroRepeat	 ::= repeatDir constExpr endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
 
 macroStmt	 ::= directive
 		 |   exitmDir
 		 |   ':' macroLabel
 		 |   'GOTO':i macroLabel
 
-macroStmtList	 ::= macroStmt
-		 |   macroStmtList macroStmt
+macroStmtList	 ::= macroStmt endOfLineOrComment
+		 |   macroStmtList macroStmt endOfLineOrComment
 
-macroWhile	 ::= 'WHILE':i constExpr macroBody 'ENDM':i
+macroWhile	 ::= 'WHILE':i constExpr endOfLineOrComment macroBody 'ENDM':i endOfLineOrComment
 
 mapType		 ::= 'ALL':i | 'NONE':i | 'NOTPUBLIC':i
 
@@ -662,8 +677,8 @@ memOption	 ::= 'TINY':i
 
 mnemonic	 ::= processorInstructions
 
-modelDir	 ::= '.MODEL':i memOption ',' modelOptlist
-		 |   '.MODEL':i memOption
+modelDir	 ::= '.MODEL':i memOption ',' modelOptlist endOfLineOrComment
+		 |   '.MODEL':i memOption                  endOfLineOrComment
 
 modelOpt	 ::= langType
 		 |   stackOption
@@ -676,14 +691,14 @@ module		 ::= directiveList endDir
 
 mulOp		 ::= '*' | '/' | 'MOD':i
 
-nameDir		 ::= 'NAME':i id
+nameDir		 ::= 'NAME':i id endOfLineOrComment
 
 nearfar		 ::= 'NEAR':i | 'FAR':i
 
-nestedStruct	 ::= structHdr    structBody 'ENDS':i
-		 |   structHdr id structBody 'ENDS':i
+nestedStruct	 ::= structHdr    endOfLineOrComment structBody 'ENDS':i endOfLineOrComment
+		 |   structHdr id endOfLineOrComment structBody 'ENDS':i endOfLineOrComment
 
-offsetDir	 ::= offsetDirType
+offsetDir	 ::= offsetDirType endOfLineOrComment
 
 offsetDirType	 ::= 'EVEN':i
 		 |   'ORG':i immExpr
@@ -697,7 +712,7 @@ offsetType	 ::= 'GROUP':i
 oldRecordFieldList ::= constExpr
  		   |   oldRecordFieldList ',' constExpr
 
-optionDir	 ::= 'OPTION':i optionList
+optionDir	 ::= 'OPTION':i optionList endOfLineOrComment
 
 optionItem	 ::= 'CASEMAP':i ':' mapType
 		 |   'DOTNAME':i
@@ -729,7 +744,8 @@ optionItem	 ::= 'CASEMAP':i ':' mapType
 		 |   'SETIF2':i ':' bool
 
 optionList	 ::= optionItem
-		 |   optionList ',' optionItem
+		 |   optionList ',' endOfLineOrComment optionItem
+		 |   optionList ','                    optionItem
 
 optText		 ::= ',' textItem
 
@@ -740,8 +756,8 @@ oVisibility	 ::= 'PUBLIC':i
 		 |   'PRIVATE':i
 		 |   'EXPORT':i
 
-pageDir		 ::= 'PAGE':i pageExpr
-		 |   'PAGE':i
+pageDir		 ::= 'PAGE':i pageExpr endOfLineOrComment
+		 |   'PAGE':i          endOfLineOrComment
 
 pageExpr	 ::= '+'
 		 |   pageLength ',' pageWidth
@@ -761,7 +777,8 @@ parm		 ::= parmId ':' qualifiedType
 parmId		 ::= id
 
 parmList	 ::= parm
-		 |   parmList ',' parm
+		 |   parmList ',' endOfLineOrComment parm
+		 |   parmList ','                    parm
 
 parmType	 ::= 'REQ':i
 		 |   '=' textLiteral
@@ -807,24 +824,35 @@ processor	 ::= '.8086'
 		 |   '.486'
 		 |   '.486P':i
 
-processorDir	 ::= processor
-		 |   coprocessor
+processorDir	 ::= processor endOfLineOrComment
+		 |   coprocessor endOfLineOrComment
 
 procId		 ::= id
 
-procParmList	 ::= ',' parmList ',' parmId ':VARARG':i
-		 |   ',' parmList
-		 |                ',' parmId ':VARARG':i
+procParmList	 ::= ',' endOfLineOrComment parmList ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |   ',' endOfLineOrComment parmList ','                    parmId ':' 'VARARG'
+		 |   ',' endOfLineOrComment parmList
+		 |   ','                    parmList ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |   ','                    parmList ','                    parmId ':' 'VARARG'
+		 |   ','                    parmList
+		 |                                   ',' endOfLineOrComment parmId ':' 'VARARG'
+		 |                                   ','                    parmId ':' 'VARARG'
 
 protoArg	 ::= id ':' qualifiedType
 		 |      ':' qualifiedType
 
-protoArgList	 ::= ',' protoList ',' id ':VARARG':i
-		 |   ',' protoList
-		 |                 ',' id ':VARARG':i
+protoArgList	 ::= ',' endOfLineOrComment protoList ',' endOfLineOrComment id ':' 'VARARG'
+		 |   ',' endOfLineOrComment protoList ','                    id ':' 'VARARG'
+		 |   ',' endOfLineOrComment protoList
+		 |   ','                    protoList ',' endOfLineOrComment id ':' 'VARARG'
+		 |   ','                    protoList ','                    id ':' 'VARARG'
+		 |   ','                    protoList
+		 |                                    ',' endOfLineOrComment id ':' 'VARARG'
+		 |                                    ','                    id ':' 'VARARG'
 
 protoList	 ::= protoArg
-		 |   protoList ',' protoArg
+		 |   protoList ',' endOfLineOrComment protoArg
+		 |   protoList ','                    protoArg
 
 protoSpec	 ::= distance langType protoArgList
 		 |   distance langType
@@ -840,11 +868,12 @@ protoTypeDir	 ::= id 'PROTO':i protoSpec
 pubDef		 ::= langType id
 		 |            id
 
-publicDir	 ::= 'PUBLIC':i pubList
+publicDir	 ::= 'PUBLIC':i pubList endOfLineOrComment
 
 
 pubList		 ::= pubDef
-		 |   pubList ',' pubDef
+		 |   pubList ',' endOfLineOrComment pubDef
+		 |   pubList ','                    pubDef
 
 purgeDir	 ::= 'PURGE':i macroIdList
 
@@ -860,24 +889,29 @@ qualifier	 ::= qualifiedType
 quote		 ~ '"'
 		 | [']
 
-radixDir	 ::= '.RADIX':i constExpr
+radixDir	 ::= '.RADIX':i constExpr endOfLineOrComment
 
 radixOverride	 ~ [hoqtyHOQTY]
 
 recordConst	 ::= recordTag '{' oldRecordFieldList '}'
 		 |   recordTag '<' oldRecordFieldList '>'
 
-recordDir	 ::= recordTag 'RECORD':i bitDefList
+recordDir	 ::= recordTag 'RECORD':i bitDefList endOfLineOrComment
 
 recordFieldList	 ::= constExpr
-		 |   recordFieldList ',' constExpr
+		 |   recordFieldList ',' endOfLineOrComment constExpr
+		 |   recordFieldList ','                    constExpr
 
-recordInstance	 ::= '{' recordFieldList '}'
+recordInstance	 ::= '{' endOfLineOrComment recordFieldList endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment recordFieldList                    '}'
+		 |   '{'                    recordFieldList endOfLineOrComment '}'
+		 |   '{'                    recordFieldList                    '}'
 		 |   '<' oldRecordFieldList '>'
 		 |   constExpr 'DUP':i '(' recordInstance ')'
 
 recordInstList	 ::= recordInstance
-		 |   recordInstList ',' recordInstance
+		 |   recordInstList ',' endOfLineOrComment recordInstance
+		 |   recordInstList ','                    recordInstance
 
 recordTag	 ::= id
 
@@ -895,13 +929,14 @@ relOp		 ::= 'EQ':i
 		 |   'GT':i
 		 |   'GE':i
 
-repeatBlock	 ::= '.REPEAT' blockStatements untilDir
+repeatBlock	 ::= '.REPEAT' endOfLineOrComment blockStatements endOfLineOrComment untilDir endOfLineOrComment
 
 repeatDir	 ::= 'REPEAT':i
 		 |   'REPT':i
 
 scalarInstList	 ::= initValue
-		 |   scalarInstList ',' initValue
+		 |   scalarInstList ',' endOfLineOrComment initValue
+		 |   scalarInstList ','                    initValue
 
 segAlign	 ::= 'BYTE':i
 		 |   'WORD':i
@@ -940,8 +975,8 @@ segmentDef	 ::= segmentDir   inSegDirList endsDir
 		 |   simpleSegDir              endsDir
 		 |   simpleSegDir
 
-segmentDir	 ::= segId 'SEGMENT':i segOptionList
-		 |   segId 'SEGMENT':i
+segmentDir	 ::= segId 'SEGMENT':i segOptionList endOfLineOrComment
+		 |   segId 'SEGMENT':i               endOfLineOrComment
 
 segmentRegister	 ::= 'CS':i
 		 |   'DS':i
@@ -978,7 +1013,7 @@ sign		 ~   [-+]
 simpleExpr	 ::= '(' cExpr ')'
 		 |   primary
 
-simpleSegDir	 ::= segDir
+simpleSegDir	 ::= segDir endOfLineOrComment
 
 sizeArg		 ::= id
 		 |   type
@@ -1006,7 +1041,7 @@ specialRegister	 ::= 'CR0':i
 stackOption	 ::= 'NEARSTACK':i
 		 |   'FARSTACK':i
 
-startupDir	 ::= '.STARTUP':i
+startupDir	 ::= '.STARTUP':i endOfLineOrComment
 
 stext		 ::= stringChar
 		 |   stext stringChar
@@ -1019,13 +1054,13 @@ anyCharExceptQuote ~ [^']
 stringChar	 ::= quote quote
 		 |   anyCharExceptQuote
 
-structBody	 ::= structItem
-		 |   structBody structItem
+structBody	 ::= structItem endOfLineOrComment
+		 |   structBody structItem endOfLineOrComment
 
-structDir	 ::= structTag structHdr fieldAlign ',' 'NONUNIQUE':i structBody structTag 'ENDS':i
-		 |   structTag structHdr fieldAlign                   structBody structTag 'ENDS':i
-		 |   structTag structHdr            ',' 'NONUNIQUE':i structBody structTag 'ENDS':i
-		 |   structTag structHdr                              structBody structTag 'ENDS':i
+structDir	 ::= structTag structHdr fieldAlign ',' 'NONUNIQUE':i endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr fieldAlign                   endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr            ',' 'NONUNIQUE':i endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
+		 |   structTag structHdr                              endOfLineOrComment structBody structTag 'ENDS':i endOfLineOrComment
 
 structHdr	 ::= 'STRUC':i
 		 |   'STRUCT':i
@@ -1033,12 +1068,19 @@ structHdr	 ::= 'STRUC':i
 
 structInstance	 ::= '<' fieldInitList '>'
 		 |   '<'               '>'
-		 |   '{' fieldInitList '}'
-		 |   '{'               '}'
+		 |   '{' endOfLineOrComment fieldInitList endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment fieldInitList                    '}'
+		 |   '{' endOfLineOrComment               endOfLineOrComment '}'
+		 |   '{' endOfLineOrComment                                  '}'
+		 |   '{'                    fieldInitList endOfLineOrComment '}'
+		 |   '{'                    fieldInitList                    '}'
+		 |   '{'                                  endOfLineOrComment '}'
+		 |   '{'                                                     '}'
 		 |   constExpr 'DUP':i '(' structInstList ')'
 
 structInstList	 ::= structInstance
-		 |   structInstList ',' structInstance
+		 |   structInstList ',' endOfLineOrComment structInstance
+		 |   structInstList ','                    structInstance
 
 structItem	 ::= dataDir
 		 |   generalDir
@@ -1056,7 +1098,7 @@ text		 ::= textLiteral
 		 |   character
 		 |   '!' character
 
-textDir		 ::= id textMacroDir
+textDir		 ::= id textMacroDir endOfLineOrComment
 
 textItem	 ::= textLiteral
 		 |   textMacroId
@@ -1065,9 +1107,10 @@ textItem	 ::= textLiteral
 textLen		 ::= constExpr
 
 textList	 ::= textItem
-		 |   textList ',' textItem
+		 |   textList ',' endOfLineOrComment textItem
+		 |   textList ','                    textItem
 
-textLiteral	 ::= '<' text '>'
+textLiteral	 ::= '<' text '>' endOfLineOrComment
 
 textMacroDir	 ::= 'CATSTR':i textList
 		 |   'CATSTR':i
@@ -1083,7 +1126,7 @@ textMacroId	 ::= id
 
 textStart	 ::= constExpr
 
-titleDir	 ::= titleType arbitraryText
+titleDir	 ::= titleType arbitraryText endOfLineOrComment
 
 titleType	 ::= 'TITLE':i
 		 |   'SUBTITLE':i
@@ -1102,20 +1145,17 @@ typeId		 ::= id
 
 unionTag	 ::= id
 
-untilDir	 ::= '.UNTIL':i cExpr
-		 |   '.UNTILCXZ':i cxzExpr
-		 |   '.UNTILCXZ':i
+untilDir	 ::= '.UNTIL':i cExpr endOfLineOrComment
+		 |   '.UNTILCXZ':i cxzExpr endOfLineOrComment
+		 |   '.UNTILCXZ':i         endOfLineOrComment
 
 usesRegs	 ::= 'USES':i regList
 
-whileBlock	 ::= '.WHILE':i cExpr blockStatements '.ENDW':i
+whileBlock	 ::= '.WHILE':i cExpr endOfLineOrComment blockStatements endOfLineOrComment '.ENDW':i
 
-MSASM_COMMENT_INTERIOR    ~ [^\n]*
-MSASM_COMMENT             ~ ';' MSASM_COMMENT_INTERIOR
-MSASM_WHITESPACE          ~ [\s]
-
-:discard             ~ MSASM_COMMENT
-:discard             ~ MSASM_WHITESPACE
+whiteSpaceCharacter  ~ [\010\011\013-\015\032\040]
+whiteSpaceCharacters ~ whiteSpaceCharacter+
+:discard             ~ whiteSpaceCharacters
 
 ##################
 # Reserved words #
