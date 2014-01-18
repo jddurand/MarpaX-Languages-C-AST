@@ -24,7 +24,8 @@ __DATA__
 
 aliasDir           ::= 'ALIAS':i '<' id '>' '=' '<' id '>'
 
-endOfLine          ~ [\n]           # Side effet: last instruction must be on a line ending with newline
+endOfLine          ~ [\012]
+                   | [\s\S]            # End of buffer
 
 endOfLineOrComment ::= endOfLine
 		   |   comment
