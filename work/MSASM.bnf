@@ -2,9 +2,19 @@
 use strict;
 use diagnostics;
 use Marpa::R2;
+use File::Slurp qw/read_file/;
 
 my $grammar_source = do { local $/; <DATA> };
 my $grammar = Marpa::R2::Scanless::G->new({ source => \$grammar_source});
+my $input = read_file(shift);
+my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar, trace_terminals => 3 } );
+my $length = length $input;
+eval { $re->read( \$input ); 1 };
+if ($@) {
+    print $@;
+    my $progress_report = $re->show_progress( 0, -1 );
+    print $progress_report;
+}
 
 __DATA__
 
@@ -186,8 +196,11 @@ digits		   ::= decdigit
 		   |   digits decdigit
 		   |   digits hexdigit
 
+emptyDir           ::= endOfLineOrComment
+
 directive	   ::= generalDir
 		   |   segmentDef
+		   |   (emptyDir)
 
 directiveList	   ::= directive
 		   |   directiveList directive
@@ -466,7 +479,7 @@ groupId		 ::= id
 
 hexdigit	 ::= [a-fA-F]
 
-alpha            ~   [A-Za-z]
+alpha            ~   [A-Za-z]+
 
 id		 ::= alpha
 		 |   id alpha
@@ -1141,7 +1154,8 @@ usesRegs	 ::= 'USES':i regList
 whileBlock	 ::= '.WHILE':i cExpr endOfLineOrComment blockStatements endOfLineOrComment '.ENDW':i
 
 whiteSpaceCharacter  ~ [\010\011\013-\015\032\040]
-:discard             ~ whiteSpaceCharacter
+whiteSpaceCharacters ~ whiteSpaceCharacter+
+:discard             ~ whiteSpaceCharacters
 
 ##################
 # Reserved words #
