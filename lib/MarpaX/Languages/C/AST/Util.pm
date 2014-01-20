@@ -111,7 +111,7 @@ sub logCroak {
     my ($fmt, @arg) = @_;
 
     my $msg = sprintf($fmt, @arg);
-    $log->fatalf($msg);
+    $log->fatalf('%s', $msg);
     if (! $log->is_fatal()) {
       #
       # Logging is not enabled at FATAL level: re do the message in croak
