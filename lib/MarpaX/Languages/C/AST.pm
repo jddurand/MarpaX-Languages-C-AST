@@ -698,6 +698,10 @@ sub _doPauseBeforeLexeme {
 
 Since version 0.30, the c2ast.pl script is named c2ast (i.e. without extension).
 
+=head1 NOTES
+
+C code can have inline ASM code. The GCC Inline Assembly is fully supported, any other is falling into a heuristic that should catch everything needed. CL inline assemblies have been targetted in particular.
+
 =head1 SEE ALSO
 
 L<Log::Any>, L<Marpa::R2>
