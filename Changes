@@ -1,7 +1,49 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.32 2014-01-12T08:47:26
+0.33 2014-01-20T19:51:05
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Removed work files
+ - t/*.t: alwys call value()
+ - Opaque ASM support for everything not GCC inline ASM
+ - AST/Util.pm: force non true space to a true space for error reporting
+ - AST/Util.pm: Fixed $log->fatalf() arguments
+ - MASM: dev+
+ - MASM: dev+
+ - work/MSASM2.pl: dev+
+ - work/MSASM.bnf: fixed end of buffer detection + use forgiving
+ - work/MSASM.bnf: add end of buffer to endOfLine
+ - work/MSASM.bnf: dev+
+ - Revert "work/MSASM.bnf: dev+"
+   
+   This reverts commit 693733464525e669c1b7454bfeb43b83104435af.
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: :discard rule dev+
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - MSASM.bnf: dev+
+ - work/MSASM.bnf: dev+
+ - Impl.pm: Bump Marpa::R2 dependency to version 2.078000
+ - Grammar/ISO_ANSI_C_2011.pm: use insentitive lexemes for MASM
+ - AST.pm: Reduce the number of calls to value()
+ - dist.ini: Move [OSPrereqs / MSWin32] after [MakeMaker]
+ - Grammar/ISO_ANSI_C_2011.pm: ambiguity with msvsAsmType
+ - ISO_ANSI_C_2011/Scan.pm: Environment variables support for cpprun and
+   cppflags, Shell quoting when executing the preprocessor
+ - dist.ini: Win32::ShellQuote on MSWin32
+ - examples/h2xs.PL : Marpa aware version
+ - ISO_ANSI_C_2011/Scan.pm: more protections
+ - Merge branch 'master' of
+   https://github.com/jddurand/MarpaX-Languages-C-AST
+ - ISO_ANSI_C_2011/Scan.pm: parsed_fdecls is not interested by typedef'ed
+   functions declarations, prevent more undefined to be inserted
+
+0.32 2014-01-12T08:49:17
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.32
  - bin/cscan: fixed mod example, "mytype" should read "double"
  - ISO_ANSI_C_2011/Scan.pm: mod is setted via an appended, its separator is
    empty
