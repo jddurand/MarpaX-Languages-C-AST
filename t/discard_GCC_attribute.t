@@ -11,8 +11,8 @@ use MarpaX::Languages::C::AST::Expected;
 
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
-my $valuep = $cAst->parse(\$cSourceCode);
-ok(defined($valuep), 'Output from parse() is ok');
+my $valuep = $cAst->parse(\$cSourceCode)->value();
+ok(defined($valuep), 'Output from parse()->value() is ok');
 
 __DATA__
 __attribute__ ((weak, alias ("__f")))
@@ -84,3 +84,5 @@ __attribute__((__may_alias__))
    __attribute__((altivec(vector__)))
      __attribute__((altivec(pixel__))) unsigned short
      __attribute__((altivec(bool__))) unsigned
+
+int f();

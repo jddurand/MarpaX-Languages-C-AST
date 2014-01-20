@@ -12,7 +12,7 @@ use MarpaX::Languages::C::AST::Expected;
 
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
-my @r = trap {$cAst->parse(\$cSourceCode)};
+my @r = trap {$cAst->parse(\$cSourceCode)->value()};
 #
 # The error string will come from Marpa, typically: Error in SLIF G1 read: No lexemes accepted at position 34
 #

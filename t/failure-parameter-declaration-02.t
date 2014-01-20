@@ -12,7 +12,7 @@ use MarpaX::Languages::C::AST::Expected;
 
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
-my @r = trap {$cAst->parse(\$cSourceCode)};
+my @r = trap {$cAst->parse(\$cSourceCode)->value()};
 like($trap->die || '', qr/typedef is not valid in a parameter declaration/, $cSourceCode);
 __DATA__
 void func(int x, typedef y) {}

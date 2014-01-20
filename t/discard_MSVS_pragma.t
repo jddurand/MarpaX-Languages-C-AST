@@ -11,8 +11,8 @@ use MarpaX::Languages::C::AST::Expected;
 
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
-my $valuep = $cAst->parse(\$cSourceCode);
-ok(defined($valuep), 'Output from parse() is ok');
+my $valuep = $cAst->parse(\$cSourceCode)->value();
+ok(defined($valuep), 'Output from parse()->value() is ok');
 
 __DATA__
 // ----------
@@ -319,3 +319,5 @@ __pragma( vtordisp(push, off))
 __pragma( vtordisp(pop))
 __pragma( vtordisp())
 __pragma( vtordisp)
+
+int f();

@@ -12,7 +12,7 @@ use MarpaX::Languages::C::AST::Expected;
 my $cSourceCode = do { local $/; <DATA> };
 my $cAst = MarpaX::Languages::C::AST->new();
 my $valuep = $cAst->parse(\$cSourceCode)->value();
-ok(defined($valuep), 'Output from parse() is ok');
+ok(defined($valuep), 'Output from parse()->value() is ok');
 is_deeply($valuep, MarpaX::Languages::C::AST::Expected->value($valuep), 'Expected blessed structure');
 
 __DATA__
