@@ -157,6 +157,10 @@ sub showLineAndCol {
       }
     }
     pos(${$sourcep}) = $prevpos;
+    #
+    # We rely on any space being a true space for the pointer accuracy
+    #
+    $content =~ s/\s/ /g;
 
     return "line:column $line:$col (Unicode newline count) $nbnewlines:$col (\\n count)\n\n$content\n$pointer";
 }
