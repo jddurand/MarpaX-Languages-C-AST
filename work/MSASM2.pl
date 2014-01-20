@@ -12,54 +12,50 @@ my $grammar = Marpa::R2::Scanless::G->new({ source => \$grammar_source});
 my $input = read_file(shift);
 my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar, trace_terminals => 1 } );
 my $length = length $input;
-for ( my $pos = $re->read(\$input); $pos < $length; $pos = $re->resume()) {
-    foreach (@{$re->events()}) {
-	my ($name) = @{$_};
-	if ($name eq '^COMMENT_INTERIOR') {
-	    #
-	    # Get delimiter character
-	    #
-	    my $origPos = $pos;
-	    my ($s, $l) = $re->g1_location_to_span($re->current_g1_location());
-	    my $delimiter = $re->literal($s, $l);
-	    my $text = '';
-	    print STDERR "PAUSED $name $delimiter $pos $length\n";
-	    while ($pos < $length) {
-		my $c = substr($input, $pos, 1);
-		$text .= $c;
-		print STDERR "==> $text\n";
-		if ($c eq $delimiter) {
-		    print STDERR "==> DELIMITER $delimiter found at $pos\n";
+eval {
+    for ( my $pos = $re->read(\$input); $pos < $length; $pos = $re->resume()) {
+	foreach (@{$re->events()}) {
+	    my ($name) = @{$_};
+	    if ($name eq '^COMMENT_INTERIOR') {
+		#
+		# Get delimiter character
+		#
+		my $origPos = $pos;
+		my $delimiter = $re->literal($origPos, 1);
+		my $text = $delimiter;
+		++$pos;
+		while ($pos < $length) {
+		    my $c = substr($input, $pos++, 1);
+		    $text .= $c;
+		    if ($c eq $delimiter) {
+			last;
+		    }
+		}
+		#
+		# Eat the remaining up to newline
+		#
+		while ($pos < $length) {
+		    my $c = substr($input, $pos, 1);
+		    if (ord($c) eq oct(12)) {
+			last;
+		    }
 		    ++$pos;
-		    last;
+		    $text .= $c;
 		}
-		++$pos;
+		#
+		# Inject COMMENT_INTERIOR lexeme
+		#
+		my $l = length($text);
+		print STDERR "==> lexeme_read('COMMENT_INTERIOR', $origPos, $l, \"$text\")\n";
+		$re->lexeme_read('COMMENT_INTERIOR', $origPos, $l, $text);
+		print STDERR "==> Resume at $pos: <" . (substr($input, $pos, 10) . '...') . ">\n";
 	    }
-	    #
-	    # Eat the remaining up to newline
-	    #
-	    while ($pos < $length) {
-		my $c = substr($input, $pos, 1);
-		if (ord($c) eq oct(12)) {
-		    last;
-		}
-		++$pos;
-		$text .= $c;
-		print STDERR "==> $text\n";
-	    }
-	    #
-	    # Say to discard everything up to $pos
-	    #
-	    $l = length($text);
-	    print STDERR "==> lexeme_read('COMMENT_INTERIOR', $origPos, $l, \$text);\n";
-	    $re->lexeme_read('COMMENT_INTERIOR', $origPos, $l, $text);
-	    print STDERR "==> Resume at $pos\n";
 	}
     }
-}
+};
 if ($@) {
     print $@;
-    my $progress_report = $re->show_progress(-2, -1);
+    my $progress_report = $re->show_progress();
     print $progress_report;
     my $terminals_expected = $re->terminals_expected();
     print "Terminals expected:\n" . join(', ', @{$terminals_expected}) . "\n";
@@ -108,6 +104,7 @@ directive     ::= equalDirective        (EOD)
               |   assumeDirective       (EOD)
               |   breakDirective        (EOD)
               |   commentDirective      (EOD)
+              |                         (EOD)   # Empty directive
 
 #instruction   ::= label COLON mnenomic operands 
 #              |   label COLON mnenomic

@@ -10,3 +10,4 @@ alias <alias> = <actualName>
 align 
 COMMENT & et voila
 	& TEST
+	; normal comment
