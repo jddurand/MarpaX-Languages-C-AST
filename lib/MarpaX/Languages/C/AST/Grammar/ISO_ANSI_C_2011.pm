@@ -221,7 +221,7 @@ gccAlignofExpression ::= GCC_ALIGNOF unaryExpression
 
 unaryExpression
 	::= postfixExpression
-	| (gccExtension) postfixExpression
+	| gccExtension postfixExpression
 	| INC_OP unaryExpression
 	| DEC_OP unaryExpression
 	| unaryOperator castExpression
@@ -355,7 +355,7 @@ gccExtension ::= GCC_EXTENSION
 #                            | typeQualifier
 #                            | functionSpecifier
 #                            | alignmentSpecifier
-#                            | (gccExtension)
+#                            | gccExtension
 
 declarationSpecifiers ::= declarationSpecifiers0
                         | declarationSpecifiers1
@@ -370,8 +370,8 @@ declarationSpecifiers0 ::=       # List without type specifiers
                          | declarationSpecifiers0 functionSpecifier
                          | alignmentSpecifier
                          | declarationSpecifiers0 alignmentSpecifier
-                         | (gccExtension)
-                         | declarationSpecifiers0 (gccExtension)
+                         | gccExtension
+                         | declarationSpecifiers0 gccExtension
 
 declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                            typeSpecifier1
@@ -380,7 +380,7 @@ declarationSpecifiers1 ::=       # List with a single typeSpecifier1
                          | declarationSpecifiers1 typeQualifier
                          | declarationSpecifiers1 functionSpecifier
                          | declarationSpecifiers1 alignmentSpecifier
-                         | declarationSpecifiers1 (gccExtension)
+                         | declarationSpecifiers1 gccExtension
 
 declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                            typeSpecifier2
@@ -390,7 +390,7 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
                          | declarationSpecifiers2 typeQualifier
                          | declarationSpecifiers2 functionSpecifier
                          | declarationSpecifiers2 alignmentSpecifier
-                         | declarationSpecifiers2 (gccExtension)
+                         | declarationSpecifiers2 gccExtension
 
 # declarationSpecifiers ::= declarationSpecifiersUnit+
 
@@ -466,7 +466,7 @@ structDeclaration
 
 #specifierQualifierListUnit ::= typeSpecifier
 #                             | typeQualifier
-#                             | (gccExtension)
+#                             | gccExtension
 
 # specifierQualifierList ::= specifierQualifierListUnit+
 
@@ -477,21 +477,21 @@ specifierQualifierList ::= specifierQualifierList0
 specifierQualifierList0 ::= # List without type specifiers
                             typeQualifier
                           | specifierQualifierList0 typeQualifier
-                          | (gccExtension)
-                          | specifierQualifierList0 (gccExtension)
+                          | gccExtension
+                          | specifierQualifierList0 gccExtension
 
 specifierQualifierList1 ::= # List with a single typeSpecifier1
                             typeSpecifier1
                           | specifierQualifierList0 typeSpecifier1
                           | specifierQualifierList1 typeQualifier
-                          | specifierQualifierList1 (gccExtension)
+                          | specifierQualifierList1 gccExtension
 
 specifierQualifierList2 ::= # List with one or more typeSpecifier2
                             typeSpecifier2
                           | specifierQualifierList0 typeSpecifier2
                           | specifierQualifierList2 typeSpecifier2
                           | specifierQualifierList2 typeQualifier
-                          | specifierQualifierList2 (gccExtension)
+                          | specifierQualifierList2 gccExtension
 
 structDeclaratorList
 	::= structDeclarator
