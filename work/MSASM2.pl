@@ -12,7 +12,51 @@ my $grammar = Marpa::R2::Scanless::G->new({ source => \$grammar_source});
 my $input = read_file(shift);
 my $re = Marpa::R2::Scanless::R->new( { grammar => $grammar, trace_terminals => 1 } );
 my $length = length $input;
-eval { $re->read( \$input ); 1 };
+for ( my $pos = $re->read(\$input); $pos < $length; $pos = $re->resume()) {
+    foreach (@{$re->events()}) {
+	my ($name) = @{$_};
+	if ($name eq '^COMMENT_INTERIOR') {
+	    #
+	    # Get delimiter character
+	    #
+	    my $origPos = $pos;
+	    my ($s, $l) = $re->g1_location_to_span($re->current_g1_location());
+	    my $delimiter = $re->literal($s, $l);
+	    my $text = '';
+	    print STDERR "PAUSED $name $delimiter $pos $length\n";
+	    while ($pos < $length) {
+		my $c = substr($input, $pos, 1);
+		$text .= $c;
+		print STDERR "==> $text\n";
+		if ($c eq $delimiter) {
+		    print STDERR "==> DELIMITER $delimiter found at $pos\n";
+		    ++$pos;
+		    last;
+		}
+		++$pos;
+	    }
+	    #
+	    # Eat the remaining up to newline
+	    #
+	    while ($pos < $length) {
+		my $c = substr($input, $pos, 1);
+		if (ord($c) eq oct(12)) {
+		    last;
+		}
+		++$pos;
+		$text .= $c;
+		print STDERR "==> $text\n";
+	    }
+	    #
+	    # Say to discard everything up to $pos
+	    #
+	    $l = length($text);
+	    print STDERR "==> lexeme_read('COMMENT_INTERIOR', $origPos, $l, \$text);\n";
+	    $re->lexeme_read('COMMENT_INTERIOR', $origPos, $l, $text);
+	    print STDERR "==> Resume at $pos\n";
+	}
+    }
+}
 if ($@) {
     print $@;
     my $progress_report = $re->show_progress(-2, -1);
@@ -44,27 +88,26 @@ __DATA__
 #
 
 :start        ::= directives
-#lexeme default = forgiving => 1
 
 directives    ::= directive+
 
-directive     ::= equalDirective
-              |   dot386Directive
-              |   dot386PDirective
-              |   dot387Directive
-              |   dot486Directive
-              |   dot486PDirective
-              |   dot586Directive
-              |   dot586PDirective
-              |   dot686Directive
-              |   dot686PDirective
-              |   aliasDirective
-              |   alignDirective
-              |   allocstackDirective
-              |   alphaDirective
-              |   assumeDirective
-              |   breakDirective
-              |   commentDirective
+directive     ::= equalDirective        (EOD)
+              |   dot386Directive       (EOD)
+              |   dot386PDirective      (EOD)
+              |   dot387Directive       (EOD)
+              |   dot486Directive       (EOD)
+              |   dot486PDirective      (EOD)
+              |   dot586Directive       (EOD)
+              |   dot586PDirective      (EOD)
+              |   dot686Directive       (EOD)
+              |   dot686PDirective      (EOD)
+              |   aliasDirective        (EOD)
+              |   alignDirective        (EOD)
+              |   allocstackDirective   (EOD)
+              |   alphaDirective        (EOD)
+              |   assumeDirective       (EOD)
+              |   breakDirective        (EOD)
+              |   commentDirective      (EOD)
 
 #instruction   ::= label COLON mnenomic operands 
 #              |   label COLON mnenomic
@@ -108,14 +151,7 @@ assumeRegisterNothingList ::= register COLON NOTHING
                           |   registerNothingList COMMA register COLON NOTHING
 segregister               ::= SEGREGISTER
 register                  ::= REGISTER
-commentDirective          ::= COMMENT commentDirectiveStart commentDirectiveInterior commentDirectiveEnd
-commentDirectiveStart     ::= delimiter
-commentDirectiveEnd       ::= commentDirectiveStart
-commentDirectiveInterior  ::= anythingNotBlank
-                          |   commentDirectiveInterior anythingNotBlank
-anythingNotBlank          ::= ANYTHINGNOTBLANK
-delimiter                 ::= DELIMITER
-
+commentDirective          ::= COMMENT COMMENT_INTERIOR # Special rule handled in user space
 
 ####################
 # INTERNAL LEXEMES #
@@ -206,6 +242,13 @@ _BYTEREGISTER          ~ 'AL':i
                        | 'CH':i
                        | 'DL':i
                        | 'DH':i
+_EOL                   ~ [\012]
+_COMMENT_START         ~ ';'
+_COMMENT_INTERIOR      ~ [^\012]*
+_COMMENT               ~ _COMMENT_START _COMMENT_INTERIOR
+_WS                    ~ [\010\011\013-\015\032\040]
+_WS_MANY               ~ _WS*
+_DELIMITER             ~ [^\010-\013-\015\032\040]
 
 ####################
 # Exported lexemes #
@@ -231,6 +274,8 @@ COLON                 ~ ':'
 ERROR                 ~ 'ERROR':i
 NOTHING               ~ 'NOTHING':i
 COMMENT               ~ 'COMMENT':i
+:lexeme ~ COMMENT_INTERIOR pause => before event => '^COMMENT_INTERIOR'   # Handled in user's space
+COMMENT_INTERIOR      ~ _DELIMITER
 
 INTEGERCONSTANT       ~ _INTEGERCONSTANT
 #SIGNEDINTEGERCONSTANT ~ _SIGN _INTEGERCONSTANT
@@ -241,21 +286,12 @@ SEGREGISTER           ~ _SEGREGISTER
 REGISTER              ~ _SPECIALREGISTER
                       | _GPREGISTER
                       | _BYTEREGISTER
-:lexeme ~ DELIMITER priority => 1
-DELIMITER             ~ [^\s]
-:lexeme ~ ANYTHINGNOTBLANK forgiving => 1
-ANYTHINGNOTBLANK      ~ [^\s]+
 
-#####################
-# Discarded lexemes #
-#####################
-_WS      ~ [\s]+
-:discard ~ _WS
+# End of directive: this is EOL or a comment
+EOD                   ~ _EOL
+                      | _COMMENT
 
-#_ANYTHING_ANY ~ _ANYTHING*
-
-_COMMENT_START    ~ ';'
-_COMMENT_INTERIOR ~ [^\n]*
-_COMMENT          ~ _COMMENT_START _COMMENT_INTERIOR
-
-:discard ~ _COMMENT
+#########################
+# Discarded: whitespace #
+#########################
+:discard              ~ _WS_MANY
