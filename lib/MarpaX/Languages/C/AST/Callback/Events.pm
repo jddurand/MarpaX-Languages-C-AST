@@ -347,6 +347,7 @@ sub _declarationCheck {
     #
     my $declarationCheckdeclarationSpecifiers = $callback->topic_fired_data('declarationCheckdeclarationSpecifiers$');
     my $declarationCheckinitDeclaratorList = $callback->topic_fired_data('declarationCheckinitDeclaratorList$');
+    my $directDeclaratorIdentifier = $callback->topic_fired_data('directDeclaratorIdentifier$');
 
     #
     # By definition declarationCheckdeclarationSpecifiers contains only typedefs
@@ -363,7 +364,10 @@ sub _declarationCheck {
     }
     my $scope = $callback->hscratchpad('_scope');
 
-    foreach (@{$declarationCheckinitDeclaratorList}) {
+    #
+    # Because the scope could have been delayed, there can remain some directDeclaratorIdentifier
+    #
+    foreach (@{$declarationCheckinitDeclaratorList}, @{$directDeclaratorIdentifier}) {
 	my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
         if (! $counters{structContext}) {
           if ($nbTypedef >= 0) {
