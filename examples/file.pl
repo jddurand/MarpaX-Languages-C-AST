@@ -10,7 +10,7 @@ use Log::Any qw/$log/;
 # Init log
 #
 our $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
-log4perl.rootLogger              = WARN, Screen
+log4perl.rootLogger              = TRACE, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
 log4perl.appender.Screen.stderr  = 0
 log4perl.appender.Screen.layout  = PatternLayout
@@ -27,4 +27,4 @@ open(FILE, '<', $file) || die "Cannot open $file, $!\n";
 my $cSourceCode = do { local $/; <FILE> };
 close(FILE) || warn "Cannot close $file, $!\n";
 
-MarpaX::Languages::C::AST->new(logInfo => ['IDENTIFIER'])->parse(\$cSourceCode)->value();
+MarpaX::Languages::C::AST->new(logInfo => ['__ALL__'])->parse(\$cSourceCode)->value();
