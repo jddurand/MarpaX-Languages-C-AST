@@ -16,3 +16,4 @@ ok(defined($valuep), 'Output from parse()->value() is ok');
 
 __DATA__
 typedef int (*(*_func)(short argument))();
+typedef int (((((((*((((((((*_func2))))))))(short argument2))))))))();
