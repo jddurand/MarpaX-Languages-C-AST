@@ -54,7 +54,7 @@ sub new {
       _nscope => 0,
       _typedefPerScope => [ {} ],
       _enumAnyScope => {},
-      _delay => 0,
+      _delay => [],
       _enterScopeCallback => [],
       _exitScopeCallback => [],
   };
@@ -109,6 +109,7 @@ sub parseEnterScope {
   # Doing \%{$...} is just to make sure this is a new hash instance, with keys pointing to the same values as the origin
   #
   push(@{$self->{_typedefPerScope}}, \%{$self->{_typedefPerScope}->[$self->{_nscope}]});
+  push(@{$self->{_delay}}, 0);
   $self->{_nscope}++;
 
   if (@{$self->{_enterScopeCallback}}) {
@@ -120,7 +121,7 @@ sub parseEnterScope {
 
 =head2 parseDelay($self, [$value])
 
-Returns/Set current delay flag.
+Returns/Set delay flag of the current (i.e. last) scope.
 
 =cut
 
@@ -131,9 +132,9 @@ sub parseDelay {
     if ($log->is_debug) {
 	$log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $self->{_nscope});
     }
-    $self->{_delay} = $value;
+    $self->{_delay}->[-1] = $value;
   }
-  return $self->{_delay};
+  return $self->{_delay}->[-1];
 }
 
 =head2 parseScopeLevel($self)
@@ -232,13 +233,27 @@ sub doExitScope {
       $log->debugf('[%s] Removing scope %d', whoami(__PACKAGE__), $self->{_nscope});
   }
   pop(@{$self->{_typedefPerScope}});
+  pop(@{$self->{_delay}});
   $self->{_nscope}--;
 
   if (@{$self->{_exitScopeCallback}}) {
       my ($ref, @args) = @{$self->{_exitScopeCallback}};
       &$ref(@args);
   }
-  $self->parseDelay(0);
+
+  if ($self->{_nscope} > 0) {
+    #
+    # If the parent scope was marked delayed, we close it as well:
+    #
+    if ($self->parseDelay) {
+      if ($log->is_debug) {
+        $log->debugf('[%s] Parent scope has delay flag on', whoami(__PACKAGE__));
+      }
+      $self->doExitScope;
+    } else {
+      $self->parseDelay(0);
+    }
+  }
 }
 
 =head2 parseEnterTypedef($self, $token, $data)
