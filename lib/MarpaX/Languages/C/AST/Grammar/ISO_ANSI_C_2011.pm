@@ -40,6 +40,7 @@ our %DEFAULT_PAUSE = (
     IDENTIFIER           => 'before',
     SEMICOLON            => 'after',
     LCURLY_SCOPE         => 'after',
+    LCURLY_REENTERSCOPE  => 'after',
     RCURLY_SCOPE         => 'after',
     COMMA                => 'after',
     EQUAL                => 'after',
@@ -724,8 +725,8 @@ externalDeclaration
 	::= functionDefinition
 	| declaration
 
-compoundStatementReenterScope ::= LCURLY RCURLY_SCOPE
-	                        | LCURLY blockItemList RCURLY_SCOPE
+compoundStatementReenterScope ::= LCURLY_REENTERSCOPE RCURLY_SCOPE
+	                        | LCURLY_REENTERSCOPE blockItemList RCURLY_SCOPE
 
 functionDefinition
 	::= functionDefinitionCheck1
@@ -1000,28 +1001,48 @@ EQ_OP        ~ '=='
 NE_OP        ~ '!='
 :lexeme ~ <SEMICOLON>     priority => -126
 SEMICOLON                     ~ ';'
-:lexeme ~ <LCURLY>        priority => -127
-LCURLY                       ~ '{' | '<%'
+#
+# LCURLY factorization
+#
+_LCURLY      ~ '{' | '<%'
+:lexeme ~ <LCURLY>              priority => -127
 :lexeme ~ <LCURLY_SCOPE>        priority => -127
-LCURLY_SCOPE                       ~ '{' | '<%'
+:lexeme ~ <LCURLY_REENTERSCOPE> priority => -127
+LCURLY              ~ _LCURLY
+LCURLY_SCOPE        ~ _LCURLY
+LCURLY_REENTERSCOPE ~ _LCURLY
+#
+# LCURLY factorization
+#
+_RCURLY ~ '}' | '%>'
 :lexeme ~ <RCURLY>        priority => -128
-RCURLY                       ~ '}' | '%>'
 :lexeme ~ <RCURLY_SCOPE>        priority => -128
-RCURLY_SCOPE                       ~ '}' | '%>'
+RCURLY       ~ _RCURLY
+RCURLY_SCOPE ~ _RCURLY
+
 :lexeme ~ <COMMA>         priority => -129
 COMMA                     ~ ','
 :lexeme ~ <COLON>         priority => -130
 COLON                      ~ ':'
 :lexeme ~ <EQUAL>         priority => -131
 EQUAL       ~ '='
+#
+# LPAREN factorization
+#
+_LPAREN ~ '('
 :lexeme ~ <LPAREN>        priority => -132
-LPAREN                ~ '('
 :lexeme ~ <LPAREN_SCOPE>        priority => -132
-LPAREN_SCOPE                ~ '('
+LPAREN       ~ _LPAREN
+LPAREN_SCOPE ~ _LPAREN
+#
+# RPAREN factorization
+#
+_RPAREN ~ ')'
 :lexeme ~ <RPAREN>        priority => -133
-RPAREN                      ~ ')'
 :lexeme ~ <RPAREN_SCOPE>        priority => -133
-RPAREN_SCOPE                      ~ ')'
+RPAREN       ~ _RPAREN
+RPAREN_SCOPE ~ _RPAREN
+
 :lexeme ~ <LBRACKET>      priority => -134
 LBRACKET      ~ '[' | '<:'
 :lexeme ~ <RBRACKET>      priority => -135
