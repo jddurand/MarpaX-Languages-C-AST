@@ -456,6 +456,11 @@ sub _inc_helper {
 
     return $new_value;
 }
+sub _inc_helper_optimized {
+    # my ($method, $callback, $eventsp, $topic, $increment) = @_;
+
+    return (($_[1]->topic_fired_data($_[3])->[0] || 0) + $_[4]);
+}
 # ----------------------------------------------------------------------------------------
 sub _set_helper {
     my ($method, $callback, $eventsp, %topic) = @_;
@@ -571,7 +576,7 @@ sub _register_rule_callbacks {
                         (
                          description => $eventStart,
                          extra_description => $counter . ' [Start] ',
-                         method =>  [ \&_inc_helper, $counter, 1 ],
+                         method =>  [ \&_inc_helper_optimized, $counter, 1 ],
                          method_mode => 'replace',
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
@@ -587,7 +592,7 @@ sub _register_rule_callbacks {
                         (
                          description => $eventEnd,
                          extra_description => $counter . ' [End] ',
-                         method =>  [ \&_inc_helper, $counter, -1 ],
+                         method =>  [ \&_inc_helper_optimized, $counter, -1 ],
                          method_mode => 'replace',
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
@@ -751,10 +756,7 @@ sub _register_rule_callbacks {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
-                                  [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
-                                          return grep {exists($processEventsp->{$_})} @{$eventsp};
-                                        },
-                                    \%rshProcessEvents
+                                  [ sub { return grep {exists($rshProcessEvents{$_})} @{$_[2]} }
                                   ]
                                  ],
                    )
@@ -775,10 +777,7 @@ sub _register_rule_callbacks {
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
                     condition => [
-                                  [ sub { my ($method, $callback, $eventsp, $processEventsp) = @_;
-                                          return grep {exists($processEventsp->{$_})} @{$eventsp};
-                                        },
-                                    \%lhsProcessEvents
+                                  [ sub { return grep {exists($lhsProcessEvents{$_})} @{$_[2]} }
                                   ]
                                  ],
                     priority => $hashp->{process_priority} || 0
