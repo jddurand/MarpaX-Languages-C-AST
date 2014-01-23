@@ -1,7 +1,14 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.34 2014-01-22T20:18:36
+0.35 2014-01-23T20:54:29
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Optimization bis
+ - Global optimization
+ - Callback/Events.pm : optimization
+
+0.34 2014-01-22T20:20:40
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.34
  - t\delayed_directDeclaratorIdentifier.t: more tests
  - Grammar/ISO_ANSI_C_2011.pm: need for a special lexeme in
    compoundStatementReenterScope
