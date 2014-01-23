@@ -550,6 +550,10 @@ declarator
         #
         | MSVS___C_ASSERT__ LBRACKET expression RBRACKET
 
+#
+# It is VERY important that directDeclaratorIdentifier remains forever an LHS
+# with a single RHS: IDENTIFIER, c.f. comment in AST.pm
+#
 event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
 	::= IDENTIFIER

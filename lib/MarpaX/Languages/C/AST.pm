@@ -202,11 +202,38 @@ sub parse {
       logCroak("%s", $origError);
     }
   }
+  #
+  # The following will be used by callbacks to avoid a call to lastCompleted:
+  #
+  # In Callback/Events.pm, it is clear that we need to retreive the lexeme value
+  # in only one single case: directDeclaratorIdentifier$. This can be done
+  # in a generic way using lastCompleted(), but this is cost a lot and this is not
+  # needed! In fact, if you look to the grammar you will see that IDENTIFIER is
+  # systematically paused before.It is only in _doPauseBeforeLexeme() that IDENTIFIER
+  # can setted. so if _doPauseBeforeLexeme() is setting $self->{_lastIdentifier} value
+  # everytime it is doing a lexeme_read() on IDENTIFIER, the directDeclaratorIdentifier$
+  # event will be triggered and the directDeclaratorIdentifier LHS symbol value is
+  # guaranteed to be what _doPauseBeforeLexeme() has used for its lexeme_read.
+  #
+  # This is because directDeclaratorIdentifier rule is made of only ONE rhs:
+  #
+  # directDeclaratorIdentifier ::= IDENTIFIER
+
+
+  $self->{_lastIdentifier} = undef;
   do {
     my %lexeme = ();
+    #
+    # Note 1: it is very important that neither _getLexeme() or _doScope() could
+    #         generate an event
+    #
     $self->_getLexeme(\%lexeme);
     $self->_doScope(\%lexeme);
     $self->_doEvents();
+    #
+    # Note 2: Any routine below that could generate an event must call again
+    #         _doEvents()
+    #
     $self->_doAsmOpaque(\%lexeme, $pos, $max);
     $pos += $self->_doPauseBeforeLexeme(\%lexeme);
     $self->_doLogInfo(\%lexeme);
@@ -668,6 +695,11 @@ sub _doPauseBeforeLexeme {
 	      $newlexeme = 'ENUMERATION_CONSTANT';
 	  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
 	      $newlexeme = 'IDENTIFIER';
+              #
+              # Hack for the Callback framework: store in advance the IDENTIFIER, preventing
+              # a call to lastCompleted
+              #
+              $self->{_lastIdentifier} = $lexemeHashp->{value};
 	  } else {
 	      my $line_columnp = lineAndCol($self->{_impl});
 	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
