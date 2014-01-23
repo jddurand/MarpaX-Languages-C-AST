@@ -167,15 +167,17 @@ sub showLineAndCol {
 
 =head2 lineAndCol($impl, $g1)
 
-Returns the output of Marpa's line_column at a given $g1 location. Default $g1 is Marpa's current_g1_location().
+Returns the output of Marpa's line_column at a given $g1 location. Default $g1 is Marpa's current_g1_location(). If $start is given, $g1 is ignored.
 
 =cut
 
 sub lineAndCol {
-    my ($impl, $g1) = @_;
+    my ($impl, $g1, $start) = @_;
 
-    $g1 //= $impl->current_g1_location();
-    my ($start, $length) = $impl->g1_location_to_span($g1);
+    if (! defined($start)) {
+      $g1 //= $impl->current_g1_location();
+      ($start, undef) = $impl->g1_location_to_span($g1);
+    }
     my ($line, $column) = $impl->line_column($start);
     return [ $line, $column ];
 }

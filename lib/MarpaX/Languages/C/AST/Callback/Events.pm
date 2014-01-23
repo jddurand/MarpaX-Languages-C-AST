@@ -387,7 +387,7 @@ sub _exitScopeCallback {
 }
 # ----------------------------------------------------------------------------------------
 sub _storage_helper {
-    my ($method, $callback, $eventsp, $event, $countersHashp, $fixedValue) = @_;
+    my ($method, $callback, $eventsp, $event, $countersHashp, $fixedValue, $impl) = @_;
     #
     # Collect the counters
     #
@@ -400,13 +400,14 @@ sub _storage_helper {
     # The event name, by convention, is 'event$' or '^$event'
     #
     my $rc;
-    my $impl = $callback->hscratchpad('_impl');
 
+    my $g1 = $impl->current_g1_location();
+    my ($start, $length) = $impl->g1_location_to_span($g1);
     if (substr($event, 0, 1) eq '^') {
-	$rc = [ startAndLength($impl), lineAndCol($impl), %counters ];
+	$rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
 	substr($event, -1, 1, '');
-	$rc = [ startAndLength($impl), lineAndCol($impl), $fixedValue || lastCompleted($impl, $event), %counters ];
+	$rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), $fixedValue || lastCompleted($impl, $event), %counters ];
     }
 
     return $rc;
@@ -426,11 +427,14 @@ sub _storage_helper_optimized {
     #
     my $rc;
 
+    my $g1 = $_[6]->current_g1_location();
+    my ($start, $length) = $_[6]->g1_location_to_span($g1);
+
     if (substr($event, 0, 1) eq '^') {
-	$rc = [ startAndLength($_[6]), lineAndCol($_[6]), %counters ];
+	$rc = [ [ $start, $length ], lineAndCol($_[6], $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
 	substr($event, -1, 1, '');
-	$rc = [ startAndLength($_[6]), lineAndCol($_[6]), $_[5] || lastCompleted($_[6], $event), %counters ];
+	$rc = [ [ $start, $length ], lineAndCol($_[6], $g1, $start), $_[5] || lastCompleted($_[6], $event), %counters ];
     }
 
     return $rc;
