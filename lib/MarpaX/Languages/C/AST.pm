@@ -71,6 +71,24 @@ Instantiate a new object. Takes as parameter an optional hash of options that ca
 
 Name of a grammar. Default is 'ISO-ANSI-C-2011'.
 
+=item typedef
+
+An array reference to a list of known typedefs, injected at top scope before parsing start. This option should I<not> be used unless you pass a C source that is incomplete. Typically something that has not gone through a preprocessor. Default is [] i.e. empty list.
+
+=item enum
+
+An array reference to a list of known enums, injected at top scope before parsing start. Alike for typedef, this option should I<not> be used unless you pass a C source that is incomplete. Typically something that has not gone through a preprocessor. Default is [] i.e. empty list.
+
+=item lazy
+
+An flag saying the parser to inject automatically all allowed alternatives when the grammar reaches a TYPEDEF_NAME/ENUMERATION_CONSTANT/IDENTIFIER ambiguity. This option should be used in practice only when you are parsing a source code not pre-processed. Please note that I<if> lazy mode is on, there might be several parse tree values. In such a case, unless the option $optionalArrayOfValuesb of the value() method is true, the first of the parse tree values will be returned. If more than one alternative is accepted, the lexemeCallback (see below) will be, in order of preference, either TYPEDEF_NAME, ENUMERATION_CONSTANT or IDENTIFIER. The lazy mode is faster because there is no attempt to ask Marpa what terminals are expected, but can produce more than one parse tree value. Default is a false value.
+
+=item start
+
+A string giving the starting point of the grammar. This should be used when you know that the source code to parse is not a full valid source, but a portion of if. This requires knowledge of the grammar rules. Default is: 'translationUnit'.
+
+Please note that giving another value but 'translationUnit' will emit warnings from the grammar, saying that some rules are not reachable.
+
 =item logInfo
 
 Reference to an array of lexemes for which a log of level INFO will be issued.
@@ -146,6 +164,20 @@ sub new {
       $lexemeCallback = shift(@lexemeCallbackArgs);
   }
 
+  my $typedef = $opts{typedef} || [];
+  if (ref($typedef) ne 'ARRAY') {
+      croak 'typedef must be a reference to ARRAY';
+  }
+
+  my $enum = $opts{enum} || [];
+  if (ref($enum) ne 'ARRAY') {
+      croak 'enum must be a reference to ARRAY';
+  }
+
+  my $lazy = $opts{lazy} || 0;
+
+  my $start = $opts{start} || 'translationUnit';
+
   my $self  = {
                _scope              => MarpaX::Languages::C::AST::Scope->new(),
                _grammar            => $grammar,
@@ -153,14 +185,37 @@ sub new {
                _sourcep            => undef,
 	       _lexemeCallback     => $lexemeCallback,
 	       _lexemeCallbackArgs => \@lexemeCallbackArgs,
-	       _logInfo            => \%logInfo
+	       _logInfo            => \%logInfo,
+	       _typedef            => $typedef,
+	       _enum               => $enum,
+	       _lazy               => $lazy,
+	       _start              => $start
               };
 
   bless($self, $class);
 
+  $self->_init();
+
   return $self;
 }
 
+# ----------------------------------------------------------------------------------------
+
+sub _init {
+    my $self = shift;
+
+    #
+    # Insert known typedef and enum at the top-level scope
+    #
+    foreach (@{$self->{_typedef}}) {
+	$self->scope->parseEnterTypedef($_, [0, length($_)]);
+    }
+    foreach (@{$self->{_enum}}) {
+	$self->scope->parseEnterEnum($_, [0, length($_)]);
+    }
+
+    return;
+}
 # ----------------------------------------------------------------------------------------
 
 sub _context {
@@ -181,7 +236,7 @@ Do the parsing. Takes as parameter the reference to a C source code. Returns $se
 =cut
 
 sub parse {
-  my ($self, $sourcep, $optionalArrayOfValuesb) = @_;
+  my ($self, $sourcep) = @_;
 
   $self->{_sourcep} = $sourcep;
   $self->{_callbackEvents} = MarpaX::Languages::C::AST::Callback::Events->new($self);
@@ -294,13 +349,20 @@ sub value {
     logCroak('No parse tree  value.');
   }
   do {
-    $valuep = $self->{_impl}->value();
-    if (defined($valuep)) {
-	if (! $arrayOfValuesb) {
-	    logCroak('There is more than just one parse tree value.');
-	}
-      push(@rc, $valuep);
-    }
+      $valuep = $self->{_impl}->value();
+      if (defined($valuep)) {
+	  if (! $arrayOfValuesb) {
+	      if ($self->{_lazy}) {
+		  $log->infof('There is more than just one parse tree value, but lazy mode allow this.');
+		  $valuep = undef;
+	      } else {
+		  logCroak('There is more than just one parse tree value.');
+	      }
+	  }
+	  if (defined($valuep)) {
+	      push(@rc, $valuep);
+	  }
+      }
   } while (defined($valuep));
   if ($arrayOfValuesb) {
     return \@rc;
@@ -342,6 +404,8 @@ sub _getLexeme {
     ($lexemeHashp->{line}, $lexemeHashp->{column}) = $self->{_impl}->line_column($lexemeHashp->{start});
     $lexemeHashp->{value} = $self->{_impl}->literal($lexemeHashp->{start}, $lexemeHashp->{length});
   }
+
+  return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doLogInfo {
@@ -352,6 +416,8 @@ sub _doLogInfo {
 	  $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
       }
   }
+
+  return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doLexemeCallback {
@@ -361,6 +427,8 @@ sub _doLexemeCallback {
       my $callback = $self->{_lexemeCallback};
       &$callback(@{$self->{_lexemeCallbackArgs}}, $lexemeHashp);
   }
+
+  return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doPreprocessing {
@@ -433,6 +501,8 @@ sub _doPreprocessing {
 	$delta += $length;
     }
     pos(${$self->{_sourcep}}) = $previous;
+
+    return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doScope {
@@ -520,6 +590,8 @@ sub _doScope {
       }
     }
   }
+
+  return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doAsmOpaque {
@@ -667,6 +739,8 @@ sub _doAsmOpaque {
       pos(${$self->{_sourcep}}) = $prevpos;
     }
   }
+
+  return;
 }
 # ----------------------------------------------------------------------------------------
 sub _doPauseBeforeLexeme {
@@ -684,37 +758,60 @@ sub _doPauseBeforeLexeme {
       if ($lexemeHashp->{name} eq 'TYPEDEF_NAME' ||
           $lexemeHashp->{name} eq 'ENUMERATION_CONSTANT' ||
           $lexemeHashp->{name} eq 'IDENTIFIER') {
-	  my @terminals_expected = @{$self->{_impl}->terminals_expected()};
+	  my @alternatives = ();
 	  #
 	  # Determine the correct lexeme
 	  #
-	  my $newlexeme;
-	  if ((grep {$_ eq 'TYPEDEF_NAME'} @terminals_expected) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
-	      $newlexeme = 'TYPEDEF_NAME';
-	  } elsif ((grep {$_ eq 'ENUMERATION_CONSTANT'} @terminals_expected) && $self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
-	      $newlexeme = 'ENUMERATION_CONSTANT';
-	  } elsif ((grep {$_ eq 'IDENTIFIER'} @terminals_expected)) {
-	      $newlexeme = 'IDENTIFIER';
-              #
-              # Hack for the Callback framework: store in advance the IDENTIFIER, preventing
-              # a call to lastCompleted
-              #
-              $self->{_lastIdentifier} = $lexemeHashp->{value};
+	  if ($self->{_lazy}) {
+	      @alternatives = qw/TYPEDEF_NAME ENUMERATION_CONSTANT IDENTIFIER/;
 	  } else {
+	      my %terminals_expected = map {$_ => 1} @{$self->{_impl}->terminals_expected()};
+	      if (exists($terminals_expected{TYPEDEF_NAME}) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
+		  push(@alternatives, 'TYPEDEF_NAME');
+	      } elsif (exists($terminals_expected{ENUMERATION_CONSTANT}) && $self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
+		  push(@alternatives, 'ENUMERATION_CONSTANT');
+	      } elsif (exists($terminals_expected{IDENTIFIER})) {
+		  push(@alternatives, 'IDENTIFIER');
+		  #
+		  # Hack for the Callback framework: store in advance the IDENTIFIER, preventing
+		  # a call to lastCompleted
+		  #
+		  $self->{_lastIdentifier} = $lexemeHashp->{value};
+	      }
+	  }
+	  if (! @alternatives) {
 	      my $line_columnp = lineAndCol($self->{_impl});
 	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
 	  }
 	  #
-	  # Push the unambiguated lexeme
+	  # Push the alternatives, more than one possible only if lazy mode is turned on
 	  #
-	  if ($log->is_debug) {
-	      $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $lexemeHashp->{value});
+	  my @alternativesOk = ();
+	  my $is_debug = $log->is_debug;
+	  foreach (@alternatives) {
+	      if (defined($self->{_impl}->lexeme_alternative($_, $lexemeHashp->{value}))) {
+		  push(@alternativesOk, $_);
+		  if ($is_debug) {
+		      $log->debugf('[%s] Pushed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
+		  }
+		  if ($_ eq 'IDENTIFIER') {
+		      $self->{_lastIdentifier} = $lexemeHashp->{value};
+		  }
+	      } else {
+		  if ($is_debug) {
+		      $log->debugf('[%s] Failed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
+		  }
+	      }
 	  }
-	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $lexemeHashp->{start}, $lexemeHashp->{length}, $lexemeHashp->{value}))) {
+	  if (! @alternativesOk) {
 	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, \@alternatives, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
 	  }
-          $lexemeHashp->{name} = $newlexeme;
+	  if (! defined($self->{_impl}->lexeme_complete($lexemeHashp->{start}, $lexemeHashp->{length}))) {
+	      my $line_columnp = lineAndCol($self->{_impl});
+	      logCroak("[%s] Lexeme value \"%s\" cannot be completed at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+	  }
+          $lexemeHashp->{name} = $alternativesOk[0];
           $delta = $lexemeHashp->{length};
 	  #
 	  # A lexeme_read() can generate an event
