@@ -207,6 +207,26 @@ sub lexeme_read {
   return $_[0]->{recce}->lexeme_read(@_[1..$#_]);
 }
 
+=head2 lexeme_alternative($self, $lexeme, $value)
+
+Returns Marpa's recognizer's lexeme_alternative for lexeme $lexeme, value $value.
+
+=cut
+
+sub lexeme_alternative {
+  return $_[0]->{recce}->lexeme_alternative(@_[1..$#_]);
+}
+
+=head2 lexeme_complete($self, $start, $length)
+
+Returns Marpa's recognizer's lexeme_complete at start position $start, length $length.
+
+=cut
+
+sub lexeme_complete {
+  return $_[0]->{recce}->lexeme_complete(@_[1..$#_]);
+}
+
 =head2 current_g1_location($self)
 
 Returns Marpa's recognizer's current_g1_location.
