@@ -449,7 +449,7 @@ Logs to stderr or not. Default is $logstderr.
 
 =back
 
-Any option not documented upper will be considered as a cpp option, and sent to the underlying the cpp program.
+Any option not documented upper will be considered as a cpp option, and sent to the underlying the cpp program. A restriction is that the filename must be the last argument.
 
 =head1 DESCRIPTION
 
