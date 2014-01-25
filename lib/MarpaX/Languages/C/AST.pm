@@ -763,7 +763,13 @@ sub _doPauseBeforeLexeme {
 	  # Determine the correct lexeme
 	  #
 	  if ($self->{_lazy}) {
-	      @alternatives = qw/TYPEDEF_NAME ENUMERATION_CONSTANT IDENTIFIER/;
+	      if ($self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
+		  @alternatives = qw/TYPEDEF_NAME IDENTIFIER/;
+	      } elsif ($self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
+		  @alternatives = qw/ENUMERATION_CONSTANT IDENTIFIER/;
+	      } else {
+		  @alternatives = qw/TYPEDEF_NAME ENUMERATION_CONSTANT IDENTIFIER/;
+	      }
 	  } else {
 	      my %terminals_expected = map {$_ => 1} @{$self->{_impl}->terminals_expected()};
 	      if (exists($terminals_expected{TYPEDEF_NAME}) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
