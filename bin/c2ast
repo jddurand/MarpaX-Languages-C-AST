@@ -17,6 +17,7 @@ use Log::Log4perl qw/:easy/;
 use Log::Any::Adapter;
 use Log::Any qw/$log/;
 use File::Spec;
+use File::Slurp qw/read_file/;
 
 autoflush STDOUT 1;
 
@@ -38,20 +39,31 @@ my $dumpfile = '';
 my $allowAmbiguity = 0;
 my $loglevel = 'WARN';
 my $logstderr = 0;
+my $lazy = '';
+my @typedef = ();
+my @enum = ();
+my $nocpp = 0;
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'cpp=s' => \@cpp,
             'cppfile=s' => \$cppfile,
+            'lazy!' => \$lazy,
+            'typedef=s' => \@typedef,
+            'enum=s' => \@enum,
             'cppdup=s' => \$cppdup,
             'lexeme=s' => \@lexeme,
             'progress!' => \$progress,
             'check=s' => \@check,
             'dump!' => \$dump,
+            'nocpp!' => \$nocpp,
             'dumpfile=s' => \$dumpfile,
             'allowAmbiguity!' => \$allowAmbiguity,
             'loglevel=s' => \$loglevel,
             'logstderr!' => \$logstderr);
+
+@typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
+@enum = grep {$_ && "$_"} split(/,/, join(',', @enum));
 
 # ----
 # Init 
@@ -74,25 +86,28 @@ if (! @ARGV) {
 }
 
 my $preprocessedOutput;
-@cpp = ('cpp') if (! @cpp);
-# ---------------------------------------------------------------
-# Run the preprocessor: any unknown option is passed as-is to cpp
-# ---------------------------------------------------------------
-my @cmd = (@cpp, @ARGV);
-$log->debugf('Executing preprocessor: %s', \@cmd);
-run(\@cmd, \undef, \$preprocessedOutput);
-if ($cppdup) {
-    my $fh;
-  if (! open($fh, '>', $cppdup)) {
-    warn "Cannot open $cppdup, $!\n";
-  } else {
-    print $fh $preprocessedOutput;
-    if (! close($fh)) {
-      warn "Cannot close $cppdup, $!\n";
+if (! $nocpp) {
+    @cpp = ('cpp') if (! @cpp);
+    # ---------------------------------------------------------------
+    # Run the preprocessor: any unknown option is passed as-is to cpp
+    # ---------------------------------------------------------------
+    my @cmd = (@cpp, @ARGV);
+    $log->debugf('Executing preprocessor: %s', \@cmd);
+    run(\@cmd, \undef, \$preprocessedOutput);
+    if ($cppdup) {
+	my $fh;
+	if (! open($fh, '>', $cppdup)) {
+	    warn "Cannot open $cppdup, $!\n";
+	} else {
+	    print $fh $preprocessedOutput;
+	    if (! close($fh)) {
+		warn "Cannot close $cppdup, $!\n";
+	    }
+	}
     }
-  }
+} else {
+    $preprocessedOutput = read_file($ARGV[-1]);
 }
-
 # -----------------
 # Callback argument
 # -----------------
@@ -127,7 +142,7 @@ if ($progress) {
 # Parse C
 # -------
 map {++$lexemeCallbackHash{lexeme}->{$_}} @lexeme;
-my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ], logInfo => \@lexeme);
+my $cAstObject = MarpaX::Languages::C::AST->new(lexemeCallback => [ \&lexemeCallback, \%lexemeCallbackHash ], logInfo => \@lexeme, lazy => $lazy, typedef => \@typedef, enum => \@enum);
 my $bless = $cAstObject->parse(\$preprocessedOutput);
 if ($progress) {
     if ($lexemeCallbackHash{nbLines} > $lexemeCallbackHash{next_progress}) {
@@ -333,6 +348,12 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically WARN, INFO, ERROR, etc.
    --logstderr          Logs to stderr or not.
 
+  Advanced options:
+   --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
+   --typedef <typedef>  Comma separated list of known typedefs
+   --enum <enums>       Comma separated list of known enums
+   --nocpp              Do not preprocess input file, but take it as is.
+
 =head1 OPTIONS
 
 =over 8
@@ -447,6 +468,81 @@ then:
 
 Logs to stderr or not. Default is $logstderr.
 
+=item B<--lazy>
+
+Instruct the parser to try all alternatives on typedef/enum/identifier. Please refer to L<MarpaX::Languages::C::AST> documentation for its new() method. Default is a false value.
+
+=item B<--typedef typedefs>
+
+Comma separated list of known typedefs. Please refer to L<MarpaX::Languages::C::AST> documentation for its new() method. Default is an empty list.
+
+=item B<--enum enums>
+
+Comma separated list of known enums. Please refer to L<MarpaX::Languages::C::AST> documentation for its new() method. Default is an empty list.
+
+=item B<--nocpp>
+
+Do not preprocess input file, but take it as is. When this option is used, --lazy is highly recommended, and input file I<must> be the last argument. It is highly probable that the input will not parse nevertheless, as soon as it contains constructs that deviate too much from the C grammar. Default is a false value.
+
+For example:
+
+  #include <sys/types.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
+  int func1(size_t size) {
+  }
+
+will never be parsed without cpp, i.e.:
+
+ c2ast --nocpp /tmp/test.c
+
+because of size_t. But the lazy option will make it work, because size_t will be injected as an acceptable alternative for TYPEDEF_NAME and IDENTIFIER:
+
+ c2ast --nocpp --lazy /tmp/test.c
+
+If you run with the DEBUG loglevel, you will see an explanation of the successful parsing:
+
+ c2ast --nocpp --lazy --loglevel DEBUG /tmp/test.c
+ ./..
+ DEBUG  13370 [parseIsTypedef] "size_t" at scope 1 is a typedef? no
+ DEBUG  13370 [parseIsEnum] "size_t" is an enum at scope 1? no
+ DEBUG  13256 [_doPauseBeforeLexeme] Pushed alternative TYPEDEF_NAME "size_t"
+ DEBUG  13256 [_doPauseBeforeLexeme] Failed alternative ENUMERATION_CONSTANT "size_t"
+ DEBUG  13256 [_doPauseBeforeLexeme] Pushed alternative IDENTIFIER "size_t"
+
+Here you see clearly that lazy option tried TYPEDEF_NAME, ENUMERATION_CONSTANT and IDENTIFIER. The grammar natively rejected ENUMERATION_CONSTANT because this is not expected at this stage. A hint on typedef, useless here, would have nevertheless prevented lazy mode to try to push the ENUMERATION_CONSTANT alternative:
+
+ c2ast --nocpp --lazy --loglevel DEBUG --typedef size_t /tmp/test.c
+ ./..
+ DEBUG  13378 [parseIsTypedef] "size_t" at scope 1 is a typedef? yes
+ DEBUG  13378 [_doPauseBeforeLexeme] Pushed alternative TYPEDEF_NAME "size_t"
+ DEBUG  13378 [_doPauseBeforeLexeme] Pushed alternative IDENTIFIER "size_t"
+
+But doing a wrong hint, saying size_t is an enum will imply a parse failure, because ENUMERATION_CONSTANT is not expected at this stage, and even if IDENTIFIER is possible, the rest of the input source is invalidating it:
+
+ c2ast --nocpp --lazy --loglevel DEBUG --enum size_t /tmp/test.c
+ ./..
+ DEBUG  13384 [parseIsTypedef] "size_t" at scope 1 is a typedef? no
+ DEBUG  13384 [parseIsEnum] "size_t" is an enum at scope 1? yes
+ DEBUG  13384 [_doPauseBeforeLexeme] Failed alternative ENUMERATION_CONSTANT "size_t"
+ DEBUG  13384 [_doPauseBeforeLexeme] Pushed alternative IDENTIFIER "size_t"
+  ./..
+ FATAL  13384 Error in SLIF parse: No lexemes accepted at line 5, column 18
+   Rejected lexeme #0: Lexer "L0"; ENUMERATION_CONSTANT; value="size"; length = 4
+   Rejected lexeme #1: Lexer "L0"; TYPEDEF_NAME; value="size"; length = 4
+   Rejected lexeme #2: Lexer "L0"; IDENTIFIER; value="size"; length = 4
+   Rejected lexeme #3: Lexer "L0"; IDENTIFIER_UNAMBIGUOUS; value="size"; length = 4
+ * String before error: /stat.h>\n#include <unistd.h>\n\nint func1(size_t\s
+ * The error was at line 5, column 18, and at character 0x0073 's', ...
+ * here: size) {\n}\n\n
+ Marpa::R2 exception at lib/MarpaX/Languages/C/AST/Impl.pm line 107.
+ Last position:
+ line:column 5:11 (Unicode newline count) 5:11 (\n count)
+ int func1(size_t size) {
+ ----------^
+
+In conclusion, the options --nocpp and --lazy, even with --typedef or --enum hints, should be rarelly be used, unless your engine is prepared to hand over failure. The L<cpretty> program, for instance, is doing so.
+
 =back
 
 Any option not documented upper will be considered as a cpp option, and sent to the underlying the cpp program. A restriction is that the filename must be the last argument.
@@ -485,4 +581,6 @@ Less typical usage:
 
 =head1 SEE ALSO
 
-http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html
+L<Reserved Names - The GNU C Library|http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html>
+
+L<MarpaX::Languages::C::AST>
