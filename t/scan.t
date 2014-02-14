@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 11;
+use Test::More tests => 10;
 use Test::Differences;
 use File::Spec;
 use Data::Dumper;
@@ -57,25 +57,25 @@ eq_or_diff($c->parsed_fdecls,
               'int',
               'x1',
               undef,
-              'int x1',
+              '',
               ''
              ],
              [
               'double *',
               'x2',
               undef,
-              'double *x2',
+              '',
               ''
              ],
              [
               'float *',
               'f1',
               undef,
-              'float *( f1)(int x11, double x12)',
+              '',
               ''
              ]
             ],
-            'int func1(int x1, double *x2, float *( f1)(int x11, double x12))',
+            '',
             undef
            ],
            [
@@ -86,25 +86,25 @@ eq_or_diff($c->parsed_fdecls,
               'int',
               'x1',
               undef,
-              'int x1',
+              '',
               ''
              ],
              [
               'double *',
               'x2',
               undef,
-              'double *x2',
+              '',
               ''
              ],
              [
               'float *',
               'f1',
               undef,
-              'float *(*f1)(int x11, double x12)',
+              '',
               ''
              ]
             ],
-            'int func2(int x1, double *x2, float *(*f1)(int x11, double x12))',
+            '',
             undef
            ],
            [
@@ -115,25 +115,25 @@ eq_or_diff($c->parsed_fdecls,
               'int',
               'arg0',
               undef,
-              'int',
+              '',
               ''
              ],
              [
               'double *',
               'arg1',
               undef,
-              'double *',
+              '',
               ''
              ],
              [
               'float *',
               'arg2',
               undef,
-              'float *(* )(int , double )',
+              '',
               ''
              ]
             ],
-            'int func3(int , double * , float *(* )(int , double ))',
+            '',
             undef
            ],
            [
@@ -144,25 +144,25 @@ eq_or_diff($c->parsed_fdecls,
               'int',
               'arg0',
               undef,
-              'int',
+              '',
               ''
              ],
              [
               'double *',
               'arg1',
               undef,
-              'double *',
+              '',
               ''
              ],
              [
               'float *',
               'arg2',
               undef,
-              'float *(* )(int , double )',
+              '',
               ''
              ]
             ],
-            'int func4(int , double * , float *(* )(int , double ))',
+            '',
             undef
            ]
           ],
@@ -170,56 +170,43 @@ eq_or_diff($c->parsed_fdecls,
 eq_or_diff($c->typedef_hash,
 {
           'myStructType1p_t' => [
-                                  'struct myStruct1 {int x;} myStructType1_t, *',
+                                  '',
                                   ''
                                 ],
           'myEnumType2p_t' => [
-                                'enum {X21 = 0, X22} myEnumType2_t, *',
+                                '',
                                 ''
                               ],
           'myStructType1_t' => [
-                                 'struct myStruct1 {int x;} ',
+                                 '',
                                  ''
                                ],
           'myEnumType2_t' => [
-                               'enum {X21 = 0, X22} ',
+                               '',
                                ''
                              ],
           'myStructType2p_t' => [
-                                  'struct {int x;} myStructType2_t, *',
+                                  '',
                                   ''
                                 ],
           'myStructType2_t' => [
-                                 'struct {int x;} ',
+                                 '',
                                  ''
                                ],
           'myInt_type' => [
-                            'int ',
+                            '',
                             ''
                           ],
           'myEnumType1p_t' => [
-                                'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *',
+                                '',
                                 ''
                               ],
           'myEnumType1_t' => [
-                               'enum myEnum1_e {X11 = 0, X12} ',
+                               '',
                                ''
                              ]
 },
           'typedef_hash');
-eq_or_diff($c->typedef_texts,
-    [
-     'enum myEnum1_e {X11 = 0, X12} myEnumType1_t',
-     'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t',
-     'enum {X21 = 0, X22} myEnumType2_t',
-     'enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t',
-     'int myInt_type',
-     'struct myStruct1 {int x;} myStructType1_t',
-     'struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t',
-     'struct {int x;} myStructType2_t',
-     'struct {int x;} myStructType2_t, *myStructType2p_t'
-    ],
-    'typedef_texts');
 eq_or_diff($c->typedefs_maybe,
     [
      'myEnumType1_t',
@@ -242,11 +229,11 @@ eq_or_diff($c->vdecls,
 eq_or_diff($c->vdecl_hash,
 {
     'vdouble2p' => [
-        'double * ',
+        '',
         ''
         ],
         'vint1' => [
-            'int ',
+            '',
             ''
         ]
 },
@@ -255,14 +242,14 @@ eq_or_diff($c->typedef_structs,
 {
     'myStructType2_t' => [
         [
-         'int ',
+         '',
          '',
          'x'
         ]
         ],
         'myStructType1_t' => [
             [
-             'int ',
+             '',
              '',
              'x'
             ]
