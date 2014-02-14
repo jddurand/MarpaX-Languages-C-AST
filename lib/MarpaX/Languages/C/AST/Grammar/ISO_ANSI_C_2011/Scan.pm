@@ -456,7 +456,7 @@ sub parsed_fdecls {
 	    $self->_getRcp($_, 'rt') || '',
 	    $self->_getRcp($_, 'nm') || '',
 	    $argsp,
-	    $self->_getRcp($_, 'ft') || '',
+	    $self->_getRcp($_, 'ft') // '',
 	    undef
 	   ]);
       if ($self->_definedRcp($_, 'args')) {
@@ -466,7 +466,7 @@ sub parsed_fdecls {
 		    ($self->_getRcp($_, 'func') ? $self->_getRcp($_, 'rt') : $self->_getRcp($_, 'ty')) || '',
 		    $self->_getRcp($_, 'nm') || '',
 		    undef,
-		    $self->_getRcp($_, 'ft') || '',
+		    $self->_getRcp($_, 'ft') // '',
 		    $self->_getRcp($_, 'mod') || '',
 		   ]);
 	  }
@@ -521,7 +521,7 @@ sub typedef_hash {
   foreach (@{$self->decls}) {
       if ($self->_existsRcp($_, 'typedef') && $self->_getRcp($_, 'typedef')) {
 	  my $nm = $self->_getRcp($_, 'nm');
-	  my $ft = $self->_getRcp($_, 'ft') || '';
+	  my $ft = $self->_getRcp($_, 'ft') // '';
 	  if ($ft =~ /^\s*typedef\s*/) {
 	      #
 	      # typedef is at the beginning
@@ -606,7 +606,7 @@ sub vdecl_hash {
   foreach (@{$self->decls}) {
       if ($self->_existsRcp($_, 'extern') && $self->_getRcp($_, 'extern')) {
 	  my $nm = $self->_getRcp($_, 'nm');
-	  my $ft = $self->_getRcp($_, 'ft') || '';
+	  my $ft = $self->_getRcp($_, 'ft') // '';
 	  if ($ft =~ /^\s*extern\s*/) {
 	      #
 	      # extern is at the beginning
@@ -694,7 +694,7 @@ sub typedef_structs {
             if ($self->_getRcp($_, 'var')) {
               push(@elements,
                    [
-                    $self->_beforeAndAfter($self->_getRcp($_, 'ft') || '', $self->_getRcp($_, 'nm')),
+                    $self->_beforeAndAfter($self->_getRcp($_, 'ft') // '', $self->_getRcp($_, 'nm')),
                     $self->_getRcp($_, 'nm')
                    ]
                   );
