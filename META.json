@@ -4,7 +4,7 @@
       "Jean-Damien Durand <jeandamiendurand@free.fr>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Dist::Zilla version 5.006, CPAN::Meta::Converter version 2.133380",
+   "generated_by" : "Dist::Zilla version 5.013, CPAN::Meta::Converter version 2.133380",
    "license" : [
       "perl_5"
    ],
@@ -44,6 +44,7 @@
             "Data::Dumper" : "0",
             "Exporter" : "0",
             "File::Basename" : "0",
+            "File::Slurp" : "0",
             "File::Spec" : "0",
             "File::Temp" : "0",
             "Getopt::Long" : "0",
@@ -55,7 +56,7 @@
             "Log::Any" : "0",
             "Log::Any::Adapter" : "0",
             "Log::Log4perl" : "0",
-            "Marpa::R2" : "2.078000",
+            "Marpa::R2" : "2.080000",
             "POSIX" : "0",
             "Pod::Usage" : "0",
             "Regexp::Common" : "0",
@@ -95,66 +96,66 @@
    "provides" : {
       "MarpaX::Languages::C::AST" : {
          "file" : "lib/MarpaX/Languages/C/AST.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Callback" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Callback::Events" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Events.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Callback::Method" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Method.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Callback::Option" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Option.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Grammar" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Actions.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Scan.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Impl" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Impl::Logger" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl/Logger.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Scope" : {
          "file" : "lib/MarpaX/Languages/C/AST/Scope.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Util" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::AST::Util::Data::Find" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util/Data/Find.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       },
       "MarpaX::Languages::C::Scan" : {
          "file" : "lib/MarpaX/Languages/C/Scan.pm",
-         "version" : "0.35"
+         "version" : "0.36"
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "bugtracker" : {
          "mailto" : "bug-MarpaX-Languages-C-AST@rt.cpan.org",
@@ -167,7 +168,7 @@
          "web" : "https://github.com/jddurand/marpax-languages-c-ast"
       }
    },
-   "version" : "0.35",
+   "version" : "0.36",
    "x_contributors" : [
       "Jeffrey Kegler <JKEGL@cpan.org>",
       "Jeffrey Kegler <jkegl@cpan.org>",

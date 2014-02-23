@@ -1,7 +1,27 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.35 2014-01-23T20:54:29
+0.36 2014-02-23T11:41:17
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - bin/c2ast: Mention '-' for STDIN usage in the POD and fix log info about
+   it
+ - bin/c2ast: Support STDIN, loglevel aliases on the command-line, optional
+   start (dev+), add INFO level logging to bin/c2ast
+ - optional :start, dev+
+ - AST/Impl.pm: use Marpa::R2 2.080000
+ - ISO_ANSI_C_2011/Scan.pm: ft can be '0', so use // instead of ||
+ - Test suite and CPP different behaviour v.s. OS
+ - bin/c2ast: --lazy, --typedef, --enum and --nocpp options
+ - AST.pm: mod POD for lazy mode
+ - AST.pm: even in lazy mode we can use typedef/enum helpers
+ - AST.pm: type, enum and lazy options support. Preparation for start
+   option support
+ - AST/impl.pm: added lexeme_alternative() and lexeme_complete()
+ - bin/*: say that filename must be the last argument when using unknown
+   option(s)
+
+0.35 2014-01-23T20:56:10
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.35
  - Optimization bis
  - Global optimization
  - Callback/Events.pm : optimization

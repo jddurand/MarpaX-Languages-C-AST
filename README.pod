@@ -8,7 +8,7 @@ MarpaX::Languages::C::AST - Translate a C source to an AST
 
 =head1 VERSION
 
-version 0.35
+version 0.36
 
 =head1 SYNOPSIS
 
@@ -61,6 +61,24 @@ Instantiate a new object. Takes as parameter an optional hash of options that ca
 =item grammarName
 
 Name of a grammar. Default is 'ISO-ANSI-C-2011'.
+
+=item typedef
+
+An array reference to a list of known typedefs, injected at top scope before parsing start. This option should I<not> be used unless you pass a C source that is incomplete. Typically something that has not gone through a preprocessor. Default is [] i.e. empty list.
+
+=item enum
+
+An array reference to a list of known enums, injected at top scope before parsing start. Alike for typedef, this option should I<not> be used unless you pass a C source that is incomplete. Typically something that has not gone through a preprocessor. Default is [] i.e. empty list.
+
+=item lazy
+
+A flag saying the parser to inject automatically all allowed alternatives when the grammar reaches a TYPEDEF_NAME/ENUMERATION_CONSTANT/IDENTIFIER ambiguity. This option should be used in practice only when you are parsing a source code not pre-processed. Please note that I<if> lazy mode is on, there might be several parse tree values. In such a case, unless the option $optionalArrayOfValuesb of the value() method is true, the first of the parse tree values will be returned. If more than one alternative is accepted, the lexemeCallback (see below) will be, in order of preference, either TYPEDEF_NAME, ENUMERATION_CONSTANT or IDENTIFIER. The lazy mode can produce more than one parse tree value. The options typedef and enum (see upper) can be used to help lazy mode choose between TYPEDEF_NAME and ENUMERATION_CONSTANT, while IDENTIFIER will always be pushed as an alternative. Default is a false value.
+
+=item start
+
+A string giving the starting point of the grammar. This should be used when you know that the source code to parse is not a full valid source, but a portion of if. This requires knowledge of the grammar rules. Default is empty string: '', i.e. let the grammar apply its default start rule.
+
+Please note that giving another value but 'translationUnit' will emit warnings from the grammar, saying that some rules are not reachable.
 
 =item logInfo
 
