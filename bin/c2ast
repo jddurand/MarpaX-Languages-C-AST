@@ -114,8 +114,14 @@ if (! $nocpp) {
 	}
     }
 } else {
-    $log->infof('Reading preprocessor output from file: %s', $ARGV[-1]);
-    $preprocessedOutput = read_file($ARGV[-1]);
+    my ($readfh, $what, $name);
+    if ($ARGV[-1] eq '-') {
+	($readfh, $what, $name) = (\*STDIN, 'handle', 'STDIN');
+    } else {
+	($readfh, $what, $name) = ($ARGV[-1], 'file', $ARGV[-1]);
+    }
+    $log->infof('Reading preprocessor output from %s: %s', $what, $name);
+    $preprocessedOutput = read_file($readfh);
 }
 # -----------------
 # Callback argument
@@ -371,6 +377,8 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --enum <enums>       Comma separated list of known enums
    --start <startRule>  Start rule in the grammar.
    --nocpp              Do not preprocess input file, but take it as is.
+
+If file is '-' it is assumed to refer to STDIN handle.
 
 =head1 OPTIONS
 
