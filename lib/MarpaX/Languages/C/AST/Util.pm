@@ -217,13 +217,25 @@ Returns an array of rules ordered by depth for optional sub grammar $subGrammar 
 
 Rule Id
 
-=item lhs
+=item ruleName
 
-LHS of this rule
+Rule Id
 
-=item rhs
+=item lhsId
 
-Rhs of this rule as an array reference
+LHS id of this rule
+
+=item lhsName
+
+LHS name of this rule
+
+=item rhsIds
+
+Rhs ids of this rule as an array reference
+
+=item rhsNames
+
+Rhs names of this rule as an array reference
 
 =depth
 
@@ -294,10 +306,13 @@ sub rulesByDepth {
     foreach (sort {$depth{$a} <=> $depth{$b}} keys %depth) {
       my $ruleId = $_;
       my ($lhsId, @rhsIds) = @{$ruleIds{$ruleId}};
-      push(@rc, {ruleId => $ruleId,
-                 lhs => $impl->symbol_name($lhsId),
-                 rhs => [ map {$impl->symbol_name($_)} @rhsIds ],
-                 depth => $depth{$ruleId}});
+      push(@rc, {ruleId   => $ruleId,
+		 ruleName => $impl->rule_name($ruleId),
+                 lhsId    => $lhsId,
+                 lhsName  => $impl->symbol_name($lhsId),
+                 rhsIds   => [ @rhsIds ],
+                 rhsNames => [ map {$impl->symbol_name($_)} @rhsIds ],
+                 depth    => $depth{$ruleId}});
     }
 
     return \@rc;

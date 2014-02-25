@@ -297,6 +297,16 @@ sub symbol_name {
   return $_[0]->{grammar}->symbol_name(@_[1..$#_]);
 }
 
+=head2 rule_name($self)
+
+Returns Marpa's grammar's rule_name.
+
+=cut
+
+sub rule_name {
+  return $_[0]->{grammar}->rule_name(@_[1..$#_]);
+}
+
 =head2 rule_expand($self)
 
 Returns Marpa's grammar's rule_expand.
