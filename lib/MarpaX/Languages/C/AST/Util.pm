@@ -15,7 +15,7 @@ our $NEWLINE_REGEXP = qr/(?>\x0D\x0A|\v)/;
 # VERSION
 # CONTRIBUTORS
 
-our @EXPORT_OK = qw/whoami whowasi traceAndUnpack logCroak showLineAndCol lineAndCol lastCompleted startAndLength/;
+our @EXPORT_OK = qw/whoami whowasi traceAndUnpack logCroak showLineAndCol lineAndCol lastCompleted startAndLength rulesByDepth/;
 our %EXPORT_TAGS = ('all' => [ @EXPORT_OK ]);
 
 =head1 DESCRIPTION
@@ -205,6 +205,103 @@ Returns the string corresponding the last completion of $symbol.
 sub lastCompleted {
     my ($impl, $symbol) = @_;
     return $impl->substring($impl->last_completed($symbol));
+}
+
+=head2 depth($impl, $subGrammar)
+
+Returns an array of rules ordered by depth for optional sub grammar $subGrammar (default is 'G1'). Each array item is a hash reference with the following keys:
+
+=over
+
+=item id
+
+Rule id
+
+=item lhs
+
+LHS name
+
+=item rhs
+
+Rhs names expansion as an array reference
+
+=depth
+
+Rule depth
+
+=back
+
+=cut
+
+sub rulesByDepth {
+    my ($impl, $subGrammar) = @_;
+
+    $subGrammar ||= 'G1';
+
+    #
+    # We start by expanding all ruleIds to a LHS symbol ids
+    # This is needed for lookup of child rules
+    #
+    my %ruleId2LhsId = ();
+    my %lhsId2RuleId = ();
+    my %ruleId2RhsIds = ();
+    foreach ($impl->rule_ids($subGrammar)) {
+      my $ruleId = $_;
+      my ($lhsId, @rhsIds) = $impl->rule_expand($ruleId, $subGrammar);
+      print STDERR "$lhsId (" . $impl->rule_name($lhsId) . ") ::= @rhsIds\n";
+      $ruleId2LhsId{$ruleId} = $lhsId;
+      $lhsId2RuleId{$lhsId} = $ruleId;
+      $ruleId2RhsIds{$ruleId} = [ @rhsIds ];
+    }
+    #
+    # We start at :start, with depth 0
+    #
+    my $startSymbolId = $impl->start_symbol_id();
+    my @ruleIdQueue = ($startSymbolId);
+    my %ruleId2Depth = ($startSymbolId => 0);
+
+    print STDERR "\$startSymbolId=$startSymbolId\n";
+
+    while (@ruleIdQueue) {
+
+      my $ruleId = shift(@ruleIdQueue);
+      my $newDepth = $ruleId2Depth{$ruleId} + 1;
+
+      if (! exists($ruleId2LhsId{$ruleId})) {
+        $log->warnf('Rule id %d not found in rule_ids() output');
+        next;
+      }
+      print STDERR "Found $ruleId in \%ruleId2LhsId, expanded to: $ruleId2LhsId{$ruleId} ::= @{$ruleId2RhsIds{$ruleId}}\n";
+      #
+      # For every RHS that is also a LHS, push
+      #
+      foreach (@{$ruleId2RhsIds{$ruleId}}) {
+        my $lhsId = $_;
+        if (! $lhsId2RuleId{$lhsId}) {
+          #
+          # This is not another LHS
+          #
+          next;
+        }
+        my $newRuleId = $lhsId2RuleId{$lhsId};
+        if (! exists($ruleId2Depth{$newRuleId})) {
+          #
+          # This has not been already pushed
+          #
+          push(@ruleIdQueue, $newRuleId);
+          $ruleId2Depth{$newRuleId} = $newDepth;
+        }
+      }
+    }
+    my @rc = ();
+    foreach (sort {$ruleId2Depth{$a} <=> $ruleId2Depth{$b}} keys %ruleId2Depth) {
+      my $ruleId = $_;
+      push(@rc, {id => $ruleId,
+                 lhs => $impl->rule_name($ruleId2LhsId{$ruleId}),
+                 rhs => [ map {$impl->rule_name($_)} @{$ruleId2RhsIds{$ruleId}} ],
+                 depth => $ruleId2Depth{$ruleId}});
+    }
+    return \@rc;
 }
 
 

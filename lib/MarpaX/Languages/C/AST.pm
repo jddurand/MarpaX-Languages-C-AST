@@ -141,9 +141,8 @@ sub new {
   map {$logInfo{$_}++} @{$logInfo};
 
   my $grammarName = $opts{grammarName} || 'ISO-ANSI-C-2011';
-  my $start = $opts{start} || '';
 
-  my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName, \%logInfo, $start);
+  my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName, \%logInfo, $opts{start});
   my $grammar_option = $grammar->grammar_option();
   $grammar_option->{bless_package} = 'C::AST';
   $grammar_option->{source} = \$grammar->content();
@@ -188,12 +187,16 @@ sub new {
 	       _typedef            => $typedef,
 	       _enum               => $enum,
 	       _lazy               => $lazy,
-	       _start              => $start
+	       _start              => $opts{start}
               };
 
   bless($self, $class);
 
   $self->_init();
+
+  use Data::Dumper;
+  print Dumper(rulesByDepth($self->{_impl}));
+  exit;
 
   return $self;
 }

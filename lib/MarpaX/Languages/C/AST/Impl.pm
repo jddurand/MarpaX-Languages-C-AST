@@ -267,4 +267,44 @@ sub show_progress {
   return $_[0]->{recce}->show_progress(@_[1..$#_]);
 }
 
+=head2 start_symbol_id($self)
+
+Returns Marpa's grammar's start_symbol_id.
+
+=cut
+
+sub start_symbol_id {
+  return $_[0]->{grammar}->start_symbol_id(@_[1..$#_]);
+}
+
+=head2 rule_ids($self)
+
+Returns Marpa's grammar's rule_ids.
+
+=cut
+
+sub rule_ids {
+  return $_[0]->{grammar}->rule_ids(@_[1..$#_]);
+}
+
+=head2 rule_name($self)
+
+Returns Marpa's grammar's rule_name.
+
+=cut
+
+sub rule_name {
+  return $_[0]->{grammar}->rule_name(@_[1..$#_]);
+}
+
+=head2 rule_expand($self)
+
+Returns Marpa's grammar's rule_expand.
+
+=cut
+
+sub rule_expand {
+  return $_[0]->{grammar}->rule_expand(@_[1..$#_]);
+}
+
 1;
