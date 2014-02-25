@@ -27,13 +27,13 @@ The ISO grammar of ANSI C 2011, as of L<http://www.quut.com/c/ANSI-C-grammar-y-2
     use MarpaX::Languages::C::Scan;
     my $cSourceCode = <<C_SOURCE_CODE;
 
-typedef int myInt_type;
-typedef enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t;
-typedef enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t;
-typedef struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t;
-typedef struct {int x;} myStructType2_t, *myStructType2p_t;
+    typedef int myInt_type;
+    typedef enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t;
+    typedef enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t;
+    typedef struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t;
+    typedef struct {int x;} myStructType2_t, *myStructType2p_t;
 
-C_SOURCE_CODE
+    C_SOURCE_CODE
     my $scan = MarpaX::Languages::C::Scan->new(content => $cSourceCode);
 
 =head1 SUBROUTINES/METHODS
