@@ -74,7 +74,15 @@ sub new {
 
   $self->{_content} = '';
   my $allb = exists($pause{__ALL__});
-  $start ||= 'translationUnit';
+  my $pragmas = '';
+  if (defined($start) && "$start") {
+    #
+    # User gave a custom start, we assume he will hit inaccessible symbols
+    #
+    $pragmas = "\ninaccessible is ok by default\n";
+  } else {
+    $start = 'translationUnit';
+  }
   my $data = IO::String->new($DATA);
   while (defined($_ = <$data>)) {
       my $line = $_;
@@ -100,6 +108,7 @@ sub new {
       $self->{_content} .= $line;
   }
 
+  $self->{_content} =~ s/\$PRAGMAS\n/$pragmas/;
   $self->{_content} =~ s/\$START\n/$start/;
 
   bless($self, $class);
@@ -149,7 +158,7 @@ __DATA__
 #                   http://www.quut.com/c/ANSI-C-grammar-y-2011.html
 #
 ################################################################################################################
-
+$PRAGMAS
 #
 # Defaults
 #
