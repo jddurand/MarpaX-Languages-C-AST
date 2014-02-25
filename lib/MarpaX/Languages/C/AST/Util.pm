@@ -213,17 +213,17 @@ Returns an array of rules ordered by depth for optional sub grammar $subGrammar 
 
 =over
 
-=item id
+=item ruleId
 
-Rule id
+Rule Id
 
 =item lhs
 
-LHS name
+LHS of this rule
 
 =item rhs
 
-Rhs names expansion as an array reference
+Rhs of this rule as an array reference
 
 =depth
 
@@ -239,68 +239,67 @@ sub rulesByDepth {
     $subGrammar ||= 'G1';
 
     #
-    # We start by expanding all ruleIds to a LHS symbol ids
-    # This is needed for lookup of child rules
+    # We start by expanding all ruleIds to a LHS symbol id and RHS symbol ids
     #
-    my %ruleId2LhsId = ();
-    my %lhsId2RuleId = ();
-    my %ruleId2RhsIds = ();
+    my %ruleIds = ();
     foreach ($impl->rule_ids($subGrammar)) {
       my $ruleId = $_;
-      my ($lhsId, @rhsIds) = $impl->rule_expand($ruleId, $subGrammar);
-      print STDERR "$lhsId (" . $impl->rule_name($lhsId) . ") ::= @rhsIds\n";
-      $ruleId2LhsId{$ruleId} = $lhsId;
-      $lhsId2RuleId{$lhsId} = $ruleId;
-      $ruleId2RhsIds{$ruleId} = [ @rhsIds ];
+      $ruleIds{$ruleId} = [ $impl->rule_expand($ruleId, $subGrammar) ];
     }
     #
-    # We start at :start, with depth 0
+    # We ask what is the start symbol
     #
     my $startSymbolId = $impl->start_symbol_id();
-    my @ruleIdQueue = ($startSymbolId);
-    my %ruleId2Depth = ($startSymbolId => 0);
-
-    print STDERR "\$startSymbolId=$startSymbolId\n";
-
-    while (@ruleIdQueue) {
-
-      my $ruleId = shift(@ruleIdQueue);
-      my $newDepth = $ruleId2Depth{$ruleId} + 1;
-
-      if (! exists($ruleId2LhsId{$ruleId})) {
-        $log->warnf('Rule id %d not found in rule_ids() output');
-        next;
-      }
-      print STDERR "Found $ruleId in \%ruleId2LhsId, expanded to: $ruleId2LhsId{$ruleId} ::= @{$ruleId2RhsIds{$ruleId}}\n";
-      #
-      # For every RHS that is also a LHS, push
-      #
-      foreach (@{$ruleId2RhsIds{$ruleId}}) {
-        my $lhsId = $_;
-        if (! $lhsId2RuleId{$lhsId}) {
-          #
-          # This is not another LHS
-          #
-          next;
-        }
-        my $newRuleId = $lhsId2RuleId{$lhsId};
-        if (! exists($ruleId2Depth{$newRuleId})) {
-          #
-          # This has not been already pushed
-          #
-          push(@ruleIdQueue, $newRuleId);
-          $ruleId2Depth{$newRuleId} = $newDepth;
-        }
-      }
+    #
+    # We search for the start symbol in all the rules
+    #
+    my @queue = ();
+    my %depth = ();
+    foreach (keys %ruleIds) {
+	my $ruleId = $_;
+	if ($ruleIds{$ruleId}->[0] == $startSymbolId) {
+	    push(@queue, $ruleId);
+	    $depth{$ruleId} = 0;
+	}
     }
+
+    while (@queue) {
+	my $ruleId = shift(@queue);
+	my $newDepth = $depth{$ruleId} + 1;
+	#
+	# Get the RHS ids of this ruleId and select only those that are also LHS
+	#
+	my (undef, @rhsIds) = @{$ruleIds{$ruleId}};
+	foreach (@rhsIds) {
+	    my $lhsId = $_;
+	    foreach (keys %ruleIds) {
+		my $ruleId = $_;
+		if (! exists($depth{$ruleId})) {
+		    #
+		    # Rule not already inserted
+		    #
+		    if ($ruleIds{$ruleId}->[0] == $lhsId) {
+			#
+			# And having an LHS id equal to one of the RHS ids we dequeued
+			#
+			push(@queue, $ruleId);
+			$depth{$ruleId} = $newDepth;
+		    }
+		}
+	    }
+	}
+    }
+
     my @rc = ();
-    foreach (sort {$ruleId2Depth{$a} <=> $ruleId2Depth{$b}} keys %ruleId2Depth) {
+    foreach (sort {$depth{$a} <=> $depth{$b}} keys %depth) {
       my $ruleId = $_;
-      push(@rc, {id => $ruleId,
-                 lhs => $impl->rule_name($ruleId2LhsId{$ruleId}),
-                 rhs => [ map {$impl->rule_name($_)} @{$ruleId2RhsIds{$ruleId}} ],
-                 depth => $ruleId2Depth{$ruleId}});
+      my ($lhsId, @rhsIds) = @{$ruleIds{$ruleId}};
+      push(@rc, {ruleId => $ruleId,
+                 lhs => $impl->symbol_name($lhsId),
+                 rhs => [ map {$impl->symbol_name($_)} @rhsIds ],
+                 depth => $depth{$ruleId}});
     }
+
     return \@rc;
 }
 

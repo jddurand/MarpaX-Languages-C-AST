@@ -287,14 +287,14 @@ sub rule_ids {
   return $_[0]->{grammar}->rule_ids(@_[1..$#_]);
 }
 
-=head2 rule_name($self)
+=head2 symbol_name($self)
 
-Returns Marpa's grammar's rule_name.
+Returns Marpa's grammar's symbol_name.
 
 =cut
 
-sub rule_name {
-  return $_[0]->{grammar}->rule_name(@_[1..$#_]);
+sub symbol_name {
+  return $_[0]->{grammar}->symbol_name(@_[1..$#_]);
 }
 
 =head2 rule_expand($self)

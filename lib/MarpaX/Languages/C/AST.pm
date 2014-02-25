@@ -194,10 +194,6 @@ sub new {
 
   $self->_init();
 
-  use Data::Dumper;
-  print Dumper(rulesByDepth($self->{_impl}));
-  exit;
-
   return $self;
 }
 
