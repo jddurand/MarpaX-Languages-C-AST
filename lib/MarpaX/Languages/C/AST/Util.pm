@@ -303,7 +303,7 @@ sub rulesByDepth {
     }
 
     my @rc = ();
-    foreach (sort {$depth{$a} <=> $depth{$b}} keys %depth) {
+    foreach (sort {($depth{$a} <=> $depth{$b}) || ($a <=> $b)} keys %depth) {
       my $ruleId = $_;
       my ($lhsId, @rhsIds) = @{$ruleIds{$ruleId}};
       push(@rc, {ruleId   => $ruleId,
