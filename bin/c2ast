@@ -67,6 +67,7 @@ GetOptions ('help!' => \$help,
 	    'warn' => sub { $loglevel = 'WARN' },
 	    'error' => sub { $loglevel = 'ERROR' },
 	    'fatal' => sub { $loglevel = 'FATAL' },
+	    'trace' => sub { $loglevel = 'TRACE' },
             'logstderr!' => \$logstderr);
 
 @typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
@@ -368,7 +369,7 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --dump               Dump parse tree value on STDOUT.
    --dumpfile <file>    Dump parse tree value to this named file.
    --allowAmbiguity     Allow more than a single parse tree value.
-   --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR or FATAL.
+   --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
    --logstderr          Logs to stderr or not.
 
   Aliased options:
@@ -377,6 +378,7 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --warn               Alias to --loglevel WARN
    --error              Alias to --loglevel ERROR
    --fatal              Alias to --loglevel FATAL
+   --trace              Alias to --loglevel TRACE
 
   Advanced options:
    --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
@@ -485,7 +487,7 @@ parse tree values, only the first one will be used in the check phase (option --
 
 =item B<--loglevel level>
 
-A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR or FATAL.
+A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
 Default is WARN.
 
 Note that tracing Marpa library itself is possible, but only using environment variable MARPA_TRACE /and/ saying --loglevel TRACE.
@@ -516,6 +518,10 @@ Shortcut for --loglevel ERROR
 =item B<--fatal>
 
 Shortcut for --loglevel FATAL
+
+=item B<--trace>
+
+Shortcut for --loglevel TRACE
 
 =item B<--logstderr>
 
