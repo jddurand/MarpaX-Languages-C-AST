@@ -13,9 +13,6 @@ my $valuep = $cAst->parse(\$cSourceCode)->value();
 ok(defined($valuep), 'Output from parse()->value() is ok');
 
 __DATA__
-/* Note: Compilers will usually rejects this because of ANSI C recommendation */
-/* saying this SHALL not be accepted. Though this is legal from pure grammar */
-/* point of view */
 typedef char *d;
 void func(long d) {
   d = 0;
