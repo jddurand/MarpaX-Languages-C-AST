@@ -614,7 +614,10 @@ event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclara
 parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers
 
 event 'parameterDeclarationCheck$' = completed <parameterDeclarationCheck>
-parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator
+parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers parameterDeclarationCheckDeclarator
+
+event 'parameterDeclarationCheckDeclarator$' = completed <parameterDeclarationCheckDeclarator>
+parameterDeclarationCheckDeclarator ::= declarator
 
 parameterDeclaration
 	::= parameterDeclarationCheck               rank =>  0

@@ -70,9 +70,8 @@ sub new {
     #
     # Isolated to single rule:
     #
-    # declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList
-    #                      SEMICOLON action => deref
-    # ################################################################################################
+    # declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON
+    # #######################################################################################################################
     my @callbacks = ();
     push(@callbacks,
          $self->_register_rule_callbacks({
@@ -114,9 +113,9 @@ sub new {
     #
     # functionDefinitionCheck1 ::= functionDefinitionCheck1declarationSpecifiers declarator
     #                              functionDefinitionCheck1declarationList
-    #                              compoundStatementReenterScope action => deref
+    #                              compoundStatementReenterScope
     # functionDefinitionCheck2 ::= functionDefinitionCheck2declarationSpecifiers declarator
-    #                              compoundStatementReenterScope action => deref
+    #                              compoundStatementReenterScope
     #
     # Note: We want the processing to happen before the scopes are really closed.
     # ------------------------------------------------------------------------------------------
@@ -147,7 +146,7 @@ sub new {
     # ------------------------------------------------------------------------------------------
     # In:
     # parameterDeclaration ::= declarationSpecifiers declarator
-    # typedef is syntactically allowed but never valid.
+    # typedef is syntactically allowed but never valid, but can be obscured by a local parameter.
     #
     # Isolated to:
     #
@@ -156,7 +155,8 @@ sub new {
     push(@callbacks,
          $self->_register_rule_callbacks({
                                           lhs => 'parameterDeclarationCheck',
-                                          rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ [ 'storageClassSpecifierTypedef', 'typedef' ] ] ]
+                                          rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ [ 'storageClassSpecifierTypedef', 'typedef' ] ] ],
+                                                   [ 'parameterDeclarationCheckDeclarator',       [ [ 'directDeclaratorIdentifier', sub { $outerSelf->{_lastIdentifier} } ] ] ]
                                                  ],
                                           method => \&_parameterDeclarationCheck,
                                          }
@@ -280,6 +280,7 @@ sub _parameterDeclarationCheck {
     # Get the topics data we are interested in
     #
     my $parameterDeclarationdeclarationSpecifiers = $callback->topic_level_fired_data('parameterDeclarationdeclarationSpecifiers$');
+    my $parameterDeclarationCheckDeclarator = $callback->topic_fired_data('parameterDeclarationCheckDeclarator$');
 
     #
     # By definition parameterDeclarationdeclarationSpecifiers contains only typedefs
@@ -289,6 +290,15 @@ sub _parameterDeclarationCheck {
 	my ($start_lengthp, $line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
 	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
+    #
+    # By definition parameterDeclarationCheckDeclarator contains only directDeclaratorIdentifier
+    #
+    _enterOrObscureTypedef($callback, $nbTypedef, $parameterDeclarationCheckDeclarator);
+    #
+    # We are called at every parameterDeclarationCheck, and parameterDeclarationCheckDeclarator is an aggregation
+    # of all directDeclaratorIdentifier. We don't need this data anymore
+    #
+    $callback->reset_topic_fired_data('parameterDeclarationCheckDeclarator$');
 }
 # ----------------------------------------------------------------------------------------
 sub _functionDefinitionCheck1 {
@@ -361,18 +371,25 @@ sub _declarationCheck {
 	my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
 	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
-    my $scope = $callback->hscratchpad('_scope');
 
-    foreach (@{$declarationCheckinitDeclaratorList}) {
-	my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
-        if (! $counters{structContext}) {
-          if ($nbTypedef >= 0) {
-	    $scope->parseEnterTypedef($last_completed, $start_lengthp);
-          } else {
-	    $scope->parseObscureTypedef($last_completed);
-          }
-        }
+    _enterOrObscureTypedef($callback, $nbTypedef, $declarationCheckinitDeclaratorList);
+}
+# ----------------------------------------------------------------------------------------
+sub _enterOrObscureTypedef {
+  my ($callback, $nbTypedef, $directDeclaratorIdentifierArrayp) = @_;
+
+  my $scope = $callback->hscratchpad('_scope');
+
+  foreach (@{$directDeclaratorIdentifierArrayp}) {
+    my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
+    if (! $counters{structContext}) {
+      if ($nbTypedef >= 0) {
+        $scope->parseEnterTypedef($last_completed, $start_lengthp);
+      } else {
+        $scope->parseObscureTypedef($last_completed);
+      }
     }
+  }
 }
 # ----------------------------------------------------------------------------------------
 sub _enterScopeCallback {

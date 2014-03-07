@@ -2882,7 +2882,8 @@ sub _analyseParameterDeclarationCheck {
     #
     # parameterDeclarationCheck is:
     #
-    # parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers declarator
+    # parameterDeclarationCheck ::= parameterDeclarationdeclarationSpecifiers parameterDeclarationCheckDeclarator
+    # parameterDeclarationCheckDeclarator ::= declarator
     # parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers
     #
     # i.e. we are back to a routine very similar to _analyseInitDeclarator...
@@ -2893,7 +2894,7 @@ sub _analyseParameterDeclarationCheck {
 	return 0;
     }
     my $newRcp = $self->_newRcp();
-    my $declarator  = $parameterDeclarationCheck->[1];
+    my $declarator = $parameterDeclarationCheck->[1]->[0];
     if (!$self->_analyseDeclarator($stdout_buf, $declarator, $newRcp)) {
 	return 0;
     }
