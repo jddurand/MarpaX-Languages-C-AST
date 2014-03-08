@@ -1,7 +1,38 @@
 Changelog for MarpaX-Languages-C-AST
 
-0.36 2014-02-23T11:41:17
+0.37 2014-03-08T08:34:33
+ [Ben Bullock <benkasminbullock@gmail.com>]
+ - indent the heredocument part of the code correctly
+
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - t/struct.t: add a function declaration in struct
+ - Callback/Events.pm: force struct counter to have a persistence level to
+   "level", add these counters to parameterDeclarationCheck
+ - Callback/Events.pm: added missing counters in topic data, that caused
+   parse table to be processed even in struct context
+ - t/struct.t: renamed misleading identifier "free" to "this"
+ - t/struct.t: case that failed with 0.36-TRIAL
+ - t/obscure_typedef_*style.t : change comment
+ - bug fix with parameter not obscuring typedef
+ - bin/c2ast: missing --trace option
+ - rulesByDepth: sort by ruleId eventually
+ - ruleByDepth: use rule_name and put more info the result
+ - use Marpa::R2 2.081001
+ - Merge branch 'master' of
+   https://github.com/jddurand/MarpaX-Languages-C-AST
+ - rulesByDepth
+ - dev+
+ - POD update
+ - dev+
+
+ [jddurand <jeandamiendurand@free.fr>]
+ - Merge pull request #8 from benkasminbullock/patch-1
+   
+   indent the heredocument part of the code correctly
+
+0.36 2014-02-23T11:43:02
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Release of version 0.36
  - bin/c2ast: Mention '-' for STDIN usage in the POD and fix log info about
    it
  - bin/c2ast: Support STDIN, loglevel aliases on the command-line, optional
