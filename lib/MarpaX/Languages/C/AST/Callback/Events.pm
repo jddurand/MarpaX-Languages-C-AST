@@ -346,13 +346,6 @@ sub _declarationCheck {
     my ($method, $callback, $eventsp) = @_;
 
     #
-    # Check if we are in structContext context
-    #
-    my $structContext = $callback->topic_fired_data('structContext') || [0];
-    if ($structContext->[0]) {
-	return;
-    }
-    #
     # Get the topics data we are interested in
     #
     my $declarationCheckdeclarationSpecifiers = $callback->topic_fired_data('declarationCheckdeclarationSpecifiers$');
@@ -424,7 +417,7 @@ sub _storage_helper {
 	$rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
-          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), &$callbackValue() ];
+          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), &$callbackValue(), %counters ];
         } else {
           substr($event, -1, 1, '');
           $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), $fixedValue || lastCompleted($impl, $event), %counters ];
@@ -455,7 +448,7 @@ sub _storage_helper_optimized {
 	$rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
-          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), &$callbackValue() ];
+          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), &$callbackValue(), %counters ];
         } else {
           substr($event, -1, 1, '');
           $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), $_[5] || lastCompleted($_[7], $event), %counters ];
