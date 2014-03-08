@@ -17,6 +17,7 @@ ok(defined($valuep), 'Output from parse()->value() is ok');
 __DATA__
 typedef struct my_struct_ {
     int this;
+    int func(int i);
 } s_mystruct_;
 
 void func() {
