@@ -93,7 +93,7 @@ sub new {
                                           # structDeclaration will be hitted only once.
                                           # ---------------------------
                                           counters => {
-                                                       'structContext' => [ 'structContextStart[]', 'structContextEnd[]' ]
+                                                       'structContext' => [ 'structContextStart[]', 'structContextEnd[]', 'level' ]
                                                       },
                                           process_priority => CLOSEANYSCOPE_PRIORITY - 1,
                                          }
@@ -158,6 +158,9 @@ sub new {
                                           rhs => [ [ 'parameterDeclarationdeclarationSpecifiers', [ [ 'storageClassSpecifierTypedef', 'typedef' ] ] ],
                                                    [ 'parameterDeclarationCheckDeclarator',       [ [ 'directDeclaratorIdentifier', sub { $outerSelf->{_lastIdentifier} } ] ] ]
                                                  ],
+                                          counters => {
+                                                       'structContext' => [ 'structContextStart[]', 'structContextEnd[]', 'level' ]
+                                                      },
                                           method => \&_parameterDeclarationCheck,
                                          }
                                         )
@@ -580,7 +583,8 @@ sub _register_rule_callbacks {
   my $countersHashp = $hashp->{counters} || {};
   foreach (keys %{$countersHashp}) {
     my $counter = $_;
-    my ($eventStart, $eventEnd) = @{$countersHashp->{$counter}};
+    my ($eventStart, $eventEnd, $persistence) = @{$countersHashp->{$counter}};
+    $persistence ||= 'any';
     ++$rshProcessEvents{$eventStart};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                         (
@@ -591,7 +595,7 @@ sub _register_rule_callbacks {
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
                           topic => {$counter => 1},
-                          topic_persistence => 'any',
+                          topic_persistence => $persistence,
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,
                          )
@@ -607,7 +611,7 @@ sub _register_rule_callbacks {
                          option => MarpaX::Languages::C::AST::Callback::Option->new
                          (
                           topic => {$counter => 1},
-                          topic_persistence => 'any',
+                          topic_persistence => $persistence,
                           condition => [ [ 'auto' ] ],  # == match on description
                           priority => 999,
                          )
