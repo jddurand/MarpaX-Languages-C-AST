@@ -16,12 +16,12 @@ ok(defined($valuep), 'Output from parse()->value() is ok');
 
 __DATA__
 typedef struct my_struct_ {
-    int free;
+    int this;
 } s_mystruct_;
 
 void func() {
-    goto free;
-  free:
+    goto this;
+  this:
     return;
 }
 
