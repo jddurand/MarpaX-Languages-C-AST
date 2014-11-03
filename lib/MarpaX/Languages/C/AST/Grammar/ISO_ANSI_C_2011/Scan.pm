@@ -1291,39 +1291,37 @@ sub _pushRcp {
 }
 
 # ----------------------------------------------------------------------------------------
+# Generic routine handling all lists in the form:
+# xxxList ::= xxx
+#           | xxxList LEXEME xxx
 
-sub _analyseInitDeclaratorList {
-    my ($self, $stdout_buf, $initDeclaratorList, $listp, $contextp) = @_;
-    
-    #
-    # A initDeclaratorList is:
-    #
-    # initDeclaratorList ::= initDeclarator
-    #                      | initDeclaratorList COMMA initDeclarator
-    #
-    foreach (@{$initDeclaratorList}) {
+sub _analyseXxxList {
+  #
+  # Because @args can be ($listp) or ($listp, $contextp)
+  #
+  my ($self, $stdout_buf, $obj, $xxxListName, $xxxName, @args) = @_;
+
+  foreach (@{$obj}) {
 	my $blessed = blessed($_) || '';
-	if ($blessed eq 'C::AST::initDeclarator') {
-	    #
-	    # Every declarator is a new entry and inherits declarationSpecifiers
-	    # from the top level.
-	    #
-	    my $initDeclarator = $_;
-	    my $newRcp = $self->_newRcp();
-	    if (! $self->_analyseInitDeclarator($stdout_buf, $initDeclarator, $newRcp)) {
-		return 0;
-	    }
-	    #
-	    # Push initDeclarator
-	    #
-	    $self->_pushRcp($stdout_buf, $initDeclarator, $newRcp, $listp, $contextp);
-	} elsif ($blessed eq 'C::AST::initDeclaratorList') {
+	if ($blessed eq "C::AST::$xxxName") {
+	  my $this = $_;
+	  my $newRcp = $self->_newRcp();
+	  my $func = '_analyse' . ucfirst($xxxName);
+	  if (! $self->$func($stdout_buf, $this, $newRcp)) {
+	    return 0;
+	  }
+	  #
+	  # Push initDeclarator
+	  #
+	  $self->_pushRcp($stdout_buf, $this, $newRcp, @args);
+	} elsif ($blessed eq "C::AST::$xxxListName") {
 	    #
 	    # Will croak by default if more than 100... Is that going to happen in a real C
 	    # source-code ? If yes, it better be rewriten -;
 	    #
 	    no warnings 'recursion';
-	    if (! $self->_analyseInitDeclaratorList($stdout_buf, $_, $listp, $contextp)) {
+	    my $func = '_analyse' . ucfirst($xxxListName);
+	    if (! $self->$func($stdout_buf, $_, @args)) {
 		return 0;
 	    }
 	} else {
@@ -1336,7 +1334,15 @@ sub _analyseInitDeclaratorList {
 	}
     }
 
-    return 1;
+  return 1;
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _analyseInitDeclaratorList {
+    my ($self, $stdout_buf, $initDeclaratorList, $listp, $contextp) = @_;
+
+    return $self->_analyseXxxList($stdout_buf, $initDeclaratorList, 'initDeclaratorList', 'initDeclarator', $listp, $contextp);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -1708,36 +1714,8 @@ sub _analyseEnumerator {
 
 sub _analyseEnumeratorList {
     my ($self, $stdout_buf, $enumeratorList, $listp) = @_;
-    #
-    # enumeratorList is:
-    #
-    # enumeratorList ::= enumerator
-    #                  | enumeratorList COMMA enumerator
-    #
-    # Lexeme available: check if position is ok
-    #
-    if ($#{$enumeratorList} > 0 && ! $self->_positionOk($enumeratorList->[1]->[0])) {
-	return 0;
-    }
 
-    my $blessed = blessed($enumeratorList->[0]) || '';
-    if ($blessed eq 'C::AST::enumeratorList') {
-	if (! $self->_analyseEnumeratorList($stdout_buf, $enumeratorList->[0], $listp)) {
-	    return 0;
-	}
-    } else {
-	#
-	# Note: no toplevel information.
-	#
-	my $enumerator = $enumeratorList->[-1];
-	my $newRcp = $self->_newRcp();
-	if (! $self->_analyseEnumerator($stdout_buf, $enumerator, $newRcp)) {
-	    return 0;
-	}
-	$self->_pushRcp($stdout_buf, $enumerator, $newRcp, $listp);
-    }
-
-    return 1;
+    return $self->_analyseXxxList($stdout_buf, $enumeratorList, 'enumeratorList', 'enumerator', $listp);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -2006,33 +1984,8 @@ sub _analyseStructDeclarator {
 
 sub _analyseStructDeclaratorList {
     my ($self, $stdout_buf, $structDeclaratorList, $listp, $contextp) = @_;
-    #
-    # structDeclaratorList is:
-    #
-    # structDeclaratorList ::= structDeclarator
-    #                        | structDeclaratorList COMMA structDeclarator
-    #
-    #
-    # Lexeme available: check if position is ok
-    #
-    if ($#{$structDeclaratorList} > 0 && ! $self->_positionOk($structDeclaratorList->[1]->[0])) {
-	return 0;
-    }
 
-    if ($#{$structDeclaratorList} > 0) {
-	if (! $self->_analyseStructDeclaratorList($stdout_buf, $structDeclaratorList->[0], $listp, $contextp)) {
-	    return 0;
-	}
-    }
-
-    my $newRcp = $self->_newRcp();
-    my $structDeclarator = $structDeclaratorList->[-1];
-    if (! $self->_analyseStructDeclarator($stdout_buf, $structDeclarator, $newRcp)) {
-	return 0;
-    }
-    $self->_pushRcp($stdout_buf, $structDeclarator, $newRcp, $listp, $contextp);
-
-    return 1;
+    return $self->_analyseXxxList($stdout_buf, $structDeclaratorList, 'structDeclaratorList', 'structDeclarator', $listp, $contextp);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -2756,35 +2709,20 @@ sub _analyseParameterTypeList {
 
 # ----------------------------------------------------------------------------------------
 
-sub _analyseIdentifierList {
-    my ($self, $stdout_buf, $identifierList, $listp) = @_;
-    #
-    # identifierList is:
-    #
-    # identifierList ::= IDENTIFIER
-    #                  | identifierList COMMA IDENTIFIER
-    #
-    #
-    # Lexeme available: check if position is ok
-    #
-    if (! $self->_positionOk($identifierList->[-1]->[0])) {
-	return 0;
-    }
+sub _analyseIDENTIFIER {
+    my ($self, $stdout_buf, $IDENTIFIER, $rcp) = @_;
 
-    if ($#{$identifierList} > 0) {
-	if (! $self->_analyseIdentifierList($stdout_buf, $identifierList->[0], $listp)) {
-	    return 0;
-	}
-    }
-    my $newRcp = $self->_newRcp();
-    my $identifier = $identifierList->[-1]->[2];
-    $self->_setRcp($newRcp, 'nm', $identifier);
-    #
-    # Push identifier
-    #
-    $self->_pushRcp($stdout_buf, $identifierList, $newRcp, $listp);
+    $self->_setRcp($rcp, 'nm', $IDENTIFIER->[2]);
 
     return 1;
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _analyseIdentifierList {
+    my ($self, $stdout_buf, $identifierList, $listp) = @_;
+
+    return $self->_analyseXxxList($stdout_buf, $identifierList, 'identifierList', 'IDENTIFIER', $listp);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -2799,6 +2737,7 @@ sub _newRcp {
 
 sub _analyseParameterList {
     my ($self, $stdout_buf, $parameterList, $listp) = @_;
+
     #
     # parameterList is:
     #
