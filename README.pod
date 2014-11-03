@@ -1,6 +1,6 @@
 =pod
 
-=encoding utf-8
+=encoding UTF-8
 
 =head1 NAME
 
@@ -8,7 +8,7 @@ MarpaX::Languages::C::AST - Translate a C source to an AST
 
 =head1 VERSION
 
-version 0.37
+version 0.38
 
 =head1 SYNOPSIS
 
@@ -167,6 +167,8 @@ Jean-Damien Durand <jeandamiendurand@free.fr>
 
 =head1 CONTRIBUTORS
 
+=for stopwords Ben Bullock Jeffrey Kegler jddurand
+
 =over 4
 
 =item *
@@ -194,3 +196,4 @@ This software is copyright (c) 2013 by Jean-Damien Durand.
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
+=cut
