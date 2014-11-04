@@ -817,7 +817,7 @@ CP_maybe   ~
 SP         ~ 'u8' | [uUL]
 SP_maybe   ~ SP
 SP_maybe   ~
-ES_AFTERBS ~ [\'\"\?\\abfnrtv]
+ES_AFTERBS ~ [\'\"\?\\abfnrtve]
            | O
            | O O
            | O O O
