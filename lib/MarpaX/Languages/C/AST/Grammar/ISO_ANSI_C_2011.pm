@@ -700,6 +700,7 @@ statement
 labeledStatement
 	::= IDENTIFIER COLON statement
 	| CASE constantExpression COLON statement
+	| CASE constantExpression (WS_MANY) ELLIPSIS (WS_MANY) constantExpression COLON statement
 	| DEFAULT COLON statement
 
 compoundStatement
@@ -826,6 +827,7 @@ ES         ~ BS ES_AFTERBS
 WS         ~ [ \t\v\n\f]
 WS_any     ~ WS*
 WS_many    ~ WS+
+WS_MANY    ~ WS+
 
 # Lexemes
 :lexeme ~ <AUTO>          priority => -1
