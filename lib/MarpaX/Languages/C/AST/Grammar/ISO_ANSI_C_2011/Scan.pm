@@ -1176,7 +1176,9 @@ sub _buildContext {
 	#
 	my $newRcp = $self->_newRcp();
 	foreach (qw/nm struct args ty structOrUnion/) {
-	    $self->_setRcp($newRcp, $_, $self->_getRcp($contextp, $_));
+            if ($self->_existsRcp($contextp, $_)) {
+              $self->_setRcp($newRcp, $_, $self->_getRcp($contextp, $_));
+            }
 	}
 	#
 	# Force 'type' flag
