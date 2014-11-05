@@ -18,7 +18,7 @@ BEGIN {
 $ENV{MARPAX_LANGUAGES_C_AST_SCAN_TEST} = 1;
 
 my $filename = File::Spec->catfile('inc', 'scan.c');
-my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
+my $c = MarpaX::Languages::C::Scan->new(filename => $filename, asHash => 1);
 #my $cscan = C::Scan->new(filename => $filename, filename_filter => $filename);
 
 eq_or_diff($c->defines_no_args,
@@ -240,27 +240,39 @@ eq_or_diff($c->vdecl_hash,
     'vdecl_hash');
 eq_or_diff($c->typedef_structs,
 {
-    'myStructType2_t' => [
-        [
-         '',
-         '',
-         'x'
-        ]
-        ],
-        'myStructType1_t' => [
-            [
-             '',
-             '',
-             'x'
-            ]
-        ],
-            'myEnumType1p_t' => undef,
-            'myStructType2p_t' => undef,
-            'myEnumType1_t' => undef,
-            'myInt_type' => undef,
-            'myEnumType2p_t' => undef,
-            'myEnumType2_t' => undef,
-            'myStructType1p_t' => undef
+ 'myStructType2_t' => [
+		       [
+			'',
+			'',
+			'x'
+		       ]
+		      ],
+ 'myStructType1_t' => [
+		       [
+			'',
+			'',
+			'x'
+		       ]
+		      ],
+ 'myStructType1p_t' => [
+			[
+			 '',
+			 '',
+			 'x'
+			]
+		       ],
+ 'myStructType2p_t' => [
+			[
+			 '',
+			 '',
+			 'x'
+			]
+		       ],
+ 'myEnumType1_t' => undef,
+ 'myEnumType1p_t' => undef,
+ 'myInt_type' => undef,
+ 'myEnumType2p_t' => undef,
+ 'myEnumType2_t' => undef,
 }, 'typedef_structs');
 
 #TODO: {
