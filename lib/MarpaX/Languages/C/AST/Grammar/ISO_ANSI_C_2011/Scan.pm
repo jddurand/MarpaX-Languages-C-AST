@@ -432,7 +432,7 @@ sub defs {
 
 =head2 parsed_fdecls($self)
 
-C::Scan compatible reference to list of parsed declarations of functions. Please note that the arguments, as per C::Scan documents, are an array reference of: (ty, nm, args, ft, mod). In our terminology, if the argument is a function, then the type 'ty' is the return type 'rt'.
+C::Scan compatible reference to list of parsed declarations of functions. Please note that the arguments, as per C::Scan documents, are an array reference of: (ty, nm, args, ft, mod). In our terminology, if the argument is a function, then the type 'ty' is the C::Scan's return type 'rt'.
 
 For example, in:
 
@@ -1176,6 +1176,7 @@ sub _buildContext {
 sub _pushRcp {
     my ($self, $stdout_buf, $o, $rcp, $listp, $contextp) = @_;
 
+    my $blessed = blessed($o) || '';
     $contextp //= $self->_newRcp();
 
     #
@@ -1200,26 +1201,6 @@ sub _pushRcp {
 	$self->_setRcp($rcp, 'file', $file);
 	$self->_setRcp($rcp, 'line', $line);
     }
-
-    #
-    # - Final type: rt for a function, ty otherwise, EXCEPT at the
-    #   top level of functionDefinition, where there is no type
-    #   attached to a function, neither it has a 'type' or a 'var' flag
-    #
-    if ($self->_definedRcp($rcp, 'func')) {
-	if (defined($contextp) && $self->_definedRcp($contextp, 'ty')) {
-	    $self->_prependRcp($rcp, 'rt', $self->_getRcp($contextp, 'ty'));
-	} elsif (! $self->_definedRcp($rcp, 'rt')) {
-	    #
-	    # Default return type is int
-	    #
-	    $self->_setRcp($rcp, 'rt', 'int');
-	}
-    } else {
-	if (defined($contextp) && $self->_definedRcp($contextp, 'ty')) {
-	    $self->_prependRcp($rcp, 'ty', $self->_getRcp($contextp, 'ty'));
-	}
-    }
     #
     # Inheritance from context
     #
@@ -1235,17 +1216,25 @@ sub _pushRcp {
 	}
     }
     #
-    # type or var flag
+    # - Final type: rt for a function, ty otherwise
     #
-    if ($self->_definedRcp($rcp, 'structOrUnion') || $self->_definedRcp($rcp, 'typedef')) {
-	$self->_setRcp($rcp, 'type', 1);
-    } else {
-	$self->_setRcp($rcp, 'var', 1);
-    }
-    if ($listp == $self->defs) {
+    if ($self->_definedRcp($rcp, 'func')) {
+	if ($self->_definedRcp($contextp, 'ty')) {
+	    $self->_prependRcp($rcp, 'rt', $self->_getRcp($contextp, 'ty'));
+	}
+        if (! $self->_definedRcp($rcp, 'rt')) {
+          #
+          # Default return type is int
+          #
+          $self->_setRcp($rcp, 'rt', 'int');
+	}
 	$self->_deleteRcp($rcp, 'ty');
-	$self->_deleteRcp($rcp, 'type');
-	$self->_deleteRcp($rcp, 'var');
+    } else {
+        if ($self->_definedRcp($rcp, 'structOrUnion') || $self->_definedRcp($rcp, 'typedef')) {
+          $self->_setRcp($rcp, 'type', 1);
+        } else {
+          $self->_setRcp($rcp, 'var', 1);
+        }
     }
     #
     #
