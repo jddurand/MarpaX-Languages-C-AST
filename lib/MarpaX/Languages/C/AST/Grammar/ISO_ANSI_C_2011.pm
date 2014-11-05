@@ -738,7 +738,7 @@ jumpStatement
 	| RETURN expression SEMICOLON
 
 event 'translationUnit$' = completed <translationUnit>
-translationUnit ::= externalDeclaration+
+translationUnit ::= externalDeclaration*
 
 event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
