@@ -744,6 +744,7 @@ event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
 	::= functionDefinition
 	| declaration
+        | (SEMICOLON)
 
 compoundStatementReenterScope ::= LCURLY_REENTERSCOPE RCURLY_SCOPE
 	                        | LCURLY_REENTERSCOPE blockItemList RCURLY_SCOPE
