@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:element name="C">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="decls" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="args" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="file" type="xs:string"></xs:attribute>
+                  <xs:attribute name="ft" type="xs:string"></xs:attribute>
+                  <xs:attribute name="line" type="xs:int"></xs:attribute>
+                  <xs:attribute name="nm" type="xs:string"></xs:attribute>
+                  <xs:attribute name="ty" type="xs:string"></xs:attribute>
+                  <xs:attribute name="var" type="xs:int"></xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="file" type="xs:string"></xs:attribute>
+            <xs:attribute name="ft" type="xs:string"></xs:attribute>
+            <xs:attribute name="line" type="xs:int"></xs:attribute>
+            <xs:attribute name="nm" type="xs:string"></xs:attribute>
+            <xs:attribute name="struct" type="xs:int"></xs:attribute>
+            <xs:attribute name="structOrUnion" type="xs:int"></xs:attribute>
+            <xs:attribute name="ty" type="xs:string"></xs:attribute>
+            <xs:attribute name="type" type="xs:int"></xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="defs" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="args">
+                <xs:complexType>
+                  <xs:attribute name="file" type="xs:string"></xs:attribute>
+                  <xs:attribute name="ft" type="xs:string"></xs:attribute>
+                  <xs:attribute name="line" type="xs:int"></xs:attribute>
+                  <xs:attribute name="nm" type="xs:string"></xs:attribute>
+                  <xs:attribute name="ty" type="xs:string"></xs:attribute>
+                  <xs:attribute name="var" type="xs:int"></xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="file" type="xs:string"></xs:attribute>
+            <xs:attribute name="ft" type="xs:string"></xs:attribute>
+            <xs:attribute name="func" type="xs:int"></xs:attribute>
+            <xs:attribute name="line" type="xs:int"></xs:attribute>
+            <xs:attribute name="nm" type="xs:string"></xs:attribute>
+            <xs:attribute name="rt" type="xs:string"></xs:attribute>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
