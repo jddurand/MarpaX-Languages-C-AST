@@ -15,6 +15,7 @@ use IO::File;
 use Scalar::Util qw/blessed reftype/;
 use Regexp::Common;
 use String::ShellQuote qw/shell_quote_best_effort/;  # Not for Win32, but passes everywhere, so ok to use it like that
+use Log::Any qw/$log/;
 use constant {
     LEXEME_POSITION_INDEX => 0,
     LEXEME_LENGTH_INDEX => 1,
@@ -1150,6 +1151,9 @@ sub _analyseDeclarationCheck {
 sub _buildContext {
     my ($self, $stdout_buf, $specifiersList, $contextp, $listp) = @_;
 
+    #
+    # A context is build under two conditions: declarationSpecifiers or specifierQualifierList
+    #
     if (blessed($specifiersList) eq 'C::AST::declarationSpecifiers') {
 	if (! $self->_analyseDeclarationSpecifiers($stdout_buf, $specifiersList, $contextp)) {
 	    return 0;
@@ -1158,44 +1162,10 @@ sub _buildContext {
 	if (! $self->_analyseSpecifierQualifierList($stdout_buf, $specifiersList, $contextp)) {
 	    return 0;
 	}
+    } else {
+      $log->warnf('_buildContext() called on object blessed as %s', blessed($specifiersList) || '');
+      return 0;
     }
-    #
-    # The context can not only give current type, but also be a new storage type specifier:
-    # - Enum cases, simpler but also orthogonal, are treated explicitely in _analyseEnumSpecifier.
-    # - Struct cases are treated here.
-    #
-    if ($self->_existsRcp($contextp, 'struct') && $self->_getRcp($contextp, 'struct')) {
-	#
-	# Look to _analyseStructOrUnionSpecifier and you will see it can set only
-	# the following fields:
-	# 'nm'
-	# 'struct'
-	# 'args'
-	# 'ty'
-	# 'structOrUnion'
-	#
-	my $newRcp = $self->_newRcp();
-	foreach (qw/nm struct args ty structOrUnion/) {
-            if ($self->_existsRcp($contextp, $_)) {
-              $self->_setRcp($newRcp, $_, $self->_getRcp($contextp, $_));
-            }
-	}
-	#
-	# Force 'type' flag
-	#
-	$self->_setRcp($newRcp, 'type', 1);
-	#
-	# Push to same-level context
-	#
-	push(@{$listp}, $newRcp);
-	#
-	# List of fields we delete: all but 'ty'
-	#
-	foreach (qw/nm struct args structOrUnion type/) {
-	    $self->_deleteRcp($contextp, $_);
-	}
-    }
-
     #
     # Add startPosition - used to get full text
     #
