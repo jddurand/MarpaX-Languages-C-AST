@@ -685,19 +685,21 @@ sub typedef_structs {
         } else {
           my $structOrUnion = $structOrUnion[-1];
           my @elements = ();
-          foreach (@{$self->_getRcp($structOrUnion, 'args')}) {
-            #
-            # Because a struct or union can very well have
-            # defined inner types: ye are only interested by
-            # variables
-            #
-            if ($self->_getRcp($_, 'var')) {
-              push(@elements,
-                   [
-                    $self->_beforeAndAfter($self->_getRcp($_, 'ft') // '', $self->_getRcp($_, 'nm')),
-                    $self->_getRcp($_, 'nm')
-                   ]
-                  );
+          if ($self->_existsRcp($structOrUnion, 'args') && $self->_getRcp($structOrUnion, 'args')) {
+            foreach (@{$self->_getRcp($structOrUnion, 'args')}) {
+              #
+              # Because a struct or union can very well have
+              # defined inner types: ye are only interested by
+              # variables
+              #
+              if ($self->_getRcp($_, 'var')) {
+                push(@elements,
+                     [
+                      $self->_beforeAndAfter($self->_getRcp($_, 'ft') // '', $self->_getRcp($_, 'nm')),
+                      $self->_getRcp($_, 'nm')
+                     ]
+                    );
+              }
             }
             $hash{$nm} = \@elements;
           }
