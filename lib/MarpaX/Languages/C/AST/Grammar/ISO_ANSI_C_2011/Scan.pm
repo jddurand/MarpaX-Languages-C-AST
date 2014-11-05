@@ -665,21 +665,15 @@ sub typedef_structs {
   foreach (@{$self->decls}) {
       if ($self->_existsRcp($_, 'typedef') && $self->_getRcp($_, 'typedef')) {
         my $ty = $self->_getRcp($_, 'ty');
-        #
-        # In case of typedef struct, the type is: struct STRUCTTYPE
-        #
-        if ($ty =~ /^struct\s+([\w]+)$/) {
-          $ty = substr($ty, $-[1], $+[1] - $-[1]);
-        }
         my $nm = $self->_getRcp($_, 'nm');
         #
         # If the type is a struct or an union, then there must
-        # exist another entry at the toplevel with that name that
+        # exist another entry at the toplevel with that type that
         # have the flag 'structOrUnion'
         #
         my @structOrUnion = grep {
           $self->_getRcp($_, 'structOrUnion') &&
-            $self->_getRcp($_, 'nm') eq $ty
+            $self->_getRcp($_, 'ty') eq $ty
           } @{$self->decls};
         if (! @structOrUnion) {
           $hash{$nm} = undef;
@@ -688,9 +682,7 @@ sub typedef_structs {
           my @elements = ();
           foreach (@{$self->_getRcp($structOrUnion, 'args')}) {
             #
-            # Because a struct or union can very well have
-            # defined inner types: ye are only interested by
-            # variables
+            # We are only interested by variables
             #
             if ($self->_getRcp($_, 'var')) {
               push(@elements,
