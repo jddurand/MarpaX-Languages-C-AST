@@ -89,6 +89,18 @@ A string giving the starting point of the grammar. This should be used when you 
 
 Please note that giving another value but 'translationUnit' will emit warnings from the grammar, saying that some rules are not reachable.
 
+=item actionObject
+
+Grammar specific action object.
+
+=item nonTerminalSemantic
+
+Grammar specific non-terminal semantic action.
+
+=item terminalSemantic
+
+Grammar specific terminal semantic action.
+
 =item logInfo
 
 Reference to an array of lexemes for which a log of level INFO will be issued.
@@ -142,7 +154,7 @@ sub new {
 
   my $grammarName = $opts{grammarName} || 'ISO-ANSI-C-2011';
 
-  my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName, \%logInfo, $opts{start});
+  my $grammar = MarpaX::Languages::C::AST::Grammar->new($grammarName, \%logInfo, $opts{start}, $opts{actionObject}, $opts{nonTerminalSemantic}, $opts{terminalSemantic});
   my $grammar_option = $grammar->grammar_option();
   $grammar_option->{bless_package} = 'C::AST';
   $grammar_option->{source} = \$grammar->content();
