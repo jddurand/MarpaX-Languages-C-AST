@@ -28,9 +28,9 @@ This modules contains the ISO ANSI C 2011 C grammar written in Marpa BNF, as of 
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new([$pausep, $start, $defaultNonTerminalSemantic, $defaultTerminalSemantic])
+=head2 new([$pausep, $start, $actionObject, $nonTerminalSemantic, $terminalSemantic])
 
-Instance a new object. Takes an eventual reference to a HASH for lexemes for which a pause after is requested, followed by an eventual start rule, an eventual default non-terminal semantic action, a default terminal semantic action. Default paused lexemes is hardcoded to a list of lexeme that must always be paused, and this list cannot be altered. Default start rule is 'translationUnit'. Default non-terminal semantic is hardcoded to ':default ::= action => [values] bless => ::lhs'. Default terminal semantic is hardcoded to :'lexeme default = action => [start,length,value] forgiving => 1'.
+Instance a new object. Takes an eventual reference to a HASH for lexemes for which a pause after is requested, followed by an eventual start rule, an eventual action object, an eventual default non-terminal semantic action, a default terminal semantic action. Default paused lexemes is hardcoded to a list of lexeme that must always be paused, and this list cannot be altered. Default start rule is 'translationUnit'. Default action object is hardcoded to __PACKAGE__::Actions module. Default non-terminal semantic is hardcoded to ':default ::= action => [values] bless => ::lhs'. Default terminal semantic is hardcoded to :'lexeme default = action => [start,length,value] forgiving => 1'.
 
 =cut
 
@@ -49,16 +49,19 @@ our %DEFAULT_PAUSE = (
     ANY_ASM              => 'after',
 );
 
+our $DEFAULTACTIONOBJECT = sprintf('%s::%s', __PACKAGE__, 'Actions');
 our $DEFAULTNONTERMINALSEMANTIC = ':default ::= action => [values] bless => ::lhs';
 our $DEFAULTTERMINALSEMANTIC = 'lexeme default = action => [start,length,value] forgiving => 1';
 
 our $DATA = do {local $/; <DATA>};
 
 sub new {
-  my ($class, $pausep, $start, $defaultNonTerminalSemantic, $defaultTerminalSemantic) = @_;
+  my ($class, $pausep, $start, $actionObject, $nonTerminalSemantic, $terminalSemantic) = @_;
+
+  $actionObject //= $DEFAULTACTIONOBJECT;
 
   my $self  = {
-    _grammar_option => {action_object  => sprintf('%s::%s', __PACKAGE__, 'Actions')},
+    _grammar_option => {action_object  => $actionObject},
     _recce_option => {ranking_method => 'high_rule_only'},
   };
   #
@@ -110,13 +113,13 @@ sub new {
       }
       $self->{_content} .= $line;
   }
-  $defaultNonTerminalSemantic //= $DEFAULTNONTERMINALSEMANTIC;
-  $defaultTerminalSemantic //= $DEFAULTTERMINALSEMANTIC;
+  $nonTerminalSemantic //= $DEFAULTNONTERMINALSEMANTIC;
+  $terminalSemantic //= $DEFAULTTERMINALSEMANTIC;
 
   $self->{_content} =~ s/\$PRAGMAS\n/$pragmas/;
   $self->{_content} =~ s/\$START\n/$start/;
-  $self->{_content} =~ s/\$DEFAULTNONTERMINALSEMANTIC\b/$defaultNonTerminalSemantic/;
-  $self->{_content} =~ s/\$DEFAULTTERMINALSEMANTIC\b/$defaultTerminalSemantic/;
+  $self->{_content} =~ s/\$NONTERMINALSEMANTIC\b/$nonTerminalSemantic/;
+  $self->{_content} =~ s/\$TERMINALSEMANTIC\b/$terminalSemantic/;
 
   bless($self, $class);
 
@@ -169,8 +172,8 @@ $PRAGMAS
 #
 # Defaults
 #
-$DEFAULTNONTERMINALSEMANTIC
-$DEFAULTTERMINALSEMANTIC
+$NONTERMINALSEMANTIC
+$TERMINALSEMANTIC
 
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
