@@ -28,9 +28,9 @@ This modules contains the ISO ANSI C 2011 C grammar written in Marpa BNF, as of 
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new([$pausep, $start])
+=head2 new([$pausep, $start, $defaultNonTerminalSemantic, $defaultTerminalSemantic])
 
-Instance a new object. Takes an eventual reference to a HASH for lexemes for which a pause after is requested, followed by an eventual start rule. Default paused lexemes is hardcoded to a list of lexeme that must always be paused, and this list cannot be altered. Default start rule is 'translationUnit'.
+Instance a new object. Takes an eventual reference to a HASH for lexemes for which a pause after is requested, followed by an eventual start rule, an eventual default non-terminal semantic action, a default terminal semantic action. Default paused lexemes is hardcoded to a list of lexeme that must always be paused, and this list cannot be altered. Default start rule is 'translationUnit'. Default non-terminal semantic is hardcoded to ':default ::= action => [values] bless => ::lhs'. Default terminal semantic is hardcoded to :'lexeme default = action => [start,length,value] forgiving => 1'.
 
 =cut
 
@@ -49,10 +49,13 @@ our %DEFAULT_PAUSE = (
     ANY_ASM              => 'after',
 );
 
+our $DEFAULTNONTERMINALSEMANTIC = ':default ::= action => [values] bless => ::lhs';
+our $DEFAULTTERMINALSEMANTIC = 'lexeme default = action => [start,length,value] forgiving => 1';
+
 our $DATA = do {local $/; <DATA>};
 
 sub new {
-  my ($class, $pausep, $start) = @_;
+  my ($class, $pausep, $start, $defaultNonTerminalSemantic, $defaultTerminalSemantic) = @_;
 
   my $self  = {
     _grammar_option => {action_object  => sprintf('%s::%s', __PACKAGE__, 'Actions')},
@@ -107,9 +110,13 @@ sub new {
       }
       $self->{_content} .= $line;
   }
+  $defaultNonTerminalSemantic //= $DEFAULTNONTERMINALSEMANTIC;
+  $defaultTerminalSemantic //= $DEFAULTTERMINALSEMANTIC;
 
   $self->{_content} =~ s/\$PRAGMAS\n/$pragmas/;
   $self->{_content} =~ s/\$START\n/$start/;
+  $self->{_content} =~ s/\$DEFAULTNONTERMINALSEMANTIC\b/$defaultNonTerminalSemantic/;
+  $self->{_content} =~ s/\$DEFAULTTERMINALSEMANTIC\b/$defaultTerminalSemantic/;
 
   bless($self, $class);
 
@@ -162,8 +169,8 @@ $PRAGMAS
 #
 # Defaults
 #
-:default ::= action => [values] bless => ::lhs
-lexeme default = action => [start,length,value] forgiving => 1
+$DEFAULTNONTERMINALSEMANTIC
+$DEFAULTTERMINALSEMANTIC
 
 #
 # G1 (grammar), c.f. http://www.quut.com/c/ANSI-C-grammar-y-2011.html
