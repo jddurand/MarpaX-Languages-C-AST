@@ -61,8 +61,8 @@ sub new {
   $actionObject //= $DEFAULTACTIONOBJECT;
 
   my $self  = {
-    _grammar_option => {action_object  => $actionObject},
-    _recce_option => {ranking_method => 'high_rule_only'},
+    _grammar_option => {},
+    _recce_option => {semantics_package => $actionObject, ranking_method => 'high_rule_only'},
   };
   #
   # Rework the grammar to have the pauses:
