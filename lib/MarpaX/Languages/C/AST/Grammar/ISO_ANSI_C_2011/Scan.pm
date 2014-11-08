@@ -21,6 +21,8 @@ use constant {
     LEXEME_LENGTH_INDEX => 1,
     LEXEME_VALUE_INDEX => 2
 };
+use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
+
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
 our $RESAMELINE = qr/(?:[ \t\v\f])*/;                        # i.e. WS* without \n
@@ -835,7 +837,10 @@ sub _getAst {
 			   {self => $self,
 			    tmpHashp => \%tmpHash,
 			   }
-       ]
+       ],
+       actionObject => sprintf('%s::%s', __PACKAGE__, 'Actions'),
+       nonTerminalSemantic => ':default ::= action => nonTerminalSemantic',
+       terminalSemantic => 'lexeme default = action => terminalSemantic forgiving => 1',
       )->parse(\$stdout_buf)->value;
   $self->{_ast} = ${$value};
 
@@ -873,9 +878,51 @@ sub _analyse_with_grammar {
   #
   $self->{_decls} = [];
   $self->{_defs} = [];
-  my $nbDeclarationOk = 0;
-  my $nbFunctionDefinitionOk = 0;
-  my $nbExternalDeclarationSkipped = 0;
+  $self->{_contexts} = undef;
+
+  #MarpaX::Languages::C::AST::Util::Data::Find->new
+  #    (
+  #     callback => sub
+  #     {
+#	 my ($self, $o) = @_;
+#	 my $blessed = blessed($o) || '';
+#	 #
+#	 # Per def we are starting with translationUnit ::= externalDeclaration*
+#	 #
+#	 if ($blessed eq 'C::AST::translationUnit' ||
+#	     $blessed eq 'C::AST::externalDeclaration') {
+#	   return;
+#	 }
+#	 #
+#	 # externalDeclaration ::= functionDefinition | declaration | (SEMICOLON)
+#	 #
+#	 if ($blessed eq 'C::AST::functionDefinition') {
+#	   push(@{$self->{_defs}}, []);
+#	   $self->{_contexts} = $self->{_defs};
+#	   return;
+#	 } elsif ($blessed eq 'C::AST::declaration') {
+#	   push(@{$self->{_decls}}, []);
+#	   $self->{_contexts} = $self->{_decls};
+#	   return;
+#	 }
+#
+#	 my $context = $self->{_contexts}->[-1];
+#	 #
+#	 # Any scope opening means a child element
+#	 #
+#	 if (! $blessed) {
+#	   if ($o->[2] eq '{' || $o->[2] eq '(') {
+#	     push(@{$self->{_context}}, []);
+#	   }
+#	 }
+ #      },
+ #      callbackArgs => [ $self ],
+  #    )->process(${$bless});
+
+  # return;
+
+  print STDERR $self->ast;
+
   foreach (@{$self->ast}) {
       my $externalDeclaration = $_;
       #
@@ -886,16 +933,10 @@ sub _analyse_with_grammar {
       my $blessed = blessed($externalDeclaration->[0]) || '';
       if ($blessed eq 'C::AST::declaration') {
 	  my $declaration = $externalDeclaration->[0];
-	  if ($self->_analyseDeclaration($stdout_buf, $declaration, $self->{_decls})) {
-	      ++$nbDeclarationOk;
-	  }
+	  $self->_analyseDeclaration($stdout_buf, $declaration, $self->{_decls});
       } elsif ($blessed eq 'C::AST::functionDefinition') {
 	  my $functionDefinition = $externalDeclaration->[0];
-	  if ($self->_analyseFunctionDefinition($stdout_buf, $functionDefinition, $self->{_defs})) {
-	      ++$nbFunctionDefinitionOk;
-	  }
-      } else {
-	  ++$nbExternalDeclarationSkipped;
+	  $self->_analyseFunctionDefinition($stdout_buf, $functionDefinition, $self->{_defs});
       }
   }
 
@@ -2833,29 +2874,6 @@ sub _analyseAbstractDeclarator {
     }
 
     return 1;
-}
-
-# ----------------------------------------------------------------------------------------
-
-sub _lexemes {
-    my ($self, $o) = @_;
-
-    my @lexemes = ();
-    MarpaX::Languages::C::AST::Util::Data::Find->new
-	(
-	 wanted => sub {
-	     my $o = shift;
-	     my $reftype = reftype($o) || '';
-	     return (! defined(blessed($o)) && $reftype eq 'ARRAY');
-	 },
-	 callback => sub {
-	     my ($self, $o) = @_;
-	     push(@lexemes, $o->[2]);
-	 },
-	 callbackArgs => [ $self ],
-	)->process($o);
-
-    return @lexemes;
 }
 
 # ----------------------------------------------------------------------------------------
