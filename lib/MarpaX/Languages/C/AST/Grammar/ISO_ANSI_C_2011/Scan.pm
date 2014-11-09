@@ -22,6 +22,7 @@ use constant {
     LEXEME_VALUE_INDEX => 2
 };
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
+use File::ShareDir qw/:ALL/;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -840,7 +841,6 @@ sub _getAst {
        ],
        actionObject => sprintf('%s::%s', __PACKAGE__, 'Actions'),
        nonTerminalSemantic => ':default ::= action => nonTerminalSemantic',
-       terminalSemantic => 'lexeme default = action => terminalSemantic forgiving => 1',
       )->parse(\$stdout_buf)->value;
   $self->{_ast} = ${$value};
 
@@ -921,7 +921,33 @@ sub _analyse_with_grammar {
 
   # return;
 
-  print STDERR $self->ast;
+  # -------------------------------------------------------------------------------------------
+  # Producing a C::Scan equivalent is just a matter of revisiting the XML, i.e. the AST's value
+  #
+  # C::Scan outputs can be:
+  #
+  # includes                   Handled as a callback during lexing
+  # defines_args               Handled in _posprocess_heuristics()
+  # defines_no_args            Handled in _posprocess_heuristics()
+  # fdecls                     functions declarations. Handled here.
+  # inlines                    functions definitions. Handled here.
+  # parsed_fdecls              parsed functions declarations. Handled here.
+  # typedef_hash               typedefs. Handled here.
+  # typedef_texts              typedefs expansions. Handled here.
+  # typedefs_maybe             Empty here.
+  # vdecls                     List of extern variables declarations. Handled here.
+  # vdecl_hash                 Parsed extern variables declarations. Handled here.
+  # typedef_structs            Parsed struct declarations. Handled here.
+  # -------------------------------------------------------------------------------------------
+
+  use Data::Dumper;
+  $self->_ast2fdecls($stdout_buf);
+  $self->_ast2inlines($stdout_buf);
+  $self->_ast2parsed_fdecls($stdout_buf);
+
+  print STDERR "fdecls: " . Dumper($self->_ast2fdecls($stdout_buf));
+  print STDERR "inlines: ". Dumper($self->_ast2inlines($stdout_buf));
+  print STDERR "parsed_fdecls: ". Dumper($self->_ast2parsed_fdecls($stdout_buf));
 
   foreach (@{$self->ast}) {
       my $externalDeclaration = $_;
@@ -940,6 +966,189 @@ sub _analyse_with_grammar {
       }
   }
 
+}
+
+# ----------------------------------------------------------------------------------------
+my $_localPathForFileShareDir;
+sub BEGIN {
+  use File::Spec;
+  use Path::Tiny qw/path/;
+  $_localPathForFileShareDir = path(File::Spec->curdir)->absolute->stringify;
+  $_localPathForFileShareDir =~ /(.*)/;
+  $_localPathForFileShareDir = $1;
+}
+
+sub _dist_file {
+  my ($self, $package, $filename) = @_;
+  #
+  # File::ShareDir is great but is painful when you are running in test mode
+  # This routine is giving precedence to eventual local shared files
+  #
+  return (-r $filename) ? $filename : dist_file($package, $filename);
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _xpath {
+  my ($self, $sharedFilename) = @_;
+
+  if (! defined($self->{_xpath}->{$sharedFilename})) {
+    my $filename = $self->_dist_file('MarpaX-Languages-C-AST', $sharedFilename);
+    if (! open(XPATH, '<', $filename)) {
+      croak "Cannot open $filename, $!";
+    }
+    my $xpath = do {local $/; <XPATH>};
+    close(XPATH) || warn "Cannot close $filename; $!";
+    #
+    # Remove any blank outside of the xpath expression
+    #
+    $xpath =~ s/^\s*//;
+    $xpath =~ s/\s*$//;
+    $self->{_xpath}->{$sharedFilename} = XML::LibXML::XPathExpression->new($xpath);
+  }
+  return $self->{_xpath}->{$sharedFilename};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _pushNodeString {
+  my ($self, $stdout_buf, $arrayp, $node) = @_;
+
+  #
+  # Unless the node is already a lexeme, we have to search surrounding lexemes
+  #
+  my $text = $node->getAttribute('text');
+  if (defined($text)) {
+    push(@{$arrayp}, $text);
+  } else {
+    #
+    ## Get first and last lexemes positions
+    #
+    my $firstLexemeXpath = $self->_xpath('share/xpath/xsd2firstLexeme.xpath');
+    my $lastLexemeXpath = $self->_xpath('share/xpath/xsd2lastLexeme.xpath');
+
+    my $firstLexeme = $node->findnodes($firstLexemeXpath);
+    my $lastLexeme = $node->findnodes($lastLexemeXpath);
+
+    if ($firstLexeme && $lastLexeme) {
+      my $startPosition = $firstLexeme->[0]->findvalue('./@start');
+      my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
+      my $length = $endPosition - $startPosition;
+      push(@{$arrayp}, substr($stdout_buf, $startPosition, $length));
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2fdecls {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_fdecls})) {
+    $self->{_fdecls} = [];
+    my $xpath = $self->_xpath('share/xpath/xsd2fdecls.xpath');
+    foreach ($self->ast()->findnodes($xpath)) {
+      $self->_pushNodeString($stdout_buf, $self->{_fdecls}, $_);
+    }
+  }
+
+  return $self->{_fdecls};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2parsed_fdecls {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_parsed_fdecls})) {
+    $self->{_parsed_fdecls} = [];
+    my $xpath = $self->_xpath('share/xpath/xsd2fdecls.xpath');
+    foreach my $node ($self->ast()->findnodes($xpath)) {
+      my $fdecl = [];
+      #
+      # rt
+      #
+      my @rt = $node->findnodes($self->_xpath('share/xpath/fdecl2rt.xpath'));
+      $self->_pushNodeString($stdout_buf, $fdecl, $rt[0]);
+      #
+      # nm
+      #
+      my @nm = $node->findnodes($self->_xpath('share/xpath/fdecl2nm.xpath'));
+      $self->_pushNodeString($stdout_buf, $fdecl, $nm[0]);
+      #
+      # args
+      #
+      my $args = [];
+      my @args = $node->findnodes($self->_xpath('share/xpath/fdecl2args.xpath'));
+      foreach (@args) {
+	my $arg = [];
+	#
+	# arg.rt
+	#
+	my @rt = $_->findnodes($self->_xpath('share/xpath/arg2rt.xpath'));
+	$self->_pushNodeString($stdout_buf, $arg, $rt[0]);
+	#
+	# arg.nm or ANON
+	#
+	my @nm = $_->findnodes($self->_xpath('share/xpath/arg2nm.xpath'));
+	if (@nm) {
+	  $self->_pushNodeString($stdout_buf, $arg, $nm[0]);
+	} else {
+	  push(@{$arg}, sprintf('ANON%d', $self->{_anonCount}++));
+	}
+	#
+	# arg.arg is always undef
+	#
+	push(@{$arg}, undef);
+	#
+	# arg.ft
+	#
+	$self->_pushNodeString($stdout_buf, $arg, $_);
+	#
+	# arg.mod
+	#
+	my @mod = $_->findnodes($self->_xpath('share/xpath/arg2mod.xpath'));
+	$self->_pushNodeString($stdout_buf, $arg, $mod[0]);
+	#
+	# We remove the identifier from mod
+	#
+	$arg->[-1] =~ s/\b$arg->[1]\b//;
+	push(@{$args}, $arg);
+      }
+      push(@{$fdecl}, $args);
+      #
+      # ft
+      #
+      $self->_pushNodeString($stdout_buf, $fdecl, $node);
+      #
+      # mod is always undef
+      #
+      push(@{$fdecl}, undef);
+
+      push(@{$self->{_parsed_fdecls}}, $fdecl);
+    }
+  }
+
+  return $self->{_parsed_fdecls};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2inlines {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_inlines})) {
+    $self->{_inlines} = [];
+    #
+    # Simply, any path matching functionDefinition
+    #
+    my $xpath = $self->_xpath('share/xpath/xsd2inlines.xpath');
+    foreach ($self->ast()->findnodes($xpath)) {
+      $self->_pushNodeString($stdout_buf, $self->{_inlines}, $_);
+    }
+  }
+
+  return $self->{_inlines};
 }
 
 # ----------------------------------------------------------------------------------------

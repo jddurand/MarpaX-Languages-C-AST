@@ -3,6 +3,7 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
 use XML::LibXML;
+use Scalar::Util qw/blessed/;
 
 # ABSTRACT: ISO ANSI C 2011 grammar actions in Scan mode
 
@@ -17,7 +18,7 @@ This modules give the actions associated to ISO_ANSI_C_2011 grammar in Scan mode
 sub new {
     my $class = shift;
     my $self = {
-		dom => XML::LibXML::Document->new()
+		dom => XML::LibXML::Document->new(),
 	       };
     bless($self, $class);
     return $self;
@@ -26,11 +27,34 @@ sub new {
 sub nonTerminalSemantic {
   my $self = shift;
 
-}
+  my $rule_id     = $Marpa::R2::Context::rule;
+  my $slg         = $Marpa::R2::Context::slg;
+  my ($lhs, @rhs) = map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id);
 
-sub terminalSemantic {
-  my $self = shift;
+  my $node = XML::LibXML::Element->new($lhs);
 
+  foreach (0..$#_) {
+    my $child;
+    if (ref($_[$_]) eq 'ARRAY') {
+      #
+      # This is a lexeme
+      #
+      $child = XML::LibXML::Element->new($rhs[$_]);
+      $child->setAttribute('start', $_[$_]->[0]);
+      $child->setAttribute('length', $_[$_]->[1]);
+      $child->setAttribute('text', $_[$_]->[2]);
+    } else {
+      $child = $_[$_];
+    }
+    $node->addChild($child);
+  }
+
+  if ($lhs eq 'translationUnit') {
+    $self->{dom}->addChild($node);
+    return $self->{dom};
+  } else {
+    return $node;
+  }
 }
 
 1;
