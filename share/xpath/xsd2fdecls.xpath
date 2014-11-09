@@ -1,1 +1,1 @@
-/translationUnit/externalDeclaration/declaration/declarationCheck[.//LPAREN_SCOPE]
+/translationUnit/externalDeclaration/declaration/declarationCheck[not (descendant::*[self::TYPEDEF])][.//LPAREN_SCOPE]
