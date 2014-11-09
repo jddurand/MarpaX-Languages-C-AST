@@ -472,8 +472,8 @@ event 'structContextEnd[]' = nulled <structContextEnd>
 structContextEnd ::=
 
 structOrUnionSpecifier
-	::= structOrUnion LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
-	| structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY <structContextStart> structDeclarationList RCURLY <structContextEnd>
+	::= structOrUnion LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
+	| structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
 	| structOrUnion IDENTIFIER_UNAMBIGUOUS
 
 structOrUnion
