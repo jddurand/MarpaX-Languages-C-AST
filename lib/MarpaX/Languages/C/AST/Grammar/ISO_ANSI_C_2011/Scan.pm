@@ -944,10 +944,12 @@ sub _analyse_with_grammar {
   $self->_ast2fdecls($stdout_buf);
   $self->_ast2inlines($stdout_buf);
   $self->_ast2parsed_fdecls($stdout_buf);
+  $self->_ast2typedef_hash($stdout_buf);
 
   print STDERR "fdecls: " . Dumper($self->_ast2fdecls($stdout_buf));
   print STDERR "inlines: ". Dumper($self->_ast2inlines($stdout_buf));
   print STDERR "parsed_fdecls: ". Dumper($self->_ast2parsed_fdecls($stdout_buf));
+  print STDERR "typedef_hash: " . Dumper($self->_ast2typedef_hash($stdout_buf));
 
   foreach (@{$self->ast}) {
       my $externalDeclaration = $_;
@@ -1053,6 +1055,58 @@ sub _ast2fdecls {
   }
 
   return $self->{_fdecls};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2typedef_hash {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_typedef_hash})) {
+    $self->{_typedef_hash} = {};
+    my $xpath = $self->_xpath('share/xpath/xsd2typedef.xpath');
+    foreach my $node ($self->ast()->findnodes($xpath)) {
+      #
+      # Standalone typedef declaration, without the typedef
+      #
+      my $xpath1 = $self->_xpath('share/xpath/typedef2declarationSpecifiers.xpath');
+      my @declarationSpecifiers = $node->findnodes($xpath1);
+      my $declarationSpecifiers = [];
+      $self->_pushNodeString($stdout_buf, $declarationSpecifiers, $declarationSpecifiers[0]);
+      $declarationSpecifiers->[-1] =~ s/\btypedef\b//;
+      #
+      # typedef name
+      #
+      my $xpath2 = $self->_xpath('share/xpath/typedef2initDeclarator.xpath');
+      my @initDeclarator = $node->findnodes($xpath2);
+      my @keys = ();
+      my @before = ();
+      my @after = ();
+      foreach (@initDeclarator) {
+	my $initDeclarator = [];
+	$self->_pushNodeString($stdout_buf, $initDeclarator, $_);
+	my $xpath3 = $self->_xpath('share/xpath/initDeclarator2IDENTIFIER.xpath');
+	my @IDENTIFIER = $_->findnodes($xpath3);
+	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	$initDeclarator->[-1] =~ /(.*)$keys[-1](.*)/;
+	push(@before, defined($-[1]) ? ' ' . substr($initDeclarator->[-1], $-[1], $+[1]-$-[1]) : '');
+	push(@after, defined($-[2]) ? substr($initDeclarator->[-1], $-[2], $+[2]-$-[2]) : '');
+      }
+      if (! @keys) {
+	push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
+	push(@before, '');
+	push(@after, '');
+      }
+      foreach (0..$#keys) {
+	#
+	# typedef before/after
+	#
+	$self->{_typedef_hash}->{$keys[$_]} = [ $declarationSpecifiers->[-1] . $before[$_], $after[$_] ];
+      }
+    }
+  }
+
+  return $self->{_typedef_hash};
 }
 
 # ----------------------------------------------------------------------------------------
