@@ -210,7 +210,7 @@ string
 genericSelection
 	::= GENERIC LPAREN assignmentExpression COMMA genericAssocList RPAREN
 
-genericAssocList ::= genericAssociation+ separator => COMMA
+genericAssocList ::= genericAssociation+ separator => COMMA proper => 1
 
 genericAssociation
 	::= typeName COLON assignmentExpression
@@ -415,7 +415,7 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
 
 # declarationSpecifiers ::= declarationSpecifiersUnit+
 
-initDeclaratorList ::= initDeclarator+ separator => COMMA
+initDeclaratorList ::= initDeclarator+ separator => COMMA proper => 1
 
 initDeclarator
 	::= declarator EQUAL initializer
@@ -512,7 +512,7 @@ specifierQualifierList2 ::= # List with one or more typeSpecifier2
                           | specifierQualifierList2 typeQualifier
                           | specifierQualifierList2 gccExtension
 
-structDeclaratorList ::= structDeclarator+ separator => COMMA
+structDeclaratorList ::= structDeclarator+ separator => COMMA proper => 1
 
 structDeclarator
 	::= COLON constantExpression
@@ -521,12 +521,13 @@ structDeclarator
 
 enumSpecifier
 	::= ENUM LCURLY enumeratorList RCURLY
-	| ENUM LCURLY enumeratorList COMMA RCURLY
 	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
-	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList COMMA RCURLY
 	| ENUM IDENTIFIER_UNAMBIGUOUS
 
-enumeratorList ::= enumerator+ separator => COMMA
+#
+# Saying 0 allow to have a final COMMA after the list
+#
+enumeratorList ::= enumerator+ separator => COMMA proper => 0
 
 enumerator	# identifiers must be flagged as ENUMERATION_CONSTANT
 	::= enumerationConstant EQUAL constantExpression
@@ -608,7 +609,7 @@ parameterTypeList
 	::= parameterList COMMA ELLIPSIS
 	| parameterList
 
-parameterList ::= parameterDeclaration+ separator => COMMA
+parameterList ::= parameterDeclaration+ separator => COMMA proper => 1
 
 event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
 parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers
@@ -624,7 +625,7 @@ parameterDeclaration
 	| declarationSpecifiers abstractDeclarator  rank => -1
 	| declarationSpecifiers                     rank => -2
 
-identifierList ::= IDENTIFIER+ separator => COMMA
+identifierList ::= IDENTIFIER+ separator => COMMA proper => 1
 
 typeName
 	::= specifierQualifierList abstractDeclarator
