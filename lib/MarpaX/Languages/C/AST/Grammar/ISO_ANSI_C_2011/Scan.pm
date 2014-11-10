@@ -945,11 +945,13 @@ sub _analyse_with_grammar {
   $self->_ast2inlines($stdout_buf);
   $self->_ast2parsed_fdecls($stdout_buf);
   $self->_ast2typedef_hash($stdout_buf);
+  $self->_ast2typedef_texts($stdout_buf);
 
   print STDERR "fdecls: " . Dumper($self->_ast2fdecls($stdout_buf));
   print STDERR "inlines: ". Dumper($self->_ast2inlines($stdout_buf));
   print STDERR "parsed_fdecls: ". Dumper($self->_ast2parsed_fdecls($stdout_buf));
   print STDERR "typedef_hash: " . Dumper($self->_ast2typedef_hash($stdout_buf));
+  print STDERR "typedef_texts: " . Dumper($self->_ast2typedef_texts($stdout_buf));
 
   foreach (@{$self->ast}) {
       my $externalDeclaration = $_;
@@ -1055,6 +1057,26 @@ sub _ast2fdecls {
   }
 
   return $self->{_fdecls};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2typedef_texts {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_typedef_texts})) {
+    $self->{_typedef_texts} = [];
+    my $xpath = $self->_xpath('share/xpath/xsd2typedef.xpath');
+    foreach my $node ($self->ast()->findnodes($xpath)) {
+      $self->_pushNodeString($stdout_buf, $self->{_typedef_texts}, $node);
+      #
+      # Without typedef itself
+      #
+      $self->{_typedef_texts}->[-1] =~ s/\btypedef\b//;
+    }
+  }
+
+  return $self->{_typedef_texts};
 }
 
 # ----------------------------------------------------------------------------------------
