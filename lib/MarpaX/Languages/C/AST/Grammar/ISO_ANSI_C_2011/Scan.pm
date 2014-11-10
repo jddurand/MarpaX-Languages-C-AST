@@ -989,11 +989,6 @@ sub _ast2parsed_fdecls {
         if (@mod) {
           $self->_pushNodeString($stdout_buf, $arg, $mod[0]);
         } else {
-          #
-          # No declarator: this mean that parameterDeclaration consist of
-          # declarationSpecifiers abstractDeclarator or
-          # declarationSpecifiers
-          # I.e. we can this it as a whole
           push(@{$arg}, '');
         }
 	#

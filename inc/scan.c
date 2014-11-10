@@ -13,7 +13,7 @@ continued
 /*
   parsed_fdecls test
 */
-int func1(int x1, double *x2, float *( f1)(int x11, double x12));
+int func1(int x1, double *x2, float *( f1)(int x11, double x12), char *x3[], char x4[4], long (*x5)[]);
 int func2(int x1, double *x2, float *(*f1)(int x11, double x12));
 int func3(int   , double *  , float *(*  )(int    , double    ));
 int func4(int   , double *  , float *(*  )(int    , double    ));
