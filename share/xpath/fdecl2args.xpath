@@ -1,1 +1,1 @@
-.//parameterDeclaration
+.//parameterDeclaration[not (ancestor::*[self::parameterDeclaration])]
