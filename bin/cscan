@@ -123,7 +123,7 @@ my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config
     if (defined($c)) {
         foreach (split(/,/, $get)) {
             next if (! $_ || ! "$_");
-            eval { print Dumper($c->$_) };
+            eval { print STDOUT ($_ eq 'astToString') ? $c->$_ : Dumper($c->$_) };
             print STDERR "$@" if ($@);
         }
     }
@@ -273,9 +273,9 @@ Dump the result of getting <argument> using perl module Data::Dumper. A comma ",
 
 =over
 
-=item ast
+=item astToString
 
-The AST (Abstract Syntax Tree)
+The AST (Abstract Syntax Tree) in stringified XML format.
 
 =item decls
 
@@ -288,10 +288,6 @@ Macros with arguments.
 =item defines_no_args
 
 Macros without arguments.
-
-=item defs
-
-All definitions.
 
 =item fdecls
 

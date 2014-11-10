@@ -193,6 +193,20 @@ sub ast {
 
 # ----------------------------------------------------------------------------------------
 
+=head2 astToString($self)
+
+Stringified AST of the preprocessed output. This is an XML::LibXML document passed through its toString(1) method.
+
+=cut
+
+sub astToString {
+  my $self = shift;
+
+  return $self->ast()->toString(1);
+}
+
+# ----------------------------------------------------------------------------------------
+
 =head2 get($self, $attribute)
 
 C::Scan like method, that is a proxy to $self->$attribute. All methods described after can be used as attribute, for example: $self->get('strings'), or $self->get('includes').
