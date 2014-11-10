@@ -480,8 +480,6 @@ sub _init {
 
     my $stdout_buf = join('',@{$stdout_bufp});
 
-    print STDERR $stdout_buf;
-
     $self->_initInternals();
     $self->_analyse_with_grammar($stdout_buf);
     $self->_analyse_with_heuristics($stdout_buf);
