@@ -991,18 +991,6 @@ sub _ast2parsed_fdecls {
         } else {
           push(@{$arg}, '');
         }
-	#
-	# We remove the identifier from mod and push everything before the identifier in the type
-	#
-	if ($arg->[-1] =~ /(.+)\b$arg->[1]/) {
-          my ($start, $length) = ($-[1], $+[1] - $-[1]);
-          my $before = substr($arg->[-1], $start, $length);
-          if ($before =~ /[^\s]/) {
-            $arg->[0] .= ' ' . $before;
-            substr($arg->[-1], $start, $length, '');
-          }
-        }
-	$arg->[-1] =~ s/\b$arg->[1]\b//;
 	push(@{$args}, $arg);
       }
       push(@{$fdecl}, $args);

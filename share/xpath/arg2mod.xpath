@@ -1,1 +1,1 @@
-.//LBRACKET[not (ancestor::*[self::parameterDeclaration])]
+.//*[LBRACKET][1]
