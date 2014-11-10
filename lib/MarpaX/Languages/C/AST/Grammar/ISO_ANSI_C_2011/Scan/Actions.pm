@@ -4,6 +4,7 @@ use warnings FATAL => 'all';
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
 use XML::LibXML;
 use Scalar::Util qw/blessed/;
+use Carp qw/croak/;
 
 # ABSTRACT: ISO ANSI C 2011 grammar actions in Scan mode
 
@@ -30,6 +31,7 @@ sub nonTerminalSemantic {
   my $rule_id     = $Marpa::R2::Context::rule;
   my $slg         = $Marpa::R2::Context::slg;
   my ($lhs, @rhs) = map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id);
+  my $maxRhs = $#rhs;
 
   my $node = XML::LibXML::Element->new($lhs);
 
@@ -39,7 +41,20 @@ sub nonTerminalSemantic {
       #
       # This is a lexeme
       #
-      $child = XML::LibXML::Element->new($rhs[$_]);
+      my $name;
+      if ($_ > $maxRhs) {
+	if ($maxRhs == 0) {
+	  #
+	  # Ok only if $maxRhs is 0 : this is (probably) a sequence
+	  #
+	  $name = $rhs[0];
+	} else {
+	  croak "Too many arguments on the stack. Rule was: $lhs ::= @rhs\n";
+	}
+      } else {
+	$name = $rhs[$_];
+      }
+      $child = XML::LibXML::Element->new($name);
       $child->setAttribute('start', $_[$_]->[0]);
       $child->setAttribute('length', $_[$_]->[1]);
       $child->setAttribute('text', $_[$_]->[2]);

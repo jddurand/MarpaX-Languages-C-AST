@@ -312,7 +312,7 @@ sub inlines {
 
 =head2 parsed_fdecls($self)
 
-C::Scan compatible reference to list of parsed declarations of functions.
+C::Scan NOT-FULLY compatible reference to list of parsed declarations of functions: the type of arguments consist only of type specifiers as per the grammar. For instance pointers are not in argument types: strictly speaking pointers are part of a declarator.
 
 =cut
 
@@ -480,6 +480,8 @@ sub _init {
 
     my $stdout_buf = join('',@{$stdout_bufp});
 
+    print STDERR $stdout_buf;
+
     $self->_initInternals();
     $self->_analyse_with_grammar($stdout_buf);
     $self->_analyse_with_heuristics($stdout_buf);
@@ -592,31 +594,12 @@ sub _analyse_with_grammar {
 }
 
 # ----------------------------------------------------------------------------------------
-my $_localPathForFileShareDir;
-sub BEGIN {
-  use File::Spec;
-  use Path::Tiny qw/path/;
-  $_localPathForFileShareDir = path(File::Spec->curdir)->absolute->stringify;
-  $_localPathForFileShareDir =~ /(.*)/;
-  $_localPathForFileShareDir = $1;
-}
-
-sub _dist_file {
-  my ($self, $package, $filename) = @_;
-  #
-  # File::ShareDir is great but is painful when you are running in test mode
-  # This routine is giving precedence to eventual local shared files
-  #
-  return (-r $filename) ? $filename : dist_file($package, $filename);
-}
-
-# ----------------------------------------------------------------------------------------
 
 sub _xpath {
   my ($self, $sharedFilename) = @_;
 
   if (! defined($self->{_xpath}->{$sharedFilename})) {
-    my $filename = $self->_dist_file('MarpaX-Languages-C-AST', $sharedFilename);
+    my $filename = dist_file('MarpaX-Languages-C-AST', $sharedFilename);
     if (! open(XPATH, '<', $filename)) {
       croak "Cannot open $filename, $!";
     }
@@ -651,8 +634,8 @@ sub _pushNodeString {
     #
     ## Get first and last lexemes positions
     #
-    my $firstLexemeXpath = $self->_xpath('share/xpath/xsd2firstLexeme.xpath');
-    my $lastLexemeXpath = $self->_xpath('share/xpath/xsd2lastLexeme.xpath');
+    my $firstLexemeXpath = $self->_xpath('share/xpath/firstLexeme.xpath');
+    my $lastLexemeXpath = $self->_xpath('share/xpath/lastLexeme.xpath');
 
     my $firstLexeme = $node->findnodes($firstLexemeXpath);
     my $lastLexeme = $node->findnodes($lastLexemeXpath);
@@ -677,11 +660,10 @@ sub _ast2fdecls {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_fdecls})) {
-    $self->{_fdecls} = [];
-    my $xpath = $self->_xpath('share/xpath/xsd2fdecls.xpath');
-    foreach ($self->ast()->findnodes($xpath)) {
-      $self->_pushNodeString($stdout_buf, $self->{_fdecls}, $_);
-    }
+    #
+    # We rely on parsed_fdecls
+    #
+    $self->_ast2parsed_fdecls($stdout_buf);
   }
 
   return $self->{_fdecls};
@@ -749,45 +731,67 @@ sub _ast2vdecls {
 
 # ----------------------------------------------------------------------------------------
 
+sub _removeWord {
+  my ($self, $outputp, $toRemove) = @_;
+
+  my $quotemeta = quotemeta($toRemove);
+  ${$outputp} =~ s/^\s*$quotemeta\b\s*//;
+  ${$outputp} =~ s/\s*\b$quotemeta\s*$//;
+  ${$outputp} =~ s/\s*\b$quotemeta\b\s*/ /;
+}
+
+# ----------------------------------------------------------------------------------------
+
 sub _ast2vdecl_hash {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_vdecl_hash})) {
     $self->{_vdecl_hash} = {};
     $self->{_vdecls} = [];
-    my $xpath = $self->_xpath('share/xpath/xsd2extern.xpath');
-    foreach my $node ($self->ast()->findnodes($xpath)) {
-      $self->_pushNodeString($stdout_buf, $self->{_vdecls}, $node);
+    #
+    # a vdecl is a "declaration" node
+    #
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('share/xpath/vdecl.xpath'))) {
+      $self->_pushNodeString($stdout_buf, $self->{_vdecls}, $declaration);
       #
-      # Standalone extern declaration, without the extern
+      # Get first declarationSpecifiers
       #
-      my $xpath1 = $self->_xpath('share/xpath/extern2declarationSpecifiers.xpath');
-      my @declarationSpecifiers = $node->findnodes($xpath1);
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+      if (! @declarationSpecifiers) {
+	#
+	# Could be a static assert declaration
+	#
+	next;
+      }
       my $text;
       $self->_pushNodeString($stdout_buf, \$text, $declarationSpecifiers[0]);
-      $text =~ s/\bextern\b//;
       #
-      # Remove spaces before and after
+      # vdecl_hash does not have the extern keyword.
       #
-      $text =~ s/^\s*//;
-      $text =~ s/\s$//;
+      $self->_removeWord(\$text, 'extern');
       #
       # variable name
       #
-      my $xpath2 = $self->_xpath('share/xpath/extern2initDeclarator.xpath');
-      my @initDeclarator = $node->findnodes($xpath2);
+      my @declarator = $declaration->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
-      foreach (@initDeclarator) {
-	my $initDeclarator;
-	$self->_pushNodeString($stdout_buf, \$initDeclarator, $_);
-	my $xpath3 = $self->_xpath('share/xpath/initDeclarator2IDENTIFIER.xpath');
-	my @IDENTIFIER = $_->findnodes($xpath3);
-	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
-	$initDeclarator =~ /(.*)$keys[-1](.*)/;
-	push(@before, defined($-[1]) ? ' ' . substr($initDeclarator, $-[1], $+[1]-$-[1]) : '');
-	push(@after, defined($-[2]) ? substr($initDeclarator, $-[2], $+[2]-$-[2]) : '');
+      foreach (@declarator) {
+	my $declarator;
+	$self->_pushNodeString($stdout_buf, \$declarator, $_);
+
+	my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
+	if (@IDENTIFIER) {
+	  $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	} else {
+	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+	  push(@keys, $anon);
+	}
+	$declarator =~ /(.*)$keys[-1](.*)/;
+        my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
+        my $after = defined($-[2]) ? substr($declarator, $-[2], $+[2]-$-[2]) : '';
+	push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
+	push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
       }
       if (! @keys) {
 	push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
@@ -795,9 +799,6 @@ sub _ast2vdecl_hash {
 	push(@after, '');
       }
       foreach (0..$#keys) {
-	#
-	# extern before/after
-	#
 	$self->{_vdecl_hash}->{$keys[$_]} = [ $text . $before[$_], $after[$_] ];
       }
     }
@@ -816,37 +817,38 @@ sub _ast2typedef_hash {
     $self->{_typedef_texts} = [];
     $self->{_typedefs_maybe} = [];
     $self->{_typedef_structs} = {};
-    my $xpath = $self->_xpath('share/xpath/xsd2typedef.xpath');
-    foreach my $node ($self->ast()->findnodes($xpath)) {
-      #
-      # Standalone typedef declaration, without the typedef
-      #
-      my $xpath1 = $self->_xpath('share/xpath/typedef2declarationSpecifiers.xpath');
-      my @declarationSpecifiers = $node->findnodes($xpath1);
+    #
+    # typedef is a "declaration" node
+    #
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('share/xpath/typedef.xpath'))) {
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+      if (! @declarationSpecifiers) {
+	#
+	# Could be a static assert declaration
+	#
+	next;
+      }
       $self->_pushNodeString($stdout_buf, $self->{_typedef_texts}, $declarationSpecifiers[0]);
-      $self->{_typedef_texts}->[-1] =~ s/\btypedef\b//;
       #
-      # Remove spaces before and after
+      # typedef_texts does not have the extern keyword.
       #
-      $self->{_typedef_texts}->[-1] =~ s/^\s*//;
-      $self->{_typedef_texts}->[-1] =~ s/\s$//;
+      $self->_removeWord(\$self->{_typedef_texts}->[-1], 'typedef');
       #
       # typedef name
       #
-      my $xpath2 = $self->_xpath('share/xpath/typedef2initDeclarator.xpath');
-      my @initDeclarator = $node->findnodes($xpath2);
+      my @declarator = $declaration->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
-      foreach (@initDeclarator) {
-	my $initDeclarator;
-	$self->_pushNodeString($stdout_buf, \$initDeclarator, $_);
-	my $xpath3 = $self->_xpath('share/xpath/initDeclarator2IDENTIFIER.xpath');
-	my @IDENTIFIER = $_->findnodes($xpath3);
+      foreach (@declarator) {
+	my $declarator;
+	$self->_pushNodeString($stdout_buf, \$declarator, $_);
+
+	my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
 	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
-	$initDeclarator =~ /(.*)$keys[-1](.*)/;
-        my $before = defined($-[1]) ? substr($initDeclarator, $-[1], $+[1]-$-[1]) : '';
-        my $after = defined($-[2]) ? substr($initDeclarator, $-[2], $+[2]-$-[2]) : '';
+	$declarator =~ /(.*)$keys[-1](.*)/;
+        my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
+        my $after = defined($-[2]) ? substr($declarator, $-[2], $+[2]-$-[2]) : '';
 	push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
 	push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
       }
@@ -865,40 +867,38 @@ sub _ast2typedef_hash {
       #
       # Is a struct or union declaration ?
       #
-      my $xpath4 = $self->_xpath('share/xpath/declarationSpecifiers2structOrUnionSpecifier.xpath');
-      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($xpath4);
+      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('share/xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
-        #
-        # Either with an explicit name, either unnamed
-        #
-        my $xpath5 = $self->_xpath('share/xpath/structOrUnionSpecifier2IDENTIFIER.xpath');
-        my @IDENTIFIER = $structOrUnionSpecifier[0]->findnodes($xpath5);
-        my $nm;
-        if (@IDENTIFIER) {
-          $self->_pushNodeString($stdout_buf, \$nm, $IDENTIFIER[0]);
-        } else {
-          $nm = sprintf('ANON%d', $self->{_anonCount}++);
-        }
-        $self->{_typedef_structs}->{$nm} = [];
-        my $xpath6 = $self->_xpath('share/xpath/structOrUnionSpecifier2structDeclaration.xpath');
-        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($xpath6);
+	my @struct = ();
+
+        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('share/xpath/structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
-          my $xpath7 = $self->_xpath('share/xpath/structDeclaration2specifierQualifierList.xpath');
-          my @specifierQualifierList = $_->findnodes($xpath7);
+
+          my @specifierQualifierList = $_->findnodes($self->_xpath('share/xpath/structDeclaration2specifierQualifierList.xpath'));
+	  if (! @specifierQualifierList) {
+	    # Gcc extension
+	    next;
+	  }
           my $specifierQualifierList;
           $self->_pushNodeString($stdout_buf, \$specifierQualifierList, $specifierQualifierList[0]);
-          my $xpath8 = $self->_xpath('share/xpath/structDeclaration2structDeclarator.xpath');
-          my @structDeclarator = $_->findnodes($xpath8);
+
+          my @structDeclarator = $_->findnodes($self->_xpath('share/xpath/structDeclaration2structDeclarator.xpath'));
           my @keys = ();
           my @before = ();
           my @after = ();
           foreach (@structDeclarator) {
             my $structDeclarator;
             $self->_pushNodeString($stdout_buf, \$structDeclarator, $_);
-            my $xpath9 = $self->_xpath('share/xpath/structDeclarator2IDENTIFIER.xpath');
-            my @IDENTIFIER = $_->findnodes($xpath9);
-            $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+
+            my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/structDeclarator2IDENTIFIER.xpath'));
+	    if (@IDENTIFIER) {
+	      $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	    } else {
+	      # COLON constantExpression
+	      push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
+	    }
             $structDeclarator =~ /(.*)$keys[-1](.*)/;
+
             my $before = defined($-[1]) ? substr($structDeclarator, $-[1], $+[1]-$-[1]) : '';
             my $after = defined($-[2]) ? substr($structDeclarator, $-[2], $+[2]-$-[2]) : '';
             push(@before, $specifierQualifierList . (($before =~ /[^\s]/) ? ' ' . $before : ''));
@@ -911,13 +911,24 @@ sub _ast2typedef_hash {
           }
           foreach (0..$#keys) {
             #
-            # structDclarator before/after
+            # structDeclarator before/after
             #
-            push(@{$self->{_typedef_structs}->{$nm}}, [ $before[$_], $after[$_], $keys[$_] ]);
+            push(@struct, [ $before[$_], $after[$_], $keys[$_] ]);
           }
         }
+	foreach (0..$#keys) {
+	  #
+	  # typedef before/after
+	  #
+	  $self->{_typedef_structs}->{$keys[$_]} = \@struct;
+	}
       } else {
-        $self->{_typedef_structs}->{$self->{_typedef_texts}->[-1]} = undef;
+	foreach (0..$#keys) {
+	  #
+	  # typedef before/after
+	  #
+	  $self->{_typedef_structs}->{$keys[$_]} = undef;
+	}
       }
     }
   }
@@ -932,31 +943,50 @@ sub _ast2parsed_fdecls {
 
   if (! defined($self->{_parsed_fdecls})) {
     $self->{_parsed_fdecls} = [];
-    my $xpath = $self->_xpath('share/xpath/xsd2fdecls.xpath');
-    foreach my $node ($self->ast()->findnodes($xpath)) {
+    $self->{_fdecls} = [];
+
+    foreach my $node ($self->ast()->findnodes($self->_xpath('share/xpath/fdecls.xpath'))) {
+      $self->_pushNodeString($stdout_buf, $self->{_fdecls}, $node);
       my $fdecl = [];
       #
       # rt
       #
-      my @rt = $node->findnodes($self->_xpath('share/xpath/fdecl2rt.xpath'));
-      $self->_pushNodeString($stdout_buf, $fdecl, $rt[0]);
+      my @declarationSpecifiers = $node->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+      if (! @declarationSpecifiers) {
+	#
+	# Could be a static assert declaration
+	#
+	next;
+      }
+      $self->_pushNodeString($stdout_buf, $fdecl, $declarationSpecifiers[0]);
       #
-      # nm
+      # nm. In case of a function declaration, there can be only a single declarator
+      # in the declaration
       #
-      my @nm = $node->findnodes($self->_xpath('share/xpath/fdecl2nm.xpath'));
-      $self->_pushNodeString($stdout_buf, $fdecl, $nm[0]);
+      my @declarator = $node->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
+
+      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
+      if (@IDENTIFIER) {
+	$self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
+      } else {
+	my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+	push(@{$fdecl}, $anon);
+      }
       #
       # args
       #
       my $args = [];
       my @args = $node->findnodes($self->_xpath('share/xpath/fdecl2args.xpath'));
       foreach (@args) {
+	#
+	# arg is a parameterDeclaration
+	#
 	my $arg = [];
 	#
 	# arg.rt
 	#
-	my @rt = $_->findnodes($self->_xpath('share/xpath/arg2rt.xpath'));
-	$self->_pushNodeString($stdout_buf, $arg, $rt[0]);
+	my @declarationSpecifiers = $_->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+	$self->_pushNodeString($stdout_buf, $arg, $declarationSpecifiers[0]);
 	#
 	# arg.nm or ANON
 	#
@@ -987,7 +1017,20 @@ sub _ast2parsed_fdecls {
 	#
         my @mod = $_->findnodes($self->_xpath('share/xpath/arg2mod.xpath'));
         if (@mod) {
-          $self->_pushNodeString($stdout_buf, $arg, $mod[0]);
+	  #
+	  # Per def $mod[0] is a directDeclarator that can be:
+	  #
+	  # directDeclarator LBRACKET RBRACKET
+	  # directDeclarator LBRACKET STAR RBRACKET
+	  # directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	  # etc...
+	  #
+	  # We clone the node, remove the first child. What remains will be the array modifiers.
+	  #
+	  my $newnode = $mod[0]->cloneNode(1);
+	  my $childnode = $newnode->firstChild;
+	  $newnode->removeChild($childnode );
+          $self->_pushNodeString($stdout_buf, $arg, $newnode);
         } else {
           push(@{$arg}, '');
         }
@@ -1021,8 +1064,7 @@ sub _ast2inlines {
     #
     # Simply, any path matching functionDefinition
     #
-    my $xpath = $self->_xpath('share/xpath/xsd2inlines.xpath');
-    foreach ($self->ast()->findnodes($xpath)) {
+    foreach ($self->ast()->findnodes($self->_xpath('share/xpath/inlines.xpath'))) {
       $self->_pushNodeString($stdout_buf, $self->{_inlines}, $_);
     }
   }

@@ -210,9 +210,7 @@ string
 genericSelection
 	::= GENERIC LPAREN assignmentExpression COMMA genericAssocList RPAREN
 
-genericAssocList
-	::= genericAssociation
-	| genericAssocList COMMA genericAssociation
+genericAssocList ::= genericAssociation+ separator => COMMA
 
 genericAssociation
 	::= typeName COLON assignmentExpression
@@ -417,9 +415,7 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
 
 # declarationSpecifiers ::= declarationSpecifiersUnit+
 
-initDeclaratorList
-	::= initDeclarator
-	| initDeclaratorList COMMA initDeclarator
+initDeclaratorList ::= initDeclarator+ separator => COMMA
 
 initDeclarator
 	::= declarator EQUAL initializer
@@ -516,9 +512,7 @@ specifierQualifierList2 ::= # List with one or more typeSpecifier2
                           | specifierQualifierList2 typeQualifier
                           | specifierQualifierList2 gccExtension
 
-structDeclaratorList
-	::= structDeclarator
-	| structDeclaratorList COMMA structDeclarator
+structDeclaratorList ::= structDeclarator+ separator => COMMA
 
 structDeclarator
 	::= COLON constantExpression
@@ -532,9 +526,7 @@ enumSpecifier
 	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList COMMA RCURLY
 	| ENUM IDENTIFIER_UNAMBIGUOUS
 
-enumeratorList
-	::= enumerator
-	| enumeratorList COMMA enumerator
+enumeratorList ::= enumerator+ separator => COMMA
 
 enumerator	# identifiers must be flagged as ENUMERATION_CONSTANT
 	::= enumerationConstant EQUAL constantExpression
@@ -616,9 +608,7 @@ parameterTypeList
 	::= parameterList COMMA ELLIPSIS
 	| parameterList
 
-parameterList
-	::= parameterDeclaration
-	| parameterList COMMA parameterDeclaration
+parameterList ::= parameterDeclaration+ separator => COMMA
 
 event 'parameterDeclarationdeclarationSpecifiers$' = completed <parameterDeclarationdeclarationSpecifiers>
 parameterDeclarationdeclarationSpecifiers ::= declarationSpecifiers
@@ -634,9 +624,7 @@ parameterDeclaration
 	| declarationSpecifiers abstractDeclarator  rank => -1
 	| declarationSpecifiers                     rank => -2
 
-identifierList
-	::= IDENTIFIER
-	| identifierList COMMA IDENTIFIER
+identifierList ::= IDENTIFIER+ separator => COMMA
 
 typeName
 	::= specifierQualifierList abstractDeclarator

@@ -4,8 +4,22 @@ use warnings FATAL => 'all';
 use Test::More tests => 10;
 use Test::Differences;
 use File::Spec;
-use Data::Dumper;
-#use C::Scan;
+use Path::Tiny qw/path/;
+
+my $path;
+
+BEGIN { $path = path(File::Spec->curdir)->absolute->stringify;
+        $path =~ /(.*)/;
+        $path = $1;
+}
+
+use Test::File::ShareDir
+    -root  =>  $path,
+    -share =>  {
+	-module => { 'MarpaX::Languages::C::AST' => File::Spec->curdir },
+	-dist => { 'MarpaX-Languages-C-AST' => File::Spec->curdir },
+};
+#------------------------------------------------------
 
 BEGIN {
     push(@INC, 'inc');
@@ -55,18 +69,18 @@ eq_or_diff($c->parsed_fdecls,
               ''
              ],
              [
-              'double *',
+              'double',
               'x2',
               undef,
               'double *x2',
               ''
              ],
              [
-              'float *( ',
+              'float',
               'f1',
               undef,
               'float *( f1)(int x11, double x12)',
-              ')(int x11, double x12)'
+              '',
              ]
             ],
             'int func1(int x1, double *x2, float *( f1)(int x11, double x12))',
@@ -84,18 +98,18 @@ eq_or_diff($c->parsed_fdecls,
               ''
              ],
              [
-              'double *',
+              'double',
               'x2',
               undef,
               'double *x2',
               ''
              ],
              [
-              'float *(*',
+              'float',
               'f1',
               undef,
               'float *(*f1)(int x11, double x12)',
-              ')(int x11, double x12)'
+              '',
              ]
             ],
             'int func2(int x1, double *x2, float *(*f1)(int x11, double x12))',
@@ -113,14 +127,14 @@ eq_or_diff($c->parsed_fdecls,
               ''
              ],
              [
-              'double *',
+              'double',
               'ANON1',
               undef,
               'double *',
               ''
              ],
              [
-              'float *',
+              'float',
               'ANON2',
               undef,
               'float *(* )(int , double )',
@@ -136,20 +150,20 @@ eq_or_diff($c->parsed_fdecls,
             [
              [
               'int',
-              'ANON*',
+              'ANON3',
               undef,
               'int',
               ''
              ],
              [
-              'double *',
+              'double',
               'ANON4',
               undef,
               'double *',
               ''
              ],
              [
-              'float *',
+              'float',
               'ANON5',
               undef,
               'float *(* )(int , double )',
@@ -163,8 +177,8 @@ eq_or_diff($c->parsed_fdecls,
           'parsed_fdecls');
 eq_or_diff($c->typedef_hash,
 {
-    'myStructType1_t'  => [ 'struct myStruct1 {int (*x2)[], y;}',   '' ],
-    'myStructType1p_t' => [ 'struct myStruct1 {int (*x2)[], y;} *', '' ],
+    'myStructType1_t'  => [ 'struct myStruct1 {int x;}',   '' ],
+    'myStructType1p_t' => [ 'struct myStruct1 {int x;} *', '' ],
 
     'myEnumType2_t'  => [ 'enum {X21 = 0, X22}',   '' ],
     'myEnumType2p_t' => [ 'enum {X21 = 0, X22} *', '' ],
@@ -204,49 +218,29 @@ eq_or_diff($c->vdecls,
     'vdecls');
 eq_or_diff($c->vdecl_hash,
 {
-    'vdouble2p' => [
-        'double * ',
-        ''
-        ],
-        'vint1' => [
-            'int ',
-            ''
-        ]
+ 'vdouble2p' => [ 'double * ', '' ],
+ 'vint1'     => [ 'int', '' ]
 },
-    'vdecl_hash');
+  'vdecl_hash');
 eq_or_diff($c->typedef_structs,
 {
  'myStructType2_t' => [
-		       [
-			'',
-			'',
-			'x'
-		       ]
+		       [ 'int', '', 'x' ]
 		      ],
  'myStructType1_t' => [
-		       [
-			'',
-			'',
-			'x'
-		       ]
+		       [ 'int', '', 'x' ]
 		      ],
  'myStructType1p_t' => [
-			[
-			 '',
-			 '',
-			 'x'
-			]
+			[ 'int', '', 'x' ]
 		       ],
  'myStructType2p_t' => [
-			[
-			 '',
-			 '',
-			 'x'
-			]
+			[ 'int', '', 'x' ]
 		       ],
  'myEnumType1_t' => undef,
  'myEnumType1p_t' => undef,
  'myInt_type' => undef,
  'myEnumType2p_t' => undef,
  'myEnumType2_t' => undef,
+ 'myOpaqueStruct_t' => [],
+ 'myOpaqueStructp_t' => [],
 }, 'typedef_structs');
