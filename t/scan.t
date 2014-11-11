@@ -3,23 +3,6 @@ use strict;
 use warnings FATAL => 'all';
 use Test::More tests => 10;
 use Test::Differences;
-use File::Spec;
-use Path::Tiny qw/path/;
-
-my $path;
-
-BEGIN { $path = path(File::Spec->curdir)->absolute->stringify;
-        $path =~ /(.*)/;
-        $path = $1;
-}
-
-use Test::File::ShareDir
-    -root  =>  $path,
-    -share =>  {
-	-module => { 'MarpaX::Languages::C::AST' => File::Spec->curdir },
-	-dist => { 'MarpaX-Languages-C-AST' => File::Spec->curdir },
-};
-#------------------------------------------------------
 
 BEGIN {
     push(@INC, 'inc');

@@ -22,7 +22,7 @@ use constant {
     LEXEME_VALUE_INDEX => 2
 };
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
-use File::ShareDir qw/:ALL/;
+use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -646,8 +646,8 @@ sub _pushNodeString {
     #
     ## Get first and last lexemes positions
     #
-    my $firstLexemeXpath = $self->_xpath('share/xpath/firstLexeme.xpath');
-    my $lastLexemeXpath = $self->_xpath('share/xpath/lastLexeme.xpath');
+    my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
+    my $lastLexemeXpath = $self->_xpath('xpath/lastLexeme.xpath');
 
     my $firstLexeme = $node->findnodes($firstLexemeXpath);
     my $lastLexeme = $node->findnodes($lastLexemeXpath);
@@ -763,12 +763,12 @@ sub _ast2vdecl_hash {
     #
     # a vdecl is a "declaration" node
     #
-    foreach my $declaration ($self->ast()->findnodes($self->_xpath('share/xpath/vdecl.xpath'))) {
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
       $self->_pushNodeString($stdout_buf, $self->{_vdecls}, $declaration);
       #
       # Get first declarationSpecifiers
       #
-      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -784,7 +784,7 @@ sub _ast2vdecl_hash {
       #
       # variable name
       #
-      my @declarator = $declaration->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
+      my @declarator = $declaration->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
@@ -792,7 +792,7 @@ sub _ast2vdecl_hash {
 	my $declarator;
 	$self->_pushNodeString($stdout_buf, \$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
+	my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
 	if (@IDENTIFIER) {
 	  $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	} else {
@@ -832,8 +832,8 @@ sub _ast2typedef_hash {
     #
     # typedef is a "declaration" node
     #
-    foreach my $declaration ($self->ast()->findnodes($self->_xpath('share/xpath/typedef.xpath'))) {
-      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/typedef.xpath'))) {
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -848,7 +848,7 @@ sub _ast2typedef_hash {
       #
       # typedef name
       #
-      my @declarator = $declaration->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
+      my @declarator = $declaration->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
@@ -856,7 +856,7 @@ sub _ast2typedef_hash {
 	my $declarator;
 	$self->_pushNodeString($stdout_buf, \$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
+	my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
 	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	$declarator =~ /(.*)$keys[-1](.*)/;
         my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
@@ -879,14 +879,14 @@ sub _ast2typedef_hash {
       #
       # Is a struct or union declaration ?
       #
-      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('share/xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
+      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
 	my @struct = ();
 
-        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('share/xpath/structOrUnionSpecifier2structDeclaration.xpath'));
+        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('xpath/structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
 
-          my @specifierQualifierList = $_->findnodes($self->_xpath('share/xpath/structDeclaration2specifierQualifierList.xpath'));
+          my @specifierQualifierList = $_->findnodes($self->_xpath('xpath/structDeclaration2specifierQualifierList.xpath'));
 	  if (! @specifierQualifierList) {
 	    # Gcc extension
 	    next;
@@ -894,7 +894,7 @@ sub _ast2typedef_hash {
           my $specifierQualifierList;
           $self->_pushNodeString($stdout_buf, \$specifierQualifierList, $specifierQualifierList[0]);
 
-          my @structDeclarator = $_->findnodes($self->_xpath('share/xpath/structDeclaration2structDeclarator.xpath'));
+          my @structDeclarator = $_->findnodes($self->_xpath('xpath/structDeclaration2structDeclarator.xpath'));
           my @keys = ();
           my @before = ();
           my @after = ();
@@ -902,7 +902,7 @@ sub _ast2typedef_hash {
             my $structDeclarator;
             $self->_pushNodeString($stdout_buf, \$structDeclarator, $_);
 
-            my @IDENTIFIER = $_->findnodes($self->_xpath('share/xpath/structDeclarator2IDENTIFIER.xpath'));
+            my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/structDeclarator2IDENTIFIER.xpath'));
 	    if (@IDENTIFIER) {
 	      $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	    } else {
@@ -957,13 +957,13 @@ sub _ast2parsed_fdecls {
     $self->{_parsed_fdecls} = [];
     $self->{_fdecls} = [];
 
-    foreach my $node ($self->ast()->findnodes($self->_xpath('share/xpath/fdecls.xpath'))) {
+    foreach my $node ($self->ast()->findnodes($self->_xpath('xpath/fdecls.xpath'))) {
       $self->_pushNodeString($stdout_buf, $self->{_fdecls}, $node);
       my $fdecl = [];
       #
       # rt
       #
-      my @declarationSpecifiers = $node->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+      my @declarationSpecifiers = $node->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -975,9 +975,9 @@ sub _ast2parsed_fdecls {
       # nm. In case of a function declaration, there can be only a single declarator
       # in the declaration
       #
-      my @declarator = $node->findnodes($self->_xpath('share/xpath/declaration2Declarator.xpath'));
+      my @declarator = $node->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
 
-      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('share/xpath/declarator2IDENTIFIER.xpath'));
+      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
       if (@IDENTIFIER) {
 	$self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
       } else {
@@ -988,7 +988,7 @@ sub _ast2parsed_fdecls {
       # args
       #
       my $args = [];
-      my @args = $node->findnodes($self->_xpath('share/xpath/fdecl2args.xpath'));
+      my @args = $node->findnodes($self->_xpath('xpath/fdecl2args.xpath'));
       foreach (@args) {
 	#
 	# arg is a parameterDeclaration
@@ -997,13 +997,13 @@ sub _ast2parsed_fdecls {
 	#
 	# arg.rt
 	#
-	my @declarationSpecifiers = $_->findnodes($self->_xpath('share/xpath/firstDeclarationSpecifiers.xpath'));
+	my @declarationSpecifiers = $_->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
 	$self->_pushNodeString($stdout_buf, $arg, $declarationSpecifiers[0]);
 	#
 	# arg.nm or ANON
 	#
         my $anon = undef;
-	my @nm = $_->findnodes($self->_xpath('share/xpath/arg2nm.xpath'));
+	my @nm = $_->findnodes($self->_xpath('xpath/arg2nm.xpath'));
 	if (@nm) {
 	  $self->_pushNodeString($stdout_buf, $arg, $nm[0]);
 	} else {
@@ -1027,7 +1027,7 @@ sub _ast2parsed_fdecls {
 	#
 	# arg.mod
 	#
-        my @mod = $_->findnodes($self->_xpath('share/xpath/arg2mod.xpath'));
+        my @mod = $_->findnodes($self->_xpath('xpath/arg2mod.xpath'));
         if (@mod) {
 	  #
 	  # Per def $mod[0] is a directDeclarator that can be:
@@ -1076,7 +1076,7 @@ sub _ast2inlines {
     #
     # Simply, any path matching functionDefinition
     #
-    foreach ($self->ast()->findnodes($self->_xpath('share/xpath/inlines.xpath'))) {
+    foreach ($self->ast()->findnodes($self->_xpath('xpath/inlines.xpath'))) {
       $self->_pushNodeString($stdout_buf, $self->{_inlines}, $_);
     }
   }

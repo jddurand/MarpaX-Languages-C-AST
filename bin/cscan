@@ -12,23 +12,6 @@ use Data::Dumper;
 use XML::Simple;
 use XML::LibXML;
 
-##############
-use Path::Tiny;
-my $path;
-
-BEGIN { $path = path(File::Spec->curdir)->absolute->stringify;
-        $path =~ /(.*)/;
-        $path = $1;
-}
-
-use Test::File::ShareDir
-    -root  =>  $path,
-    -share =>  {
-	-module => { 'MarpaX::Languages::C::AST' => File::Spec->curdir },
-	-dist => { 'MarpaX-Languages-C-AST' => File::Spec->curdir },
-};
-
-##############
 # ABSTRACT: C source scan (C::Scan alternative)
 
 # VERSION
