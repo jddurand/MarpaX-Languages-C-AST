@@ -50,6 +50,7 @@
             "Data::Dumper" : "0",
             "Exporter" : "0",
             "File::Basename" : "0",
+            "File::ShareDir" : "0",
             "File::Slurp" : "0",
             "File::Spec" : "0",
             "File::Temp" : "0",
@@ -64,12 +65,14 @@
             "Log::Log4perl" : "0",
             "Marpa::R2" : "2.081001",
             "POSIX" : "0",
+            "Path::Tiny" : "0",
             "Pod::Usage" : "0",
             "Regexp::Common" : "0",
             "SUPER" : "0",
             "Scalar::Util" : "0",
             "String::ShellQuote" : "0",
             "Term::ProgressBar" : "0",
+            "Test::File::ShareDir" : "0",
             "XML::LibXML" : "0",
             "XML::Simple" : "0",
             "constant" : "0",
@@ -100,66 +103,70 @@
    "provides" : {
       "MarpaX::Languages::C::AST" : {
          "file" : "lib/MarpaX/Languages/C/AST.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Callback" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Callback::Events" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Events.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Callback::Method" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Method.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Callback::Option" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Option.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Grammar" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Actions.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Scan.pm",
-         "version" : "0.39"
+         "version" : "0.40"
+      },
+      "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions" : {
+         "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Scan/Actions.pm",
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Impl" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Impl::Logger" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl/Logger.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Scope" : {
          "file" : "lib/MarpaX/Languages/C/AST/Scope.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Util" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::AST::Util::Data::Find" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util/Data/Find.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       },
       "MarpaX::Languages::C::Scan" : {
          "file" : "lib/MarpaX/Languages/C/Scan.pm",
-         "version" : "0.39"
+         "version" : "0.40"
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "bugtracker" : {
          "mailto" : "bug-MarpaX-Languages-C-AST@rt.cpan.org",
@@ -172,7 +179,7 @@
          "web" : "https://github.com/jddurand/marpax-languages-c-ast"
       }
    },
-   "version" : "0.39",
+   "version" : "0.40",
    "x_contributors" : [
       "Ben Bullock <benkasminbullock@gmail.com>",
       "Jeffrey Kegler <JKEGL@cpan.org>",
