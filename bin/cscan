@@ -103,7 +103,6 @@ my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
-$config{asHash} = 1;
 
 # --------------------------
 # Parse C, unless $in option
