@@ -9,8 +9,26 @@ use Exporter 'import';
 use Log::Any qw/$log/;
 use Data::Dumper;
 use Carp qw/croak/;
-# Marpa follows Unicode recommendation, i.e. perl's \R, that cannot be in a character class
-our $NEWLINE_REGEXP = qr/(?>\x0D\x0A|\v)/;
+# Marpa follows Unicode recommendation, i.e:
+#
+#    a LF (line feed U+000A);
+#    a CR (carriage return, U+000D), when it is not followed by a LF;
+#    a CRLF sequence (U+000D,U+000A);
+#    a NEL (next line, U+0085);
+#    a VT (vertical tab, U+000B);
+#    a FF (form feed, U+000C);
+#    a LS (line separator, U+2028) or
+#    a PS (paragraph separator, U+2029)
+#
+# BUT is accounting two lines when it sees a CRLF sequence
+# I left this regexp alone and will change it to
+# qr/(?>\x{0D}\x{0A}|\x{0D}|\x{0A}|\x{85}|\x{0B}|\x{0C}|\x{2028}|\x{2029})/
+# when I know which version of Marpa fixes this issue.
+#
+# C.f. https://github.com/jeffreykegler/Marpa--R2/issues/217
+#
+our $NEWLINE_MARPA_REGEXP = qr/[\x{0D}|\x{0A}|\x{85}|\x{0B}|\x{0C}|\x{2028}|\x{2029}]/;
+our $NEWLINE_CORRECT_REGEXP = qr/\R/;
 
 # VERSION
 # CONTRIBUTORS
@@ -142,18 +160,21 @@ sub showLineAndCol {
     my $thisline = 0;
     my $nbnewlines = 0;
     my $eos = 0;
-    while (${$sourcep} =~ m/\G(.*?)($NEWLINE_REGEXP|\Z)/scmg) {
+    while (${$sourcep} =~ m/\G(.*?)($NEWLINE_MARPA_REGEXP|\Z)/scmg) {
       if (++$thisline == $line) {
         $content = substr(${$sourcep}, $-[1], $+[1] - $-[1]);
         $eos = (($+[2] - $-[2]) > 0) ? 0 : 1;
         last;
       }
     }
-    $content =~ s/\t/ /g;
-    if ($content) {
-      $nbnewlines = (substr(${$sourcep}, 0, pos(${$sourcep})) =~ tr/\n//);
+    #
+    # Revisit newlines count (column count fortunately remains unchanged)
+    #
+    if (length($content) > 0) {
+      $content =~ s/\t/ /g;
+      $nbnewlines = () = substr(${$sourcep}, 0, pos(${$sourcep})) =~ /$NEWLINE_CORRECT_REGEXP/g;
       if ($eos) {
-        ++$nbnewlines; # End of string instead of $NEWLINE_REGEXP
+        ++$nbnewlines; # End of string instead of newline
       }
     }
     pos(${$sourcep}) = $prevpos;
@@ -162,7 +183,7 @@ sub showLineAndCol {
     #
     $content =~ s/\s/ /g;
 
-    return "line:column $line:$col (Unicode newline count) $nbnewlines:$col (\\n count)\n\n$content\n$pointer";
+    return "At line $nbnewlines, column $col\n\n$content\n$pointer";
 }
 
 =head2 lineAndCol($impl, $g1)
