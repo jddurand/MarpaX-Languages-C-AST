@@ -9,7 +9,6 @@ use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
 use Config;
 use IO::String;
 use Data::Dumper;
-use XML::Simple;
 use XML::LibXML;
 
 # ABSTRACT: C source scan (C::Scan alternative)
@@ -125,11 +124,21 @@ my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config
                 warn "Cannot close $in, $!";
             }
         } else {
-            my $xmlDOM = XML::LibXML::Document->new();
-	    my $includes = XML::LibXML::Element->new('includes');
-	    map {$includes->addChild($_)} $c->includes->childNodes();
-	    $xmlDOM->addChild($includes);
-            $xmlout = $xmlDOM->toString(1);
+            my $dom = XML::LibXML::Document->new();
+            my $root = XML::LibXML::Element->new('cscan');
+
+            foreach (qw/includes defines_args defines_no_args strings macros fdecls inlines parsed_fdecls typedef_hash typedef_texts typedefs_maybe typedef_structs vdecls vdecl_hash/) {
+                my $what = $_;
+                my $child = XML::LibXML::Element->new($what);
+                eval {map {$child->addChild($_)} $c->$what->childNodes()};
+                if ($@) {
+                    print STDERR "Oups on $what\n";
+                }
+                $root->addChild($child);
+            }
+
+            $dom->setDocumentElement($root);
+            $xmlout = $dom->toString(1);
         }
         if ($xml) {
             print $xmlout;

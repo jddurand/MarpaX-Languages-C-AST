@@ -546,8 +546,8 @@ sub _getAst {
   #
   # Get the AST, the lexeme callback will flag position2file to things of interest
   #
-  $self->{_includes} = {};
-  $self->{_strings} = [];
+  $self->{_includes} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+  $self->{_strings} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
   #
   # Plus from our module: strings detection
   #
@@ -568,11 +568,9 @@ sub _getAst {
   # Includes was a hash in %tmpHash
   #
   if ($self->{_asDOM}) {
-    $self->{_includes} = XML::LibXML::Document->new();
     foreach (sort keys %{$tmpHash{_includes}}) {
       my $child = XML::LibXML::Element->new('include');
-      $child->setAttribute('text', $_);
-      $self->{_includes}->addChild($child)
+      $self->{_includes}->addChild(XML::LibXML::Element->new('include'))->setAttribute('text', $_);
     }
   } else {
     $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
@@ -649,21 +647,16 @@ sub _pushNodeString {
 
   #
   # Unless the node is already a lexeme, we have to search surrounding lexemes
+  # This routine assumes that $outputp is always a reference to either an array or a scalar
   #
   my $text = $node->getAttribute('text');
   if (defined($text)) {
     if (ref($outputp) eq 'ARRAY') {
-      if ($self->{_asHash}) {
-	push(@{$outputp}, {text => $text});
-      } else {
-	push(@{$outputp}, $text);
-      }
+      push(@{$outputp}, $text);
+    } elsif (ref($outputp) eq 'SCALAR') {
+      ${$outputp} = $text;
     } else {
-      if ($self->{_asHash}) {
-	${$outputp} = {text => $text};
-      } else {
-	${$outputp} = $text;
-      }
+      croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
     }
   } else {
     #
@@ -681,17 +674,11 @@ sub _pushNodeString {
       my $length = $endPosition - $startPosition;
       my $text = substr($stdout_buf, $startPosition, $length);
       if (ref($outputp) eq 'ARRAY') {
-	if ($self->{_asHash}) {
-	  push(@{$outputp}, {text => $text});
-	} else {
-	  push(@{$outputp}, $text);
-	}
+        push(@{$outputp}, $text);
+      } elsif (ref($outputp) eq 'SCALAR') {
+        ${$outputp} = $text;
       } else {
-	if ($self->{_asHash}) {
-	  ${$outputp} = {text => $text};
-	} else {
-	  ${$outputp} = $text;
-	}
+        croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
       }
     }
   }
@@ -789,13 +776,19 @@ sub _ast2vdecl_hash {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_vdecl_hash})) {
-    $self->{_vdecl_hash} = {};
-    $self->{_vdecls} = [];
+    $self->{_vdecl_hash} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+    $self->{_vdecls} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     #
     # a vdecl is a "declaration" node
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
-      $self->_pushNodeString($stdout_buf, $self->{_vdecls}, $declaration);
+      my $vdecl = '';
+      $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
+      if ($self->{_asDOM}) {
+        $self->{_vdecls}->addChild(XML::LibXML::Element->new('vdecl'))->setAttribute('text', $vdecl);
+      } else {
+        push(@{$self->{_vdecls}}, $vdecl);
+      }
       #
       # Get first declarationSpecifiers
       #
@@ -842,7 +835,15 @@ sub _ast2vdecl_hash {
 	push(@after, '');
       }
       foreach (0..$#keys) {
-	$self->{_vdecl_hash}->{$keys[$_]} = [ $text . $before[$_], $after[$_] ];
+        if ($self->{_asDOM}) {
+          my $child = XML::LibXML::Element->new('vdecl');
+          $child->setAttribute('before', $text . $before[$_]);
+          $child->setAttribute('after', $after[$_]);
+          $child->setAttribute('text', $keys[$_]);
+          $self->{_vdecl_hash}->addChild($child);
+        } else {
+          $self->{_vdecl_hash}->{$keys[$_]} = [ $text . $before[$_], $after[$_] ];
+        }
       }
     }
   }
@@ -856,10 +857,11 @@ sub _ast2typedef_hash {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_typedef_hash})) {
-    $self->{_typedef_hash} = {};
-    $self->{_typedef_texts} = [];
-    $self->{_typedefs_maybe} = [];
-    $self->{_typedef_structs} = {};
+    $self->{_typedef_hash} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+    $self->{_typedef_texts} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
+    $self->{_typedefs_maybe} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
+    $self->{_typedef_structs} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+    my @typedef_texts = ();
     #
     # typedef is a "declaration" node
     #
@@ -871,14 +873,15 @@ sub _ast2typedef_hash {
 	#
 	next;
       }
-      $self->_pushNodeString($stdout_buf, $self->{_typedef_texts}, $declarationSpecifiers[0]);
+      $self->_pushNodeString($stdout_buf, \@typedef_texts, $declarationSpecifiers[0]);
       #
       # typedef_texts does not have the extern keyword.
       #
-      $self->_removeWord(\$self->{_typedef_texts}->[-1], 'typedef');
-      if ($self->{_asHash}) {
-	my $text = $self->{_typedef_texts}->[-1];
-	$self->{_typedef_texts}->[-1] = {text => $text};
+      $self->_removeWord(\$typedef_texts[-1], 'typedef');
+      if ($self->{_asDOM}) {
+        $self->{_typedef_texts}->addChild(XML::LibXML::Element->new('typedef'))->setAttribute('text', $typedef_texts[-1]);
+      } else {
+	$self->{_typedef_texts}->[-1] = $typedef_texts[-1];
       }
       #
       # typedef name
@@ -904,8 +907,8 @@ sub _ast2typedef_hash {
 	push(@before, '');
 	push(@after, '');
       }
-      if ($self->{_asHash}) {
-	push(@{$self->{_typedefs_maybe}}, map {{text => $_}} @keys);
+      if ($self->{_asDOM}) {
+        map {$self->{_typedefs_maybe}->addChild(XML::LibXML::Element->new('typedef'))->setAttribute('text', $_)} @keys;
       } else {
 	push(@{$self->{_typedefs_maybe}}, @keys);
       }
@@ -913,9 +916,12 @@ sub _ast2typedef_hash {
 	#
 	# typedef before/after
 	#
-	if ($self->{_asHash}) {
-	  $self->{_typedef_hash}->{$keys[$_]} = {before => $self->{_typedef_texts}->[-1]->{text} . $before[$_], after => $after[$_] };
-	} else {
+        if ($self->{_asDOM}) {
+          my $child = XML::LibXML::Element->new($keys[$_]);
+          $child->setAttribute('before', $self->{_typedef_texts}->lastChild()->getAttribute('text') . $before[$_]);
+          $child->setAttribute('after', $after[$_]);
+          $self->{_typedef_hash}->addChild($child);
+        } else {
 	  $self->{_typedef_hash}->{$keys[$_]} = [ $self->{_typedef_texts}->[-1] . $before[$_], $after[$_] ];
 	}
       }
@@ -924,7 +930,7 @@ sub _ast2typedef_hash {
       #
       my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
-	my @struct = ();
+	my $struct = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
 
         my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('xpath/structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
@@ -968,26 +974,37 @@ sub _ast2typedef_hash {
             #
             # structDeclarator before/after
             #
-	    if ($self->{_asHash}) {
-	      push(@struct, {before => $before[$_], after => $after[$_], name => $keys[$_] });
+	    if ($self->{_asDOM}) {
+              my $child = XML::LibXML::Element->new($keys[$_]);
+              $child->setAttribute('before', $before[$_]);
+              $child->setAttribute('after', $after[$_]);
+              $struct->addChild($child);
 	    } else {
-	      push(@struct, [ $before[$_], $after[$_], $keys[$_] ]);
+	      push(@{$struct}, [ $before[$_], $after[$_], $keys[$_] ]);
 	    }
           }
         }
-	foreach (0..$#keys) {
-	  #
-	  # typedef before/after
-	  #
-	  $self->{_typedef_structs}->{$keys[$_]} = \@struct;
-	}
+        foreach (0..$#keys) {
+          #
+          # typedef before/after
+          #
+          if ($self->{_asDOM}) {
+            my $child = $self->{_typedef_structs}->addChild(XML::LibXML::Element->new($keys[$_]));
+            foreach ($struct->childNodes()) {
+              my $newnode = $_->cloneNode(1);
+              $child->addChild($newnode);
+            }
+          } else {
+            $self->{_typedef_structs}->{$keys[$_]} = $struct;
+          }
+        }
       } else {
 	foreach (0..$#keys) {
 	  #
 	  # typedef before/after
 	  #
-	  if ($self->{_asHash}) {
-	    $self->{_typedef_structs}->{$keys[$_]} = [];
+	  if ($self->{_asDOM}) {
+            $self->{_typedef_structs}->addChild(XML::LibXML::Element->new($keys[$_]));
 	  } else {
 	    $self->{_typedef_structs}->{$keys[$_]} = undef;
 	  }
@@ -1005,11 +1022,12 @@ sub _ast2parsed_fdecls {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_parsed_fdecls})) {
-    $self->{_parsed_fdecls} = [];
-    $self->{_fdecls} = [];
+    $self->{_parsed_fdecls} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
+    $self->{_fdecls} = $self->{_asDOM} ? XML::LibXML::Element->new('fdecls') : [];
+    my @fdecls = ();
 
     foreach my $node ($self->ast()->findnodes($self->_xpath('xpath/fdecls.xpath'))) {
-      $self->_pushNodeString($stdout_buf, $self->{_fdecls}, $node);
+      $self->_pushNodeString($stdout_buf, \@fdecls, $node);
       my $fdecl = [];
       #
       # rt
@@ -1038,7 +1056,7 @@ sub _ast2parsed_fdecls {
       #
       # args
       #
-      my $args = [];
+      my $args = $self->{_asDOM} ? XML::LibXML::Element->new('args') : [];
       my @args = $node->findnodes($self->_xpath('xpath/fdecl2args.xpath'));
       foreach (@args) {
 	#
@@ -1097,15 +1115,17 @@ sub _ast2parsed_fdecls {
         } else {
           push(@{$arg}, '');
         }
-	if ($self->{_asHash}) {
-	  push(@{$args}, {
-			  ty => $arg->[0],
-			  nm => $arg->[1],
-			  args => $arg->[2],
-			  ft => $arg->[3],
-			  mod => $arg->[4]
-			 }
-	      );
+	if ($self->{_asDOM}) {
+          my $child = XML::LibXML::Element->new('arg');
+          $child->setAttribute('ty', $arg->[0]);
+          $child->setAttribute('nm', $arg->[1]);
+          #
+          # Undef per construction, i.e. we do not put this attribute
+          #
+          # $child->setAttribute('args', $arg->[2]);
+          $child->setAttribute('ft', $arg->[3]);
+          $child->setAttribute('mod', $arg->[4]);
+          $args->addChild($child);
 	} else {
 	  push(@{$args}, $arg);
 	}
@@ -1120,15 +1140,18 @@ sub _ast2parsed_fdecls {
       # mod is always undef
       #
       push(@{$fdecl}, undef);
-      if ($self->{_asHash}) {
-	push(@{$self->{_parsed_fdecls}}, {
-					  ty => $fdecl->[0],
-					  nm => $fdecl->[1],
-					  args => $fdecl->[2],
-					  ft => $fdecl->[3],
-					  mod => $fdecl->[4]
-					 }
-	    );
+
+      if ($self->{_asDOM}) {
+        my $child = XML::LibXML::Element->new('fdecl');
+        $child->setAttribute('ty', $fdecl->[0]);
+        $child->setAttribute('nm', $fdecl->[1]);
+        $child->addChild($fdecl->[2]);
+        $child->setAttribute('ft', $fdecl->[3]);
+        #
+        # Undef per construction: we do not include this attribute
+        #
+        # $child->setAttribute('mod', $fdecl->[4]);
+        $self->{_parsed_fdecls}->addChild($child);
       } else {
 	push(@{$self->{_parsed_fdecls}}, $fdecl);
       }
@@ -1144,12 +1167,18 @@ sub _ast2inlines {
   my ($self, $stdout_buf) = @_;
 
   if (! defined($self->{_inlines})) {
-    $self->{_inlines} = [];
+    $self->{_inlines} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     #
     # Simply, any path matching functionDefinition
     #
     foreach ($self->ast()->findnodes($self->_xpath('xpath/inlines.xpath'))) {
-      $self->_pushNodeString($stdout_buf, $self->{_inlines}, $_);
+      my $text = '';
+      $self->_pushNodeString($stdout_buf, \$text, $_);
+      if ($self->{_asDOM}) {
+        $self->{_inlines}->addChild(XML::LibXML::Element->new('inline'))->setAttribute('text', $text);
+      } else {
+        push(@{$self->{_inlines}}, $text);
+      }
     }
   }
 
@@ -1219,8 +1248,10 @@ sub _lexemeCallback {
 	      #
 	      my $string = $lexemeHashp->{value};
 	      $string =~ s/[ \t\v\n\f]*$//;
-	      if ($self->{_asHash}) {
-		push(@{$self->{_strings}}, {string => $string});
+	      if ($self->{_asDOM}) {
+                my $child = XML::LibXML::Element->new('string');
+                $child->setAttribute('text', $string);
+                $self->{_strings}->addChild($child)
 	      } else {
 		push(@{$self->{_strings}}, $string);
 	      }
@@ -1242,13 +1273,13 @@ sub _analyse_with_heuristics {
       $self->{_content} = do {my $fh = $self->{_tmpfh}; local $/; <$fh>;};
   }
 
-  $self->{_macros} = [];
+  $self->{_macros} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
   pos($self->{_content}) = undef;
   while ($self->{_content} =~ m/$REDEFINE/g) {
       my $start = $-[1];
       my $end = $+[1];
-      if ($self->{_asHash}) {
-	push(@{$self->{_macros}}, {text => substr($self->{_content}, $start, $end - $start)});
+      if ($self->{_asDOM}) {
+        $self->{_macros}->addChild(XML::LibXML::Element->new('macro'))->setAttribute('text', substr($self->{_content}, $start, $end - $start));
       } else {
 	push(@{$self->{_macros}}, substr($self->{_content}, $start, $end - $start));
       }
@@ -1263,32 +1294,39 @@ sub _posprocess_heuristics {
     #
     # We want to have defines_args and defines_no_args
     #
-    $self->{_defines_args} = {};
-    $self->{_defines_no_args} = {};
-    foreach (@{$self->macros}) {
-      if ($self->{_asHash}) {
-	$_ = $_->{text};
-      }
-	if (/^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
-	    my $name  = substr($_, $-[1], $+[1] - $-[1]);
-	    my $args  = substr($_, $-[2], $+[2] - $-[2]);
-	    my $value = substr($_, $-[3], $+[3] - $-[3]);
+    $self->{_defines_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+    $self->{_defines_no_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+    foreach ($self->{_asDOM} ? $self->macros->childNodes() : @{$self->macros}) {
+      my $text = $self->{_asDOM} ? $_->getAttribute('text') : $_;
+	if ($text =~ /^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
+	    my $name  = substr($text, $-[1], $+[1] - $-[1]);
+	    my $args  = substr($text, $-[2], $+[2] - $-[2]);
+	    my $value = substr($text, $-[3], $+[3] - $-[3]);
 	    substr($args,  0, 1, '');  # '('
 	    substr($args, -1, 1, '');  # ')'
 	    my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
-	    if ($self->{_asHash}) {
-	      $self->{_defines_args}->{$name} = { arg => [ @args ], text => $value };
+	    if ($self->{_asDOM}) {
+              my $child = XML::LibXML::Element->new('define');
+              $child->setAttribute('text', $text);
+
+              my $subchild = XML::LibXML::Element->new('args');
+              foreach (@args) {
+                $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('text', $_);
+              }
+              $child->addChild($subchild);
+
+              $self->{_defines_args}->addChild($child);
 	    } else {
 	      $self->{_defines_args}->{$name} = [ [ @args ], $value ];
 	    }
 	} else {
 	    /(\w+)\s*(.*)/s;
 	    my $name  = substr($_, $-[1], $+[1] - $-[1]);
-	    my $value = substr($_, $-[2], $+[2] - $-[2]);
-	    if ($self->{_asHash}) {
-	      $self->{_defines_no_args}->{$name} = { text => $value };
+	    my $text = substr($_, $-[2], $+[2] - $-[2]);
+	    if ($self->{_asDOM}) {
+              $self->{_defines_no_args}->addChild(XML::LibXML::Element->new('define'))->setAttribute('text', $text);
 	    } else {
-	      $self->{_defines_no_args}->{$name} = $value;
+	      $self->{_defines_no_args}->{$name} = $text;
 	    }
 	}
     }
