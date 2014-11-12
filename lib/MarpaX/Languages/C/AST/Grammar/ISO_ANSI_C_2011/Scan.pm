@@ -73,9 +73,9 @@ Content to parse.
 
 Filter on filename from pre-processor output.
 
-=item asHash
+=item asDOM
 
-Say that all C::Scan-like methods should return hashes instead of arrays in the parsed_fdecls() method.
+Say that all C::Scan-like methods should return an xml document.
 
 =item cpprun
 
@@ -118,7 +118,7 @@ sub new {
   }
 
   my $self = {
-              _asHash          => exists($opts{asHash})            ? $opts{asHash}              : undef,
+              _asDOM           => exists($opts{asDOM})             ? $opts{asDOM}               : undef,
               _filename_filter => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
               _cpprun          => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
               _cppflags        => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
@@ -567,8 +567,13 @@ sub _getAst {
   #
   # Includes was a hash in %tmpHash
   #
-  if ($self->{_asHash}) {
-    $self->{_includes} = [ map {{text => $_ }} (sort keys %{$tmpHash{_includes}}) ];
+  if ($self->{_asDOM}) {
+    $self->{_includes} = XML::LibXML::Document->new();
+    foreach (sort keys %{$tmpHash{_includes}}) {
+      my $child = XML::LibXML::Element->new('include');
+      $child->setAttribute('text', $_);
+      $self->{_includes}->addChild($child)
+    }
   } else {
     $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
   }

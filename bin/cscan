@@ -86,7 +86,7 @@ my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
-$config{asHash} = 1;
+$config{asDOM} = 1;
 
 # --------------------------
 # Parse C, unless $in option
@@ -125,23 +125,11 @@ my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config
                 warn "Cannot close $in, $!";
             }
         } else {
-            my $xmlHash = {
-                includes => [ $c->includes ],
-                defines_args => [ $c->defines_args ],
-                defines_no_args => [ $c->defines_no_args ],
-                strings => [ $c->strings ],
-                macros => [ $c->macros ],
-                fdecls => [ $c->fdecls ],
-                inlines => [ $c->inlines ],
-                parsed_fdecls => [ $c->parsed_fdecls ],
-                typedef_hash => [ $c->typedef_hash ],
-                typedef_texts => [ $c->typedef_texts ],
-                typedefs_maybe => [ $c->typedefs_maybe ],
-                typedef_structs => [ $c->typedef_structs ],
-                vdecls => [ $c->vdecls ],
-                vdecl_hash => [ $c->vdecl_hash ]
-            };
-            $xmlout = XMLout($xmlHash, RootName => 'C', NoAttr => 1);
+            my $xmlDOM = XML::LibXML::Document->new();
+	    my $includes = XML::LibXML::Element->new('includes');
+	    map {$includes->addChild($_)} $c->includes->childNodes();
+	    $xmlDOM->addChild($includes);
+            $xmlout = $xmlDOM->toString(1);
         }
         if ($xml) {
             print $xmlout;
@@ -152,7 +140,7 @@ my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config
             my $nodeset = $dom->findnodes($xpath);
             foreach ($nodeset->get_nodelist) {
                 my $node = $_;
-                print Dumper(XMLin($node->toString, ForceArray => [ 'args' ]));
+                print $node->toString(1);
             }
         }
     }
