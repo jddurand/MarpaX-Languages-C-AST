@@ -86,6 +86,7 @@ my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
+$config{asHash} = 1;
 
 # --------------------------
 # Parse C, unless $in option
@@ -125,10 +126,22 @@ my $c = $in ? undef : MarpaX::Languages::C::Scan->new(filename => shift, %config
             }
         } else {
             my $xmlHash = {
-                decls => $c->decls,
-                defs => $c->defs
+                includes => [ $c->includes ],
+                defines_args => [ $c->defines_args ],
+                defines_no_args => [ $c->defines_no_args ],
+                strings => [ $c->strings ],
+                macros => [ $c->macros ],
+                fdecls => [ $c->fdecls ],
+                inlines => [ $c->inlines ],
+                parsed_fdecls => [ $c->parsed_fdecls ],
+                typedef_hash => [ $c->typedef_hash ],
+                typedef_texts => [ $c->typedef_texts ],
+                typedefs_maybe => [ $c->typedefs_maybe ],
+                typedef_structs => [ $c->typedef_structs ],
+                vdecls => [ $c->vdecls ],
+                vdecl_hash => [ $c->vdecl_hash ]
             };
-            $xmlout = XMLout($xmlHash, RootName => 'C');
+            $xmlout = XMLout($xmlHash, RootName => 'C', NoAttr => 1);
         }
         if ($xml) {
             print $xmlout;

@@ -73,6 +73,10 @@ Content to parse.
 
 Filter on filename from pre-processor output.
 
+=item asHash
+
+Say that all C::Scan-like methods should return hashes instead of arrays in the parsed_fdecls() method.
+
 =item cpprun
 
 Preprocessor command, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN}, or $Config{cpprun}. It is assume that cpprun is already correctly quoted for your system shell.
@@ -114,6 +118,7 @@ sub new {
   }
 
   my $self = {
+              _asHash          => exists($opts{asHash})            ? $opts{asHash}              : undef,
               _filename_filter => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
               _cpprun          => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
               _cppflags        => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
@@ -170,9 +175,10 @@ sub new {
   delete($self->{_tmpfh});
   delete($self->{_content2fh});
   #
-  # And eventual reference counts
+  # Delete what is left
   #
   delete($self->{_content});
+  delete($self->{_anonCount});
 
   return $self;
 }
@@ -561,7 +567,11 @@ sub _getAst {
   #
   # Includes was a hash in %tmpHash
   #
-  $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
+  if ($self->{_asHash}) {
+    $self->{_includes} = [ map {{text => $_ }} (sort keys %{$tmpHash{_includes}}) ];
+  } else {
+    $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
+  }
 }
 
 # ----------------------------------------------------------------------------------------
@@ -638,9 +648,17 @@ sub _pushNodeString {
   my $text = $node->getAttribute('text');
   if (defined($text)) {
     if (ref($outputp) eq 'ARRAY') {
-      push(@{$outputp}, $text);
+      if ($self->{_asHash}) {
+	push(@{$outputp}, {text => $text});
+      } else {
+	push(@{$outputp}, $text);
+      }
     } else {
-      ${$outputp} = $text;
+      if ($self->{_asHash}) {
+	${$outputp} = {text => $text};
+      } else {
+	${$outputp} = $text;
+      }
     }
   } else {
     #
@@ -658,9 +676,17 @@ sub _pushNodeString {
       my $length = $endPosition - $startPosition;
       my $text = substr($stdout_buf, $startPosition, $length);
       if (ref($outputp) eq 'ARRAY') {
-        push(@{$outputp}, $text);
+	if ($self->{_asHash}) {
+	  push(@{$outputp}, {text => $text});
+	} else {
+	  push(@{$outputp}, $text);
+	}
       } else {
-        ${$outputp} = $text;
+	if ($self->{_asHash}) {
+	  ${$outputp} = {text => $text};
+	} else {
+	  ${$outputp} = $text;
+	}
       }
     }
   }
@@ -845,6 +871,10 @@ sub _ast2typedef_hash {
       # typedef_texts does not have the extern keyword.
       #
       $self->_removeWord(\$self->{_typedef_texts}->[-1], 'typedef');
+      if ($self->{_asHash}) {
+	my $text = $self->{_typedef_texts}->[-1];
+	$self->{_typedef_texts}->[-1] = {text => $text};
+      }
       #
       # typedef name
       #
@@ -869,12 +899,20 @@ sub _ast2typedef_hash {
 	push(@before, '');
 	push(@after, '');
       }
-      push(@{$self->{_typedefs_maybe}}, @keys);
+      if ($self->{_asHash}) {
+	push(@{$self->{_typedefs_maybe}}, map {{text => $_}} @keys);
+      } else {
+	push(@{$self->{_typedefs_maybe}}, @keys);
+      }
       foreach (0..$#keys) {
 	#
 	# typedef before/after
 	#
-	$self->{_typedef_hash}->{$keys[$_]} = [ $self->{_typedef_texts}->[-1] . $before[$_], $after[$_] ];
+	if ($self->{_asHash}) {
+	  $self->{_typedef_hash}->{$keys[$_]} = {before => $self->{_typedef_texts}->[-1]->{text} . $before[$_], after => $after[$_] };
+	} else {
+	  $self->{_typedef_hash}->{$keys[$_]} = [ $self->{_typedef_texts}->[-1] . $before[$_], $after[$_] ];
+	}
       }
       #
       # Is a struct or union declaration ?
@@ -925,7 +963,11 @@ sub _ast2typedef_hash {
             #
             # structDeclarator before/after
             #
-            push(@struct, [ $before[$_], $after[$_], $keys[$_] ]);
+	    if ($self->{_asHash}) {
+	      push(@struct, {before => $before[$_], after => $after[$_], name => $keys[$_] });
+	    } else {
+	      push(@struct, [ $before[$_], $after[$_], $keys[$_] ]);
+	    }
           }
         }
 	foreach (0..$#keys) {
@@ -939,7 +981,11 @@ sub _ast2typedef_hash {
 	  #
 	  # typedef before/after
 	  #
-	  $self->{_typedef_structs}->{$keys[$_]} = undef;
+	  if ($self->{_asHash}) {
+	    $self->{_typedef_structs}->{$keys[$_]} = [];
+	  } else {
+	    $self->{_typedef_structs}->{$keys[$_]} = undef;
+	  }
 	}
       }
     }
@@ -1046,7 +1092,18 @@ sub _ast2parsed_fdecls {
         } else {
           push(@{$arg}, '');
         }
-	push(@{$args}, $arg);
+	if ($self->{_asHash}) {
+	  push(@{$args}, {
+			  ty => $arg->[0],
+			  nm => $arg->[1],
+			  args => $arg->[2],
+			  ft => $arg->[3],
+			  mod => $arg->[4]
+			 }
+	      );
+	} else {
+	  push(@{$args}, $arg);
+	}
       }
       push(@{$fdecl}, $args);
       #
@@ -1058,8 +1115,18 @@ sub _ast2parsed_fdecls {
       # mod is always undef
       #
       push(@{$fdecl}, undef);
-
-      push(@{$self->{_parsed_fdecls}}, $fdecl);
+      if ($self->{_asHash}) {
+	push(@{$self->{_parsed_fdecls}}, {
+					  ty => $fdecl->[0],
+					  nm => $fdecl->[1],
+					  args => $fdecl->[2],
+					  ft => $fdecl->[3],
+					  mod => $fdecl->[4]
+					 }
+	    );
+      } else {
+	push(@{$self->{_parsed_fdecls}}, $fdecl);
+      }
     }
   }
 
@@ -1147,7 +1214,11 @@ sub _lexemeCallback {
 	      #
 	      my $string = $lexemeHashp->{value};
 	      $string =~ s/[ \t\v\n\f]*$//;
-	      push(@{$self->{_strings}}, $string);
+	      if ($self->{_asHash}) {
+		push(@{$self->{_strings}}, {string => $string});
+	      } else {
+		push(@{$self->{_strings}}, $string);
+	      }
 	  }
       }
   }
@@ -1171,7 +1242,11 @@ sub _analyse_with_heuristics {
   while ($self->{_content} =~ m/$REDEFINE/g) {
       my $start = $-[1];
       my $end = $+[1];
-      push(@{$self->{_macros}}, substr($self->{_content}, $start, $end - $start));
+      if ($self->{_asHash}) {
+	push(@{$self->{_macros}}, {text => substr($self->{_content}, $start, $end - $start)});
+      } else {
+	push(@{$self->{_macros}}, substr($self->{_content}, $start, $end - $start));
+      }
   }
 }
 
@@ -1186,6 +1261,9 @@ sub _posprocess_heuristics {
     $self->{_defines_args} = {};
     $self->{_defines_no_args} = {};
     foreach (@{$self->macros}) {
+      if ($self->{_asHash}) {
+	$_ = $_->{text};
+      }
 	if (/^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
 	    my $name  = substr($_, $-[1], $+[1] - $-[1]);
 	    my $args  = substr($_, $-[2], $+[2] - $-[2]);
@@ -1193,12 +1271,20 @@ sub _posprocess_heuristics {
 	    substr($args,  0, 1, '');  # '('
 	    substr($args, -1, 1, '');  # ')'
 	    my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
-	    $self->{_defines_args}->{$name} = [ [ @args ], $value ];
+	    if ($self->{_asHash}) {
+	      $self->{_defines_args}->{$name} = { arg => [ @args ], text => $value };
+	    } else {
+	      $self->{_defines_args}->{$name} = [ [ @args ], $value ];
+	    }
 	} else {
 	    /(\w+)\s*(.*)/s;
 	    my $name  = substr($_, $-[1], $+[1] - $-[1]);
 	    my $value = substr($_, $-[2], $+[2] - $-[2]);
-	    $self->{_defines_no_args}->{$name} = $value;
+	    if ($self->{_asHash}) {
+	      $self->{_defines_no_args}->{$name} = { text => $value };
+	    } else {
+	      $self->{_defines_no_args}->{$name} = $value;
+	    }
 	}
     }
 }
