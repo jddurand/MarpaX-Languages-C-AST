@@ -881,7 +881,7 @@ sub _ast2typedef_hash {
       if ($self->{_asDOM}) {
         $self->{_typedef_texts}->addChild(XML::LibXML::Element->new('typedef'))->setAttribute('text', $typedef_texts[-1]);
       } else {
-	$self->{_typedef_texts}->[-1] = $typedef_texts[-1];
+	push(@{$self->{_typedef_texts}}, $typedef_texts[-1]);
       }
       #
       # typedef name
