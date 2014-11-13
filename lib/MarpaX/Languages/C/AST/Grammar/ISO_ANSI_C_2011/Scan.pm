@@ -582,11 +582,16 @@ sub _position2File {
   my ($self, $position) = @_;
 
   my $output = '';
-  foreach (@{$self->{_sortedPosition2File}}) {
-    if ($_->[0] > $position) {
-      last;
+  if (! exists($ENV{MARPAX_LANGUAGES_C_AST_T_SCAN})) {
+    #
+    # In the test suite, we cannot rely on filename that is compiler+OS dependant
+    #
+    foreach (@{$self->{_sortedPosition2File}}) {
+      if ($_->[0] > $position) {
+        last;
+      }
+      $output = $_->[1];
     }
-    $output = $_->[1];
   }
 
   return $output;
@@ -888,7 +893,7 @@ sub _ast2vdecl_hash {
           my $child = XML::LibXML::Element->new('vdecl');
           $child->setAttribute('before', $textForHash . $before[$_]);
           $child->setAttribute('after', $after[$_]);
-          $child->setAttribute('name', $keys[$_]);
+          $child->setAttribute('id', $keys[$_]);
           $child->setAttribute('file', $file);
           $self->{_vdecl_hash}->addChild($child);
         } else {
@@ -924,12 +929,15 @@ sub _ast2typedef_hash {
       }
       my $text;
       my $file;
-      $self->_pushNodeString($stdout_buf, \$text, $declarationSpecifiers[0]);
+      my $declarationSpecifiers;
+      $self->_pushNodeString($stdout_buf, \$text, $declaration);
       $self->_pushNodeFile($stdout_buf, \$file, $declarationSpecifiers[0]);
+      $self->_pushNodeString($stdout_buf, \$declarationSpecifiers, $declarationSpecifiers[0]);
       #
-      # typedef_texts does not have the typedef keyword.
+      # typedef_texts does not have the typedef keyword, neither what will contain typedef_hash
       #
       $self->_removeWord(\$text, 'typedef');
+      $self->_removeWord(\$declarationSpecifiers, 'typedef');
       if ($self->{_asDOM}) {
 	my $child = XML::LibXML::Element->new('typedef');
 	$child->setAttribute('text', $text);
@@ -965,7 +973,7 @@ sub _ast2typedef_hash {
       if ($self->{_asDOM}) {
 	foreach (@keys) {
 	  my $child = XML::LibXML::Element->new('typedef');
-	  $child->setAttribute('name', $_);
+	  $child->setAttribute('id', $_);
 	  $child->setAttribute('file', $file);
 	  $self->{_typedefs_maybe}->addChild($child);
 	}
@@ -978,13 +986,13 @@ sub _ast2typedef_hash {
 	#
         if ($self->{_asDOM}) {
           my $child = XML::LibXML::Element->new('typedef');
-          $child->setAttribute('name', $keys[$_]);
-          $child->setAttribute('before', $self->{_typedef_texts}->lastChild()->getAttribute('text') . $before[$_]);
+          $child->setAttribute('id', $keys[$_]);
+          $child->setAttribute('before', $declarationSpecifiers . $before[$_]);
           $child->setAttribute('after', $after[$_]);
           $child->setAttribute('file', $file);
           $self->{_typedef_hash}->addChild($child);
         } else {
-	  $self->{_typedef_hash}->{$keys[$_]} = [ $self->{_typedef_texts}->[-1] . $before[$_], $after[$_] ];
+	  $self->{_typedef_hash}->{$keys[$_]} = [ $declarationSpecifiers . $before[$_], $after[$_] ];
 	}
       }
       #
@@ -1039,7 +1047,7 @@ sub _ast2typedef_hash {
             #
 	    if ($self->{_asDOM}) {
               my $child = XML::LibXML::Element->new('decl');
-              $child->setAttribute('name', $keys[$_]);
+              $child->setAttribute('id', $keys[$_]);
               $child->setAttribute('before', $before[$_]);
               $child->setAttribute('after', $after[$_]);
               $child->setAttribute('file', $file);
@@ -1059,8 +1067,9 @@ sub _ast2typedef_hash {
           #
           if ($self->{_asDOM}) {
 	    my $child = XML::LibXML::Element->new('struct');
-	    $child->setAttribute('name', $keys[$_]);
+	    $child->setAttribute('id', $keys[$_]);
 	    $child->setAttribute('file', $file);
+	    $child->setAttribute('structOrUnion', 'true');
             $self->{_typedef_structs}->addChild($child);
             foreach ($struct->childNodes()) {
               my $newnode = $_->cloneNode(1);
@@ -1068,6 +1077,21 @@ sub _ast2typedef_hash {
             }
           } else {
             $self->{_typedef_structs}->{$keys[$_]} = $struct;
+          }
+        }
+      } else {
+        foreach (0..$#keys) {
+          #
+          # Not a struct nor union
+          #
+          if ($self->{_asDOM}) {
+            my $child = XML::LibXML::Element->new('struct');
+            $child->setAttribute('id', $keys[$_]);
+	    $child->setAttribute('file', $file);
+	    $child->setAttribute('structOrUnion', 'false');
+            $self->{_typedef_structs}->addChild($child);
+          } else {
+            $self->{_typedef_structs}->{$keys[$_]} = undef;
           }
         }
       }
@@ -1327,16 +1351,16 @@ sub _analyse_with_heuristics {
   pos($self->{_content}) = undef;
   while ($self->{_content} =~ m/$REDEFINE/g) {
     my $text = substr($self->{_content}, $-[1], $+[1] - $-[1]);
-    my $name = substr($self->{_content}, $-[2], $+[2] - $-[2]);
+    my $id = substr($self->{_content}, $-[2], $+[2] - $-[2]);
     my $file = $self->_position2File($-[0]);
     if ($self->{_asDOM}) {
       my $child = XML::LibXML::Element->new('macro');
       $child->setAttribute('text', $text);
-      $child->setAttribute('name', $name);
+      $child->setAttribute('id', $id);
       $child->setAttribute('file', $file);
       $self->{_macros}->addChild($child);
     } else {
-      push(@{$self->{_macros}}, [ $text, $name, $file ]);
+      push(@{$self->{_macros}}, [ $text, $id, $file ]);
     }
   }
 }
@@ -1352,9 +1376,9 @@ sub _posprocess_heuristics {
   $self->{_defines_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
   $self->{_defines_no_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
   foreach ($self->{_asDOM} ? $self->macros->childNodes() : @{$self->macros}) {
-    my $text  = $self->{_asDOM} ? $_->getAttribute('text')  : $_->[0];
-    my $name  = $self->{_asDOM} ? $_->getAttribute('name')  : $_->[1];
-    my $file  = $self->{_asDOM} ? $_->getAttribute('file')  : $_->[2];
+    my $text  = $self->{_asDOM} ? $_->getAttribute('text') : $_->[0];
+    my $id    = $self->{_asDOM} ? $_->getAttribute('id')   : $_->[1];
+    my $file  = $self->{_asDOM} ? $_->getAttribute('file') : $_->[2];
     if ($text =~ /^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
       my $args  = substr($text, $-[2], $+[2] - $-[2]);
       my $value = substr($text, $-[3], $+[3] - $-[3]);
@@ -1364,31 +1388,31 @@ sub _posprocess_heuristics {
       if ($self->{_asDOM}) {
 	my $child = XML::LibXML::Element->new('define');
 	$child->setAttribute('text', $text);
-	$child->setAttribute('name', $name);
+	$child->setAttribute('id', $id);
 	$child->setAttribute('file', $file);
 	$child->setAttribute('value', $value);
 
 	my $subchild = XML::LibXML::Element->new('args');
 	foreach (@args) {
-	  $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('name', $_);
+	  $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('id', $_);
 	}
 	$child->addChild($subchild);
 
 	$self->{_defines_args}->addChild($child);
       } else {
-	$self->{_defines_args}->{$name} = [ $text, [ @args ], $value, $file ];
+	$self->{_defines_args}->{$id} = [ $text, [ @args ], $value, $file ];
       }
     } elsif ($text =~ /(\w+)\s*(.*)/s) {
       my $value = substr($text, $-[2], $+[2] - $-[2]);
       if ($self->{_asDOM}) {
 	my $child = XML::LibXML::Element->new('define');
 	$child->setAttribute('text', $text);
-	$child->setAttribute('name', $name);
+	$child->setAttribute('id', $id);
 	$child->setAttribute('file', $file);
 	$child->setAttribute('value', $value);
 	$self->{_defines_no_args}->addChild($child);
       } else {
-	$self->{_defines_no_args}->{$name} = [ $text, $value, $file ];
+	$self->{_defines_no_args}->{$id} = [ $text, $value, $file ];
       }
     }
   }

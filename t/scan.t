@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 10;
+use Test::More tests => 11;
 use Test::Differences;
 
 BEGIN {
@@ -9,13 +9,14 @@ BEGIN {
     use_ok( 'MarpaX::Languages::C::Scan' ) || print "Bail out!\n";
 }
 
+$ENV{MARPAX_LANGUAGES_C_AST_T_SCAN} = 1;
 my $filename = File::Spec->catfile('inc', 'scan.c');
 my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 
 eq_or_diff($c->defines_no_args,
           {
-              'MACRO_NO_ARGS_01' => [ 'MACRO_NO_ARGS_01', '' ],
-              'MACRO_NO_ARGS_02' => [ 'MACRO_NO_ARGS_02 something', 'something' ]
+              'MACRO_NO_ARGS_01' => [ 'MACRO_NO_ARGS_01', '', '' ],
+              'MACRO_NO_ARGS_02' => [ 'MACRO_NO_ARGS_02 something', 'something', '' ]
           },
           'defines_no_args');
 eq_or_diff($c->defines_args,
@@ -27,7 +28,8 @@ eq_or_diff($c->defines_args,
                     'b',
                     'c'
                    ],
-                   "something(b) + else(c) \\\ncontinued"
+                   "something(b) + else(c) \\\ncontinued",
+                   ''
                   ],
                    'MACRO_NO_ARGS_03' =>
                    [
@@ -35,6 +37,7 @@ eq_or_diff($c->defines_args,
                     [
                      'a'
                     ],
+                    '',
                     ''
                    ]
           },
@@ -229,3 +232,12 @@ eq_or_diff($c->typedef_structs,
  'myOpaqueStruct_t' => [],
  'myOpaqueStructp_t' => [],
 }, 'typedef_structs');
+eq_or_diff($c->typedef_texts,
+    [
+     'int myInt_type;',
+     'enum myEnum1_e {X11 = 0, X12} myEnumType1_t, *myEnumType1p_t;',
+     'enum {X21 = 0, X22} myEnumType2_t, *myEnumType2p_t;',
+     'struct myStruct1 {int x;} myStructType1_t, *myStructType1p_t;',
+     'struct {int x;} myStructType2_t, *myStructType2p_t;',
+     'struct opaqueStruct myOpaqueStruct_t, *myOpaqueStructp_t;'
+    ] , 'typedef_texts');
