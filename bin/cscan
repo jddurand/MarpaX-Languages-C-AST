@@ -255,7 +255,7 @@ cscan is using the preprocessor. Every #include statement in your original sourc
 
  #line ... "information on the file processed"
 
-in the generated output. The --filter argument is used to select which processed file is of interest, and obviously defaults to one given on the command-line. If $filter is starting with a slash "/" it is assumed to be a full regular expression (including modifier flags).
+in the generated output. The --filter argument is used to select which processed files is/are of interest. If $filter is starting with a slash "/" it is assumed to be a full regular expression (including modifier flags). The regexp can be used to handle the case of multiple input files.
 
 =item B<--get <argument,...>>
 
