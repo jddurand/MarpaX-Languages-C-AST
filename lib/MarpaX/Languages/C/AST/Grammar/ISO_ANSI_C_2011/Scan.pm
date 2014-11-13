@@ -1355,23 +1355,22 @@ sub _lexemeCallback {
     $lexemeHashp->{value} =~ s/\n/\\n/g;
   }
 
-  if (defined($tmpHashp->{_currentFile})) {
-      if ($self->_fileOk($tmpHashp->{_currentFile})) {
-	  if ($lexemeHashp->{name} eq 'STRING_LITERAL_UNIT') {
-	      #
-	      # ISO C permits WS at the end of a string literal, we remove it
-	      #
-	      my $string = $lexemeHashp->{value};
-	      $string =~ s/[ \t\v\n\f]*$//;
-	      if ($self->{_asDOM}) {
-                my $child = XML::LibXML::Element->new('string');
-                $child->setAttribute('text', $string);
-                $self->{_strings}->addChild($child)
-	      } else {
-		push(@{$self->{_strings}}, $string);
-	      }
-	  }
+  if (defined($tmpHashp->{_currentFile}) && $self->_fileOk($tmpHashp->{_currentFile})) {
+    if ($lexemeHashp->{name} eq 'STRING_LITERAL_UNIT') {
+      #
+      # ISO C permits WS at the end of a string literal, we remove it
+      #
+      my $string = $lexemeHashp->{value};
+      $string =~ s/[ \t\v\n\f]*$//;
+      if ($self->{_asDOM}) {
+        my $child = XML::LibXML::Element->new('string');
+        $child->setAttribute('text', $string);
+        $child->setAttribute('file', $tmpHashp->{_currentFile});
+        $self->{_strings}->addChild($child)
+      } else {
+        push(@{$self->{_strings}}, $string);
       }
+    }
   }
 }
 
