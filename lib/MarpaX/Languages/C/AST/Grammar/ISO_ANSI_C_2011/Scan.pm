@@ -825,18 +825,6 @@ sub _ast2vdecl_hash {
     # a vdecl is a "declaration" node
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
-      my $vdecl = '';
-      my $file = '';
-      $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
-      $self->_pushNodeFile($stdout_buf, \$file, $declaration);
-      if ($self->{_asDOM}) {
-	my $child = XML::LibXML::Element->new('vdecl');
-	$child->setAttribute('text', $vdecl);
-	$child->setAttribute('file', $file);
-        $self->{_vdecls}->addChild($child);
-      } else {
-        push(@{$self->{_vdecls}}, $vdecl);
-      }
       #
       # Get first declarationSpecifiers
       #
@@ -847,12 +835,25 @@ sub _ast2vdecl_hash {
 	#
 	next;
       }
-      my $text;
-      $self->_pushNodeString($stdout_buf, \$text, $declarationSpecifiers[0]);
+      my $vdecl = '';
+      my $file = '';
+      $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
+      $self->_pushNodeFile($stdout_buf, \$file, $declaration);
       #
       # vdecl_hash does not have the extern keyword.
       #
-      $self->_removeWord(\$text, 'extern');
+      my $textForHash;
+      $self->_pushNodeString($stdout_buf, \$textForHash, $declarationSpecifiers[0]);
+      $self->_removeWord(\$textForHash, 'extern');
+
+      if ($self->{_asDOM}) {
+	my $child = XML::LibXML::Element->new('vdecl');
+	$child->setAttribute('text', $vdecl);
+	$child->setAttribute('file', $file);
+        $self->{_vdecls}->addChild($child);
+      } else {
+        push(@{$self->{_vdecls}}, $vdecl);
+      }
       #
       # variable name
       #
@@ -885,12 +886,13 @@ sub _ast2vdecl_hash {
       foreach (0..$#keys) {
         if ($self->{_asDOM}) {
           my $child = XML::LibXML::Element->new('vdecl');
-          $child->setAttribute('before', $text . $before[$_]);
+          $child->setAttribute('before', $textForHash . $before[$_]);
           $child->setAttribute('after', $after[$_]);
-          $child->setAttribute('text', $keys[$_]);
+          $child->setAttribute('name', $keys[$_]);
+          $child->setAttribute('file', $file);
           $self->{_vdecl_hash}->addChild($child);
         } else {
-          $self->{_vdecl_hash}->{$keys[$_]} = [ $text . $before[$_], $after[$_] ];
+          $self->{_vdecl_hash}->{$keys[$_]} = [ $textForHash . $before[$_], $after[$_] ];
         }
       }
     }
