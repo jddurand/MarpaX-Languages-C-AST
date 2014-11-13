@@ -14,14 +14,15 @@ my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 
 eq_or_diff($c->defines_no_args,
           {
-              'MACRO_NO_ARGS_01' => '',
-              'MACRO_NO_ARGS_02' => 'something'
+              'MACRO_NO_ARGS_01' => [ 'MACRO_NO_ARGS_01', '' ],
+              'MACRO_NO_ARGS_02' => [ 'MACRO_NO_ARGS_02 something', 'something' ]
           },
           'defines_no_args');
 eq_or_diff($c->defines_args,
           {
               'MACRO_NO_ARGS_04' =>
                   [
+		   "MACRO_NO_ARGS_04 (b,    c) something(b) + else(c) \\\ncontinued",
                    [
                     'b',
                     'c'
@@ -30,6 +31,7 @@ eq_or_diff($c->defines_args,
                   ],
                    'MACRO_NO_ARGS_03' =>
                    [
+		    'MACRO_NO_ARGS_03(a)',
                     [
                      'a'
                     ],

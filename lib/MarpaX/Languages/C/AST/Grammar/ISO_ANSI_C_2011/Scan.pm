@@ -27,7 +27,7 @@ use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
 our $RESAMELINE = qr/(?:[ \t\v\f])*/;                        # i.e. WS* without \n
-our $REDEFINE = qr/^${RESAMELINE}#${RESAMELINE}define${RESAMELINE}(\w+(?>[^\n\\]*)(?>\\.[^\n\\]*)*)/ms; # dot-matches-all mode, keeping ^ meaningful
+our $REDEFINE = qr/^${RESAMELINE}#${RESAMELINE}define${RESAMELINE}((\w+)(?>[^\n\\]*)(?>\\.[^\n\\]*)*)/ms; # dot-matches-all mode, keeping ^ meaningful
 our $BALANCEDPARENS = qr/$RE{balanced}{-parens=>'()'}{-keep}/;
 
 # VERSION
@@ -1276,60 +1276,67 @@ sub _analyse_with_heuristics {
   $self->{_macros} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
   pos($self->{_content}) = undef;
   while ($self->{_content} =~ m/$REDEFINE/g) {
-      my $start = $-[1];
-      my $end = $+[1];
-      if ($self->{_asDOM}) {
-        $self->{_macros}->addChild(XML::LibXML::Element->new('macro'))->setAttribute('text', substr($self->{_content}, $start, $end - $start));
-      } else {
-	push(@{$self->{_macros}}, substr($self->{_content}, $start, $end - $start));
-      }
+    my $text = substr($self->{_content}, $-[1], $+[1] - $-[1]);
+    my $name = substr($self->{_content}, $-[2], $+[2] - $-[2]);
+    if ($self->{_asDOM}) {
+      my $child = XML::LibXML::Element->new('macro');
+      $child->setAttribute('text', $text);
+      $child->setAttribute('name', $name);
+      $self->{_macros}->addChild($child);
+    } else {
+      push(@{$self->{_macros}}, [ $text, $name ]);
+    }
   }
 }
 
 # ----------------------------------------------------------------------------------------
 
 sub _posprocess_heuristics {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    #
-    # We want to have defines_args and defines_no_args
-    #
-    $self->{_defines_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
-    $self->{_defines_no_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
-    foreach ($self->{_asDOM} ? $self->macros->childNodes() : @{$self->macros}) {
-      my $text = $self->{_asDOM} ? $_->getAttribute('text') : $_;
-	if ($text =~ /^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
-	    my $name  = substr($text, $-[1], $+[1] - $-[1]);
-	    my $args  = substr($text, $-[2], $+[2] - $-[2]);
-	    my $value = substr($text, $-[3], $+[3] - $-[3]);
-	    substr($args,  0, 1, '');  # '('
-	    substr($args, -1, 1, '');  # ')'
-	    my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
-	    if ($self->{_asDOM}) {
-              my $child = XML::LibXML::Element->new('define');
-              $child->setAttribute('text', $text);
+  #
+  # We want to have defines_args and defines_no_args
+  #
+  $self->{_defines_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+  $self->{_defines_no_args} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
+  foreach ($self->{_asDOM} ? $self->macros->childNodes() : @{$self->macros}) {
+    my $text  = $self->{_asDOM} ? $_->getAttribute('text')  : $_->[0];
+    my $name  = $self->{_asDOM} ? $_->getAttribute('name')  : $_->[1];
+    if ($text =~ /^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
+      my $args  = substr($text, $-[2], $+[2] - $-[2]);
+      my $value = substr($text, $-[3], $+[3] - $-[3]);
+      substr($args,  0, 1, '');  # '('
+      substr($args, -1, 1, '');  # ')'
+      my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
+      if ($self->{_asDOM}) {
+	my $child = XML::LibXML::Element->new('define');
+	$child->setAttribute('text', $text);
+	$child->setAttribute('name', $name);
+	$child->setAttribute('value', $value);
 
-              my $subchild = XML::LibXML::Element->new('args');
-              foreach (@args) {
-                $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('text', $_);
-              }
-              $child->addChild($subchild);
-
-              $self->{_defines_args}->addChild($child);
-	    } else {
-	      $self->{_defines_args}->{$name} = [ [ @args ], $value ];
-	    }
-	} else {
-	    /(\w+)\s*(.*)/s;
-	    my $name  = substr($_, $-[1], $+[1] - $-[1]);
-	    my $text = substr($_, $-[2], $+[2] - $-[2]);
-	    if ($self->{_asDOM}) {
-              $self->{_defines_no_args}->addChild(XML::LibXML::Element->new('define'))->setAttribute('text', $text);
-	    } else {
-	      $self->{_defines_no_args}->{$name} = $text;
-	    }
+	my $subchild = XML::LibXML::Element->new('args');
+	foreach (@args) {
+	  $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('name', $_);
 	}
+	$child->addChild($subchild);
+
+	$self->{_defines_args}->addChild($child);
+      } else {
+	$self->{_defines_args}->{$name} = [ $text, [ @args ], $value ];
+      }
+    } elsif ($text =~ /(\w+)\s*(.*)/s) {
+      my $value = substr($text, $-[2], $+[2] - $-[2]);
+      if ($self->{_asDOM}) {
+	my $child = XML::LibXML::Element->new('define');
+	$child->setAttribute('text', $text);
+	$child->setAttribute('name', $name);
+	$child->setAttribute('value', $value);
+	$self->{_defines_no_args}->addChild($child);
+      } else {
+	$self->{_defines_no_args}->{$name} = [ $text, $value ];
+      }
     }
+  }
 }
 
 =head1 NOTES
