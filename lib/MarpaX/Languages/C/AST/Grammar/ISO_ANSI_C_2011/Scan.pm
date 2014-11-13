@@ -513,10 +513,7 @@ sub _init {
 sub _initInternals {
     my ($self) = @_;
 
-    $self->{_preprocessorNbNewlinesInFront} = {};
     $self->{_position2File} = {};
-    $self->{_position2Line} = {};
-    $self->{_position2LineReal} = {};
     $self->{_sortedPosition2File} = [];
 
 }
@@ -526,10 +523,7 @@ sub _initInternals {
 sub _cleanInternals {
     my ($self) = @_;
 
-    delete($self->{_preprocessorNbNewlinesInFront});
     delete($self->{_position2File});
-    delete($self->{_position2Line});
-    delete($self->{_position2LineReal});
     delete($self->{_sortedPosition2File});
 
 }
@@ -544,7 +538,7 @@ sub _getAst {
   #
   my %tmpHash = (_currentFile => undef, _includes => {});
   #
-  # Get the AST, the lexeme callback will flag position2file to things of interest
+  # Get the AST, the lexeme callback will flag position2File to things of interest
   #
   $self->{_includes} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
   $self->{_strings} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
@@ -565,6 +559,11 @@ sub _getAst {
   $self->{_ast} = ${$value};
 
   #
+  # For lookup, do a sorted version of position2File
+  #
+  $self->{_sortedPosition2File}  = [ map { [ $_, $self->{_position2File}->{$_} ] } sort { $a <=> $b } keys %{$self->{_position2File}} ];
+
+  #
   # Includes was a hash in %tmpHash
   #
   if ($self->{_asDOM}) {
@@ -575,6 +574,22 @@ sub _getAst {
   } else {
     $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
   }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _position2File {
+  my ($self, $position) = @_;
+
+  my $output = '';
+  foreach (@{$self->{_sortedPosition2File}}) {
+    if ($_->[0] > $position) {
+      last;
+    }
+    $output = $_->[1];
+  }
+
+  return $output;
 }
 
 # ----------------------------------------------------------------------------------------
@@ -686,6 +701,34 @@ sub _pushNodeString {
 
 # ----------------------------------------------------------------------------------------
 
+sub _pushNodeFile {
+  my ($self, $stdout_buf, $outputp, $node) = @_;
+
+  #
+  # Unless the node is already a lexeme, we have to search surrounding lexemes
+  # This routine assumes that $outputp is always a reference to either an array or a scalar
+  #
+  #
+  ## Get first lexeme position
+  #
+  my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
+  my $firstLexeme = $node->findnodes($firstLexemeXpath);
+
+  if ($firstLexeme) {
+    my $startPosition = $firstLexeme->[0]->findvalue('./@start');
+    my $file = $self->_position2File($startPosition);
+    if (ref($outputp) eq 'ARRAY') {
+      push(@{$outputp}, $file);
+    } elsif (ref($outputp) eq 'SCALAR') {
+      ${$outputp} = $file;
+    } else {
+      croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
 sub _ast2fdecls {
   my ($self, $stdout_buf) = @_;
 
@@ -783,9 +826,14 @@ sub _ast2vdecl_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
       my $vdecl = '';
+      my $file = '';
       $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
+      $self->_pushNodeFile($stdout_buf, \$file, $declaration);
       if ($self->{_asDOM}) {
-        $self->{_vdecls}->addChild(XML::LibXML::Element->new('vdecl'))->setAttribute('text', $vdecl);
+	my $child = XML::LibXML::Element->new('vdecl');
+	$child->setAttribute('text', $vdecl);
+	$child->setAttribute('file', $file);
+        $self->{_vdecls}->addChild($child);
       } else {
         push(@{$self->{_vdecls}}, $vdecl);
       }
@@ -1198,7 +1246,6 @@ sub _lexemeCallback {
   #
   if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
     if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
-	my $currentLine = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
 	my $currentFile = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
         if (! defined($self->{_filename})) {
           #
@@ -1215,20 +1262,10 @@ sub _lexemeCallback {
         }
 
 	$tmpHashp->{_currentFile} = $currentFile;
-	$tmpHashp->{_currentLine} = $currentLine;
-	$tmpHashp->{_currentLineReal} = $lexemeHashp->{line};
 
 	$self->{_position2File}->{$lexemeHashp->{start}} = $tmpHashp->{_currentFile};
-	$self->{_position2Line}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLine};
-	$self->{_position2LineReal}->{$lexemeHashp->{start}} = $tmpHashp->{_currentLineReal};
-        if ($lexemeHashp->{value} =~ /^\s+/) {
-          my $front = substr($lexemeHashp->{value}, $-[0], $+[0] - $-[0]);
-          $self->{_preprocessorNbNewlinesInFront}->{$lexemeHashp->{start}} = ($front =~ tr/\n//);
-        } else {
-          $self->{_preprocessorNbNewlinesInFront}->{$lexemeHashp->{start}} = 0;
-        }
 
-	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}}++;
+	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}} = 1;
     }
     #
     # This is an internal lexeme, no problem to change a bit the value. For instance, remove
@@ -1278,13 +1315,15 @@ sub _analyse_with_heuristics {
   while ($self->{_content} =~ m/$REDEFINE/g) {
     my $text = substr($self->{_content}, $-[1], $+[1] - $-[1]);
     my $name = substr($self->{_content}, $-[2], $+[2] - $-[2]);
+    my $file = $self->_position2File($-[0]);
     if ($self->{_asDOM}) {
       my $child = XML::LibXML::Element->new('macro');
       $child->setAttribute('text', $text);
       $child->setAttribute('name', $name);
+      $child->setAttribute('file', $file);
       $self->{_macros}->addChild($child);
     } else {
-      push(@{$self->{_macros}}, [ $text, $name ]);
+      push(@{$self->{_macros}}, [ $text, $name, $file ]);
     }
   }
 }
@@ -1302,6 +1341,7 @@ sub _posprocess_heuristics {
   foreach ($self->{_asDOM} ? $self->macros->childNodes() : @{$self->macros}) {
     my $text  = $self->{_asDOM} ? $_->getAttribute('text')  : $_->[0];
     my $name  = $self->{_asDOM} ? $_->getAttribute('name')  : $_->[1];
+    my $file  = $self->{_asDOM} ? $_->getAttribute('file')  : $_->[2];
     if ($text =~ /^(\w+)\s*$BALANCEDPARENS\s*(.*)/s) {
       my $args  = substr($text, $-[2], $+[2] - $-[2]);
       my $value = substr($text, $-[3], $+[3] - $-[3]);
@@ -1312,6 +1352,7 @@ sub _posprocess_heuristics {
 	my $child = XML::LibXML::Element->new('define');
 	$child->setAttribute('text', $text);
 	$child->setAttribute('name', $name);
+	$child->setAttribute('file', $file);
 	$child->setAttribute('value', $value);
 
 	my $subchild = XML::LibXML::Element->new('args');
@@ -1322,7 +1363,7 @@ sub _posprocess_heuristics {
 
 	$self->{_defines_args}->addChild($child);
       } else {
-	$self->{_defines_args}->{$name} = [ $text, [ @args ], $value ];
+	$self->{_defines_args}->{$name} = [ $text, [ @args ], $value, $file ];
       }
     } elsif ($text =~ /(\w+)\s*(.*)/s) {
       my $value = substr($text, $-[2], $+[2] - $-[2]);
@@ -1330,10 +1371,11 @@ sub _posprocess_heuristics {
 	my $child = XML::LibXML::Element->new('define');
 	$child->setAttribute('text', $text);
 	$child->setAttribute('name', $name);
+	$child->setAttribute('file', $file);
 	$child->setAttribute('value', $value);
 	$self->{_defines_no_args}->addChild($child);
       } else {
-	$self->{_defines_no_args}->{$name} = [ $text, $value ];
+	$self->{_defines_no_args}->{$name} = [ $text, $value, $file ];
       }
     }
   }
