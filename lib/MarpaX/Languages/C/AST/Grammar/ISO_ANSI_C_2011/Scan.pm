@@ -911,7 +911,6 @@ sub _ast2typedef_hash {
     $self->{_typedef_texts} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     $self->{_typedefs_maybe} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     $self->{_typedef_structs} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
-    my @typedef_texts = ();
     #
     # typedef is a "declaration" node
     #
@@ -923,15 +922,21 @@ sub _ast2typedef_hash {
 	#
 	next;
       }
-      $self->_pushNodeString($stdout_buf, \@typedef_texts, $declarationSpecifiers[0]);
+      my $text;
+      my $file;
+      $self->_pushNodeString($stdout_buf, \$text, $declarationSpecifiers[0]);
+      $self->_pushNodeFile($stdout_buf, \$file, $declarationSpecifiers[0]);
       #
-      # typedef_texts does not have the extern keyword.
+      # typedef_texts does not have the typedef keyword.
       #
-      $self->_removeWord(\$typedef_texts[-1], 'typedef');
+      $self->_removeWord(\$text, 'typedef');
       if ($self->{_asDOM}) {
-        $self->{_typedef_texts}->addChild(XML::LibXML::Element->new('typedef'))->setAttribute('text', $typedef_texts[-1]);
+	my $child = XML::LibXML::Element->new('typedef');
+	$child->setAttribute('text', $text);
+	$child->setAttribute('file', $file);
+        $self->{_typedef_texts}->addChild($child);
       } else {
-	push(@{$self->{_typedef_texts}}, $typedef_texts[-1]);
+	push(@{$self->{_typedef_texts}}, $text);
       }
       #
       # typedef name
@@ -958,7 +963,12 @@ sub _ast2typedef_hash {
 	push(@after, '');
       }
       if ($self->{_asDOM}) {
-        map {$self->{_typedefs_maybe}->addChild(XML::LibXML::Element->new('typedef'))->setAttribute('text', $_)} @keys;
+	foreach (@keys) {
+	  my $child = XML::LibXML::Element->new('typedef');
+	  $child->setAttribute('name', $_);
+	  $child->setAttribute('file', $file);
+	  $self->{_typedefs_maybe}->addChild($child);
+	}
       } else {
 	push(@{$self->{_typedefs_maybe}}, @keys);
       }
@@ -967,9 +977,11 @@ sub _ast2typedef_hash {
 	# typedef before/after
 	#
         if ($self->{_asDOM}) {
-          my $child = XML::LibXML::Element->new($keys[$_]);
+          my $child = XML::LibXML::Element->new('typedef');
+          $child->setAttribute('name', $keys[$_]);
           $child->setAttribute('before', $self->{_typedef_texts}->lastChild()->getAttribute('text') . $before[$_]);
           $child->setAttribute('after', $after[$_]);
+          $child->setAttribute('file', $file);
           $self->{_typedef_hash}->addChild($child);
         } else {
 	  $self->{_typedef_hash}->{$keys[$_]} = [ $self->{_typedef_texts}->[-1] . $before[$_], $after[$_] ];
@@ -981,6 +993,7 @@ sub _ast2typedef_hash {
       my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
 	my $struct = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
+	my $declsDOM = undef;
 
         my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('xpath/structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
@@ -1025,10 +1038,16 @@ sub _ast2typedef_hash {
             # structDeclarator before/after
             #
 	    if ($self->{_asDOM}) {
-              my $child = XML::LibXML::Element->new($keys[$_]);
+              my $child = XML::LibXML::Element->new('decl');
+              $child->setAttribute('name', $keys[$_]);
               $child->setAttribute('before', $before[$_]);
               $child->setAttribute('after', $after[$_]);
-              $struct->addChild($child);
+              $child->setAttribute('file', $file);
+	      if (! defined($declsDOM)) {
+		$declsDOM = XML::LibXML::Element->new('decls');
+		$struct->addChild($declsDOM);
+	      }
+              $declsDOM->addChild($child);
 	    } else {
 	      push(@{$struct}, [ $before[$_], $after[$_], $keys[$_] ]);
 	    }
@@ -1039,7 +1058,10 @@ sub _ast2typedef_hash {
           # typedef before/after
           #
           if ($self->{_asDOM}) {
-            my $child = $self->{_typedef_structs}->addChild(XML::LibXML::Element->new($keys[$_]));
+	    my $child = XML::LibXML::Element->new('struct');
+	    $child->setAttribute('name', $keys[$_]);
+	    $child->setAttribute('file', $file);
+            $self->{_typedef_structs}->addChild($child);
             foreach ($struct->childNodes()) {
               my $newnode = $_->cloneNode(1);
               $child->addChild($newnode);
@@ -1048,17 +1070,6 @@ sub _ast2typedef_hash {
             $self->{_typedef_structs}->{$keys[$_]} = $struct;
           }
         }
-      } else {
-	foreach (0..$#keys) {
-	  #
-	  # typedef before/after
-	  #
-	  if ($self->{_asDOM}) {
-            $self->{_typedef_structs}->addChild(XML::LibXML::Element->new($keys[$_]));
-	  } else {
-	    $self->{_typedef_structs}->{$keys[$_]} = undef;
-	  }
-	}
       }
     }
   }
