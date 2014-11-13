@@ -217,7 +217,7 @@ cscan - C source scsan
    --help                Brief help message.
    --cpprun <argument>   Preprocessor run command.
    --cppflags <argument> Preprocessor flags.
-   --filter <argument>   File to look at after proprocessing. Defaults to file argument.
+   --filter <argument>   File to look at after preprocessing.
    --get <argument,...>  Dump the result of getting <argument>.
    --xml                 Print out an XML view of all declarations and definitions.
    --out <argument>      Redirect any output to this filename.
