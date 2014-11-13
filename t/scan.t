@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 11;
+use Test::More tests => 12;
 use Test::Differences;
 
 BEGIN {
@@ -241,3 +241,10 @@ eq_or_diff($c->typedef_texts,
      'struct {int x;} myStructType2_t, *myStructType2p_t;',
      'struct opaqueStruct myOpaqueStruct_t, *myOpaqueStructp_t;'
     ] , 'typedef_texts');
+eq_or_diff($c->fdecls,
+    [
+     'int func1(int x1, double *x2, float *( f1)(int x11, double x12))',
+     'int func2(int x1, double *x2, float *(*f1)(int x11, double x12))',
+     'int func3(int , double * , float *(* )(int , double ))',
+     'int func4(int , double * , float *(* )(int , double ))'
+    ] , 'fdecls');

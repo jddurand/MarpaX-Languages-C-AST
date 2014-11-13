@@ -706,6 +706,20 @@ sub _pushNodeString {
 
 # ----------------------------------------------------------------------------------------
 
+sub _fileOk {
+  my ($self, $file) = @_;
+
+  if (exists($self->{_filename_filter_re})) {
+    return ($file =~ $self->{_filename_filter_re}) ? 1 : 0;
+  } elsif (defined($self->{_filename_filter})) {
+    return ($file eq $self->{_filename_filter}) ? 1 : 0;
+  } else {
+    return 1;
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
 sub _pushNodeFile {
   my ($self, $stdout_buf, $outputp, $node) = @_;
 
@@ -713,23 +727,28 @@ sub _pushNodeFile {
   # Unless the node is already a lexeme, we have to search surrounding lexemes
   # This routine assumes that $outputp is always a reference to either an array or a scalar
   #
-  #
   ## Get first lexeme position
+  #
+  ## Returns a false value only if filename filter is on and output does not match the filter
   #
   my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
   my $firstLexeme = $node->findnodes($firstLexemeXpath);
+  my $file = '';
 
   if ($firstLexeme) {
     my $startPosition = $firstLexeme->[0]->findvalue('./@start');
-    my $file = $self->_position2File($startPosition);
-    if (ref($outputp) eq 'ARRAY') {
-      push(@{$outputp}, $file);
-    } elsif (ref($outputp) eq 'SCALAR') {
-      ${$outputp} = $file;
-    } else {
-      croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
-    }
+    $file = $self->_position2File($startPosition);
   }
+
+  if (ref($outputp) eq 'ARRAY') {
+    push(@{$outputp}, $file);
+  } elsif (ref($outputp) eq 'SCALAR') {
+    ${$outputp} = $file;
+  } else {
+    croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
+  }
+
+  return $self->_fileOk($file);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -830,6 +849,10 @@ sub _ast2vdecl_hash {
     # a vdecl is a "declaration" node
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
+      my $file = '';
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+        next;
+      }
       #
       # Get first declarationSpecifiers
       #
@@ -841,9 +864,7 @@ sub _ast2vdecl_hash {
 	next;
       }
       my $vdecl = '';
-      my $file = '';
       $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
-      $self->_pushNodeFile($stdout_buf, \$file, $declaration);
       #
       # vdecl_hash does not have the extern keyword.
       #
@@ -920,6 +941,11 @@ sub _ast2typedef_hash {
     # typedef is a "declaration" node
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/typedef.xpath'))) {
+      my $file;
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+        next;
+      }
+
       my @declarationSpecifiers = $declaration->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
@@ -928,10 +954,8 @@ sub _ast2typedef_hash {
 	next;
       }
       my $text;
-      my $file;
       my $declarationSpecifiers;
       $self->_pushNodeString($stdout_buf, \$text, $declaration);
-      $self->_pushNodeFile($stdout_buf, \$file, $declarationSpecifiers[0]);
       $self->_pushNodeString($stdout_buf, \$declarationSpecifiers, $declarationSpecifiers[0]);
       #
       # typedef_texts does not have the typedef keyword, neither what will contain typedef_hash
@@ -1109,10 +1133,13 @@ sub _ast2parsed_fdecls {
   if (! defined($self->{_parsed_fdecls})) {
     $self->{_parsed_fdecls} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     $self->{_fdecls} = $self->{_asDOM} ? XML::LibXML::Element->new('fdecls') : [];
-    my @fdecls = ();
 
     foreach my $node ($self->ast()->findnodes($self->_xpath('xpath/fdecls.xpath'))) {
-      $self->_pushNodeString($stdout_buf, \@fdecls, $node);
+      my $file = '';
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $node)) {
+        next;
+      }
+
       my $fdecl = [];
       #
       # rt
@@ -1125,6 +1152,10 @@ sub _ast2parsed_fdecls {
 	next;
       }
       $self->_pushNodeString($stdout_buf, $fdecl, $declarationSpecifiers[0]);
+      #
+      # Remove eventual typedef
+      #
+      $self->_removeWord(\$fdecl->[-1], 'typedef');
       #
       # nm. In case of a function declaration, there can be only a single declarator
       # in the declaration
@@ -1202,13 +1233,13 @@ sub _ast2parsed_fdecls {
         }
 	if ($self->{_asDOM}) {
           my $child = XML::LibXML::Element->new('arg');
-          $child->setAttribute('ty', $arg->[0]);
-          $child->setAttribute('nm', $arg->[1]);
+          $child->setAttribute('type', $arg->[0]);
+          $child->setAttribute('id', $arg->[1]);
           #
           # Undef per construction, i.e. we do not put this attribute
           #
           # $child->setAttribute('args', $arg->[2]);
-          $child->setAttribute('ft', $arg->[3]);
+          $child->setAttribute('text', $arg->[3]);
           $child->setAttribute('mod', $arg->[4]);
           $args->addChild($child);
 	} else {
@@ -1228,10 +1259,11 @@ sub _ast2parsed_fdecls {
 
       if ($self->{_asDOM}) {
         my $child = XML::LibXML::Element->new('fdecl');
-        $child->setAttribute('ty', $fdecl->[0]);
-        $child->setAttribute('nm', $fdecl->[1]);
+        $child->setAttribute('type', $fdecl->[0]);
+        $child->setAttribute('id', $fdecl->[1]);
         $child->addChild($fdecl->[2]);
-        $child->setAttribute('ft', $fdecl->[3]);
+        $child->setAttribute('text', $fdecl->[3]);
+        $child->setAttribute('file', $file);
         #
         # Undef per construction: we do not include this attribute
         #
@@ -1239,6 +1271,16 @@ sub _ast2parsed_fdecls {
         $self->{_parsed_fdecls}->addChild($child);
       } else {
 	push(@{$self->{_parsed_fdecls}}, $fdecl);
+      }
+
+      if ($self->{_asDOM}) {
+        my $child = XML::LibXML::Element->new('fdecl');
+        $child->setAttribute('id', $fdecl->[1]);
+        $child->setAttribute('text', $fdecl->[3]);
+        $child->setAttribute('file', $file);
+        $self->{_fdecls}->addChild($child);
+      } else {
+	push(@{$self->{_fdecls}}, $fdecl->[3]);
       }
     }
   }
@@ -1257,10 +1299,17 @@ sub _ast2inlines {
     # Simply, any path matching functionDefinition
     #
     foreach ($self->ast()->findnodes($self->_xpath('xpath/inlines.xpath'))) {
+      my $file = '';
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+        next;
+      }
       my $text = '';
       $self->_pushNodeString($stdout_buf, \$text, $_);
       if ($self->{_asDOM}) {
-        $self->{_inlines}->addChild(XML::LibXML::Element->new('inline'))->setAttribute('text', $text);
+        my $child = XML::LibXML::Element->new('inline');
+        $child->setAttribute('text', $text);
+        $child->setAttribute('file', $file);
+        $self->{_inlines}->addChild($child);
       } else {
         push(@{$self->{_inlines}}, $text);
       }
@@ -1290,19 +1339,12 @@ sub _lexemeCallback {
           #
           $self->{_filename} = $currentFile;
         }
-        if (! defined($self->{_filename_filter})) {
-          #
-          # Some precompilers like gcc from mingw like to double the backslashes.
-          # We are independant of preprocessing style by doing it like that.
-          #
-          $self->{_filename_filter} = $self->{_filename};
-        }
 
 	$tmpHashp->{_currentFile} = $currentFile;
+	$tmpHashp->{_includes}->{$currentFile} = 1;
 
-	$self->{_position2File}->{$lexemeHashp->{start}} = $tmpHashp->{_currentFile};
+	$self->{_position2File}->{$lexemeHashp->{start}} = $currentFile;
 
-	$tmpHashp->{_includes}->{$tmpHashp->{_currentFile}} = 1;
     }
     #
     # This is an internal lexeme, no problem to change a bit the value. For instance, remove
@@ -1314,8 +1356,7 @@ sub _lexemeCallback {
   }
 
   if (defined($tmpHashp->{_currentFile})) {
-      if ((exists($self->{_filename_filter_re}) && $tmpHashp->{_currentFile} =~ $self->{_filename_filter_re}) ||
-	  $tmpHashp->{_currentFile} eq $self->{_filename_filter}) {
+      if ($self->_fileOk($tmpHashp->{_currentFile})) {
 	  if ($lexemeHashp->{name} eq 'STRING_LITERAL_UNIT') {
 	      #
 	      # ISO C permits WS at the end of a string literal, we remove it
