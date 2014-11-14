@@ -702,7 +702,7 @@ sub _xpath {
               #
               # Done
               #
-              $log->infof('%s xpath evaluated using %s', $sharedFilename, $filename);
+              $log->infof('%s evaluated using %s', $sharedFilename, $filename);
               last;
             }
           }
