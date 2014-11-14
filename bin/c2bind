@@ -89,9 +89,9 @@ my $podfh = IO::String->new($pod);
 my $hasAtLeastOneFilenameInARGV = grep {-e $_} @ARGV;
 pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_SUCCESS) if ($help || ! $hasAtLeastOneFilenameInARGV);
 
-# -----------------------------------------------------------------------
-# Anything left unparsed is assumed to go into cppflags. Files will be in
-# -----------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+# Anything left unparsed is assumed to go into cppflags. File to parse will be in.
+# --------------------------------------------------------------------------------
 push(@cppflags, @ARGV);
 
 # --------------------
