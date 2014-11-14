@@ -23,6 +23,10 @@ use constant {
 };
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
 use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
+use File::Find qw/find/;
+use File::Spec;
+use File::Basename qw/basename/;
+use Unicode::CaseFold;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -77,6 +81,10 @@ Filter on filename from pre-processor output.
 
 Say that all C::Scan-like methods should return an xml document.
 
+=item xpathDirectories
+
+A reference to an array giving xpath directories that will have precedence over the shared directory installed with this module.
+
 =item cpprun
 
 Preprocessor command, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN}, or $Config{cpprun}. It is assume that cpprun is already correctly quoted for your system shell.
@@ -119,6 +127,7 @@ sub new {
 
   my $self = {
               _asDOM           => exists($opts{asDOM})             ? $opts{asDOM}               : undef,
+              _xpathDirectories => exists($opts{xpathDirectories}) ? $opts{xpathDirectories}    : [],
               _filename_filter => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
               _cpprun          => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
               _cppflags        => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
@@ -427,6 +436,20 @@ sub typedef_structs {
 }
 
 # ----------------------------------------------------------------------------------------
+
+=head2 topDeclarations($self)
+
+Aside all methods that aims to do a C::Scan alternative, this module present its own view of all top-level declarations, aimed to be a used for reuse. In particular the tool c2bind is using this view. The output of topDeclarations is always an XML::LibXML::Document instance.
+
+=cut
+
+sub topDeclarations {
+  my ($self) = @_;
+
+  return $self->{_topDeclarations};
+}
+
+# ----------------------------------------------------------------------------------------
 # Brutal copy of String::ShellQuote::quote_literal
 
 sub _quote_literal {
@@ -547,7 +570,6 @@ sub _getAst {
   #
   my $value = MarpaX::Languages::C::AST->new
       (
-       logInfo => ['STRING_LITERAL_UNIT'],
        lexemeCallback => [ \&_lexemeCallback,
 			   {self => $self,
 			    tmpHashp => \%tmpHash,
@@ -635,6 +657,7 @@ sub _analyse_with_grammar {
   $self->_ast2vdecls($stdout_buf);
   $self->_ast2vdecl_hash($stdout_buf);
   $self->_ast2typedef_structs($stdout_buf);
+  $self->_ast2topDeclarations($stdout_buf);
 
 }
 
@@ -644,18 +667,48 @@ sub _xpath {
   my ($self, $sharedFilename) = @_;
 
   if (! defined($self->{_xpath}->{$sharedFilename})) {
-    my $filename = dist_file('MarpaX-Languages-C-AST', $sharedFilename);
-    if (! open(XPATH, '<', $filename)) {
-      croak "Cannot open $filename, $!";
+    foreach (@{$self->{_xpathDirectories}}, dist_dir('MarpaX-Languages-C-AST')) {
+      #
+      # The fact that filesystem could be case tolerant is not an issue here
+      #
+      my $filename = File::Spec->canonpath(File::Spec->catfile($_, $sharedFilename));
+      $log->tracef('%s: trying with %s', $sharedFilename, $filename);
+      {
+        use filetest 'access';
+        if (-r $filename) {
+          if (! open(XPATH, '<', $filename)) {
+            #
+            # This should not happen
+            #
+            $log->warnf('Cannot open %s, %s', $filename, $!);
+          } else {
+            my $xpath = do {local $/; <XPATH>};
+            if (! close(XPATH)) {
+              $log->warnf('Cannot close %s, %s', $filename, $!);
+            }
+            #
+            # Remove any blank outside of the xpath expression
+            #
+            $xpath =~ s/^\s*//;
+            $xpath =~ s/\s*$//;
+            $self->{_xpath}->{$sharedFilename} = eval {XML::LibXML::XPathExpression->new($xpath)};
+            if ($@) {
+              $log->warnf('Cannot evaluate xpath in %s, %s', $filename, $@);
+              #
+              # Make sure it is really undefined
+              #
+              $self->{_xpath}->{$sharedFilename} = undef;
+            } else {
+              #
+              # Done
+              #
+              $log->infof('%s xpath evaluated using %s', $sharedFilename, $filename);
+              last;
+            }
+          }
+        }
+      }
     }
-    my $xpath = do {local $/; <XPATH>};
-    close(XPATH) || warn "Cannot close $filename; $!";
-    #
-    # Remove any blank outside of the xpath expression
-    #
-    $xpath =~ s/^\s*//;
-    $xpath =~ s/\s*$//;
-    $self->{_xpath}->{$sharedFilename} = XML::LibXML::XPathExpression->new($xpath);
   }
   return $self->{_xpath}->{$sharedFilename};
 }
@@ -925,6 +978,25 @@ sub _ast2vdecl_hash {
   }
 
   return $self->{_vdecl_hash};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2topDeclarations {
+  my ($self, $stdout_buf) = @_;
+
+  if (! defined($self->{_topDeclarations})) {
+    $self->{_topDeclarations} = XML::LibXML::Document->new();
+
+    foreach my $topDeclaration ($self->ast()->findnodes($self->_xpath('xpath/topDeclarations.xpath'))) {
+      my $file = '';
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $topDeclaration)) {
+        next;
+      }
+      $self->{_topDeclarations}->addChild($topDeclaration);
+    }
+  }
+
 }
 
 # ----------------------------------------------------------------------------------------

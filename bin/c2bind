@@ -28,7 +28,7 @@ my $cpprun = undef;
 my @cppflags = ();
 my @lang = ();
 my $filter = undef;
-my $xpath = undef;
+my @xpathDirectories = ();
 my $xslt = undef;
 my $loglevel = 'WARN';
 my $logstderr = 0;
@@ -41,7 +41,7 @@ GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'filter=s' => \$filter,
-            'xpath=s' => \$xpath,
+            'xpath=s' => \@xpathDirectories,
             'xslt=s' => \$xslt,
             'loglevel=s' => \$loglevel,
             'logstderr!' => \$logstderr,
@@ -116,6 +116,7 @@ my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
+$config{xpathDirectories} = \@xpathDirectories;
 $config{asDOM} = 1;
 
 my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
@@ -123,6 +124,15 @@ my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
 # -----------------------
 # Give wanted information
 # -----------------------
+my $topDeclarations = $c->topDeclarations();
+if ($log->is_info) {
+    $log->infof("Top declarations:\n%s", $topDeclarations->toString(1));
+}
+
+# -------
+# The end
+# -------
+exit(EXIT_SUCCESS);
 
 # ------------------------------------------------------
 
@@ -172,8 +182,6 @@ sub _unredirect {
     }
 }
 
-exit(EXIT_SUCCESS);
-
 __DATA__
 
 # --------------------------------------------------------------------------------------
@@ -192,7 +200,7 @@ c2bind - C Binding interface generation
    --cpprun <argument>     Preprocessor run command.
    --cppflags <arguments>  Preprocessor flags.
    --filter <argument>     File to look at after proprocessing. Defaults to file argument.
-   --xpath <path>          XPath include path, prepended to default search path
+   --xpath <path>          XPath include path, prepended to default search path. Can be repeated.
    --xslt <path>           XSLT Include path, prepended to default search path
    --loglevel <level>      A level that has to be meaningful for Log::Log4perl, typically;
                            DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
