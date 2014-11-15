@@ -578,12 +578,12 @@ directDeclarator
 	| LPAREN declarator RPAREN
 	| directDeclarator LBRACKET RBRACKET
 	| directDeclarator LBRACKET STAR RBRACKET
-	| directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	| directDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
 	| directDeclarator LBRACKET STATIC assignmentExpression RBRACKET
-	| directDeclarator LBRACKET gccArrayTypeModifierList STAR RBRACKET
-	| directDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
-	| directDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
-	| directDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
+	| directDeclarator LBRACKET typeQualifierList STAR RBRACKET
+	| directDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+	| directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
+	| directDeclarator LBRACKET typeQualifierList RBRACKET
 	| directDeclarator LBRACKET assignmentExpression RBRACKET
 	| directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
 	| directDeclarator LPAREN_SCOPE RPAREN_SCOPE
@@ -599,7 +599,7 @@ pointer
 	| msvsAttributeAny STAR pointer
 	| msvsAttributeAny STAR
 
-gccArrayTypeModifierList ::= gccArrayTypeModifier+
+typeQualifierList ::= typeQualifier+
 
 #typeQualifierList
 #	::= typeQualifier
@@ -642,19 +642,19 @@ directAbstractDeclarator
 	::= LPAREN abstractDeclarator RPAREN
 	| LBRACKET RBRACKET
 	| LBRACKET STAR RBRACKET
-	| LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	| LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
 	| LBRACKET STATIC assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
-	| LBRACKET gccArrayTypeModifierList RBRACKET
+	| LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+	| LBRACKET typeQualifierList assignmentExpression RBRACKET
+	| LBRACKET typeQualifierList RBRACKET
 	| LBRACKET assignmentExpression RBRACKET
 	| directAbstractDeclarator LBRACKET RBRACKET
 	| directAbstractDeclarator LBRACKET STAR RBRACKET
-	| directAbstractDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
 	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET gccArrayTypeModifierList RBRACKET
+	| directAbstractDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+	| directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
 	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
 	| LPAREN_SCOPE RPAREN_SCOPE
 	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
@@ -1303,8 +1303,6 @@ gccAsmOperand ::= string LPAREN expression RPAREN
 gccAsmClobber ::= string
 
 gccStatementExpression ::= LPAREN compoundStatement RPAREN
-
-gccArrayTypeModifier ::= typeQualifier
 
 # @since 2.6.264
 # for error handling: second assignmentExpression is always last parameter name
