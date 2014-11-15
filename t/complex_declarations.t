@@ -45,3 +45,8 @@ void *comp();
 void (*comp)();
 char (*(*x())[])();
 char (*(*x[3])())[5];
+
+/* http://codinghighway.com/?p=986 */
+char **(*(*(*x)[100])(int, char *, double *const**, void (*)(int **, char [])))[50];
+unsigned const char volatile (*const(*volatile(*volatile const a)(unsigned int (*const)(const char, int, float), char *const*))[12])(int (**)[50]);
+char *const *(*next)();
