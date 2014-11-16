@@ -25,6 +25,7 @@ use MarpaX::Languages::C::AST::Util::Data::Find;
 use Scalar::Util qw/blessed/;
 use Template;
 use Template::Constants qw/:chomp :debug/;
+use XML::LibXML;
 
 autoflush STDOUT 1;
 
@@ -52,16 +53,19 @@ my @enum = ();
 my $nocpp = 0;
 my $start = '';
 my %bind = ();
-my $dist_dir = dist_dir('MarpaX-Languages-C-AST');
+my $template_dist_dir = File::Spec->catdir(dist_dir('MarpaX-Languages-C-AST'), 'tmpl');
+my $template_util_dist_dir = File::Spec->catdir($template_dist_dir, '_util');
 my $path_sep = $Config{path_sep};
-my $CHOMP_NONE = CHOMP_NONE;
+my $TEMPLATE_CHOMP_NONE = CHOMP_NONE;
+my $TEMPLATE_DELIMITER = $Config{path_sep};
+my $TEMPLATE_INCLUDE_PATH = "$template_util_dist_dir$Config{path_sep}$template_dist_dir";
 my %template = (STRICT       => 1,
-		DELIMITER    => $Config{path_sep},
-		INCLUDE_PATH => $dist_dir,
+		DELIMITER    => $TEMPLATE_DELIMITER,
+		INCLUDE_PATH => $TEMPLATE_INCLUDE_PATH,
 		INTERPOLATE  => 1,
 		EVAL_PERL    => 1,
-		PRE_CHOMP    => $CHOMP_NONE,
-		POST_CHOMP   => $CHOMP_NONE,
+		PRE_CHOMP    => $TEMPLATE_CHOMP_NONE,
+		POST_CHOMP   => $TEMPLATE_CHOMP_NONE,
 		RELATIVE     => 1);
  
 Getopt::Long::Configure("pass_through");
@@ -91,6 +95,11 @@ GetOptions ('help!' => \$help,
 	    'trace' => sub { $loglevel = 'TRACE' },
             'logstderr!' => \$logstderr);
 
+if (%bind && $allowAmbiguity) {
+  $log->infof('--bind option is disabling the --allowAmbiguity option');
+  $allowAmbiguity = 0;
+}
+
 @typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
 @enum = grep {$_ && "$_"} split(/,/, join(',', @enum));
 
@@ -110,9 +119,9 @@ Log::Any::Adapter->set('Log4perl');
 if ($help || ! @ARGV) {
   my $guard = quotemeta('(if you read this message, do not worry: this is replaced by correct value at run-time)');
   my $pod = do {local $/; <DATA>};
-  $pod =~ s/\$path_sep\b\s*$guard/$path_sep/g;
-  $pod =~ s/\$dist_dir\b\s*$guard/$dist_dir/g;
-  $pod =~ s/\$CHOMP_NONE\b\s*$guard/$CHOMP_NONE/g;
+  $pod =~ s/\$TEMPLATE_DELIMITER\b\s*$guard/$TEMPLATE_DELIMITER/g;
+  $pod =~ s/\$TEMPLATE_INCLUDE_PATH\b\s*$guard/$TEMPLATE_INCLUDE_PATH/g;
+  $pod =~ s/\$TEMPLATE_CHOMP_NONE\b\s*$guard/$TEMPLATE_CHOMP_NONE/g;
   my $podfh = IO::String->new($pod);
   pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => $help ? EXIT_SUCCESS : EXIT_FAILURE);
 }
@@ -201,11 +210,9 @@ if ($progress) {
 # Dump
 # ----
 my $value;
+my $isAmbiguous = 0;
 if ($dump || $dumpfile || %check || %bind) {
   $log->infof('Getting AST');
-  if (%bind) {
-    $allowAmbiguity = 0;
-  }
   $value = $cAstObject->value($allowAmbiguity);
   my $bless = $allowAmbiguity ? $value->[0] : $value;
 
@@ -239,13 +246,115 @@ if ($dump || $dumpfile || %check || %bind) {
 # ---------
 # Templates
 # ---------
-if ($bind{lang}) {
+if ($bind{lang} && defined($value) && defined(${$value})) {
+  #
+  # Note: we forced $allowAmbiguity to 0, this mean that $value is not anymore a reference to an array
+  #
   no warnings qw/once/;           # Because of Template::Directive::WHILE_MAX
+
+  #
+  # It is far easier to process an XML rather than the AST as it is.
+  # Instead of using XML::Simple we do ourself to conversion to a document
+  #
+  # We take the opportunity to remove the additionel levels in our grammar
+  # that were just artifacts for event processing
+  #
+  my $dom = XML::LibXML::Document->new();
+  my $file = XML::LibXML::Element->new('file');
+  $dom->setDocumentElement($file);
+  my @parents = ($file);
+  #
+  # These LHS are faked levels used by our parser to handle events
+  #
+  my %ignoredLhsLevels = (declarationCheck                              => undef,
+			  declarationCheckdeclarationSpecifiers         => undef,
+			  declarationCheckinitDeclaratorList            => undef,
+			  declarationSpecifiers0                        => undef,
+			  declarationSpecifiers1                        => undef,
+			  declarationSpecifiers2                        => undef,
+			  storageClassSpecifierTypedef                  => undef,
+			  enumerationConstantIdentifier                 => undef,
+			  specifierQualifierList0                       => undef,
+			  specifierQualifierList1                       => undef,
+			  specifierQualifierList2                       => undef,
+			  directDeclaratorIdentifier                    => undef,
+			  parameterDeclarationCheck                     => undef,
+			  parameterDeclarationdeclarationSpecifiers     => undef,
+			  parameterDeclarationCheckDeclarator           => undef,
+			  functionDefinitionCheck1                      => undef,
+			  functionDefinitionCheck2                      => undef,
+			  functionDefinitionCheck1declarationSpecifiers => undef,
+			  fileScopeDeclarator                           => undef,
+			  functionDefinitionCheck1declarationList       => undef,
+			  functionDefinitionCheck2declarationSpecifiers => undef);
+  #
+  # These LHS are a splitted view of what the original grammar said, or a rename of what it said
+  #
+  my %mappedLhsLevels = ('typeSpecifier1'                => 'typeSpecifier',
+			 'typeSpecifier2'                => 'typeSpecifier',
+			 'compoundStatementReenterScope' => 'compoundStatement');
+
+  MarpaX::Languages::C::AST::Util::Data::Find->new
+      (
+       wanted => sub {
+	 my ($parentsp, $o) = @_;
+
+	 my $lhs = blessed($o);
+	 if ($lhs) {
+	   my $localName = (split(qr/::/, $lhs))[-1];
+	   if (! exists($ignoredLhsLevels{$localName})) {
+	     my $child = XML::LibXML::Element->new($mappedLhsLevels{$localName} || $localName);
+	     $parentsp->[-1]->addChild($child);
+	     push(@{$parentsp}, $child);
+	   }
+	   return 1;
+	 } elsif (ref($o) eq 'ARRAY') {
+	   return 1;
+	 } else {
+	   return 0.
+	 }
+       },
+       wantedArgs => [ \@parents ],
+
+       endOfElement => sub {
+	 my ($parentsp, $o) = @_;
+
+	 my $lhs = blessed($o);
+	 if ($lhs) {
+	   my $localName = (split(qr/::/, $lhs))[-1];
+	   if (! exists($ignoredLhsLevels{$localName})) {
+	     pop(@{$parentsp});
+	   }
+	 }
+       },
+       endOfElementArgs => [ \@parents ],
+
+       callback => sub {
+	 my ($parentsp, $o) = @_;
+
+	 if (! blessed($o)) {
+	   #
+	   # current object is not blessed but an array ref (c.f. wanted callback): this is a lexeme per def.
+	   #
+	   my $child = XML::LibXML::Element->new($o->[3]);
+	   #
+	   # start and length are not needed
+	   #
+	   # $child->setAttribute('start', $o->[0]);
+	   # $child->setAttribute('length', $o->[1]);
+	   $child->setAttribute('value', $o->[2]);
+	   $parentsp->[-1]->addChild($child);
+	 }
+       },
+       callbackArgs => [ \@parents ],
+      )->process(${$value});
 
   $bind{ifceTmpl} //= File::Spec->catfile($bind{lang}, 'ifce.tmpl');
   $bind{langTmpl} //= File::Spec->catfile($bind{lang}, 'lang.tmpl');
 
   local $Template::Directive::WHILE_MAX = 1000000000;
+  $template{TEMPLATE_INCLUDE_PATH} //= '';
+  $template{TEMPLATE_INCLUDE_PATH} .= "$TEMPLATE_DELIMITER$TEMPLATE_INCLUDE_PATH";
   my $tt = Template->new(\%template) || croak "$Template::ERROR";
 
   #
@@ -257,9 +366,11 @@ if ($bind{lang}) {
   # Our hooks
   #
   $ttVarsHashp->{ast} = $value;
-  my $output = '';
-  $tt->process($bind{ifceTmpl}, $ttVarsHashp, \$output) || croak $tt->error();
-  $tt->process($bind{langTmpl}, $ttVarsHashp, \$output) || croak $tt->error();
+  my $ifceOutput = '';
+  $tt->process($bind{ifceTmpl}, $ttVarsHashp, \$ifceOutput) || croak $tt->error();
+  print STDERR "==> $ifceOutput\n";
+  my $langOutput = '';
+  $tt->process($bind{langTmpl}, $ttVarsHashp, \$langOutput) || croak $tt->error();
 }
 
 exit(EXIT_SUCCESS);
@@ -695,17 +806,17 @@ In conclusion, the options --nocpp and --lazy, even with --typedef or --enum hin
    Default (considered by the author) sane options are:
 
    STRICT       1
-   DELIMITER    $path_sep (if you read this message, do not worry: this is replaced by correct value at run-time)
-   INCLUDE_PATH $dist_dir (if you read this message, do not worry: this is replaced by correct value at run-time)
+   DELIMITER    $TEMPLATE_DELIMITER (if you read this message, do not worry: this is replaced by correct value at run-time)
+   INCLUDE_PATH $TEMPLATE_INCLUDE_PATH (if you read this message, do not worry: this is replaced by correct value at run-time)
    INTERPOLATE  1
    EVAL_PERL    1
-   PRE_CHOMP    $CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
-   POST_CHOMP   $CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
+   PRE_CHOMP    $TEMPLATE_CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
+   POST_CHOMP   $TEMPLATE_CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
    RELATIVE     1
 
    Notes:
    DELIMITER    default value is the path separator in your environment as per perl knowledge
-   INCLUDE_PATH default value is the the shared directory installed with this module. If you overwrite INCLUDE_PATH, the shared directory installed with this module will always be appended, so that you do not have to specify it on the command-line.
+   INCLUDE_PATH default value is the top-level template shared directory installed with this module and its _util subdirectoy . If you overwrite INCLUDE_PATH, the shared directory installed with this module will always be appended, so that you do not have to specify it on the command-line.
    Internally, the Template directive WHILE_MAX is forced to the value 1000000000. Do no worry, this is just to allow you to have a enormous loop (and if you reach this value you are anyway in a probable big trouble -;).
 
   For example:
