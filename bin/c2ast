@@ -2,22 +2,29 @@
 use strict;
 use warnings FATAL => 'all';
 use diagnostics;
-use MarpaX::Languages::C::AST;
-use Getopt::Long;
-use Pod::Usage;
-use IPC::Run qw/run/;
-use Term::ProgressBar;
-use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
-use IO::Handle;
-use MarpaX::Languages::C::AST::Util::Data::Find;
-use File::Basename qw/basename dirname/;
-use Scalar::Util qw/blessed/;
+
+use Carp qw/croak/;
+use Config;
 use Data::Dumper;
-use Log::Log4perl qw/:easy/;
-use Log::Any::Adapter;
-use Log::Any qw/$log/;
-use File::Spec;
+use File::Basename qw/basename dirname/;
 use File::Slurp qw/read_file/;
+use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
+use File::Spec;
+use Getopt::Long;
+use IO::Handle;
+use IO::String;
+use IPC::Run qw/run/;
+use Log::Any qw/$log/;
+use Log::Any::Adapter;
+use Log::Log4perl qw/:easy/;
+use MarpaX::Languages::C::AST;
+use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
+use Pod::Usage;
+use Term::ProgressBar;
+use MarpaX::Languages::C::AST::Util::Data::Find;
+use Scalar::Util qw/blessed/;
+use Template;
+use Template::Constants qw/:chomp :debug/;
 
 autoflush STDOUT 1;
 
@@ -44,13 +51,27 @@ my @typedef = ();
 my @enum = ();
 my $nocpp = 0;
 my $start = '';
-
+my %bind = ();
+my $dist_dir = dist_dir('MarpaX-Languages-C-AST');
+my $path_sep = $Config{path_sep};
+my $CHOMP_NONE = CHOMP_NONE;
+my %template = (STRICT       => 1,
+		DELIMITER    => $Config{path_sep},
+		INCLUDE_PATH => $dist_dir,
+		INTERPOLATE  => 1,
+		EVAL_PERL    => 1,
+		PRE_CHOMP    => $CHOMP_NONE,
+		POST_CHOMP   => $CHOMP_NONE,
+		RELATIVE     => 1);
+ 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'cpp=s' => \@cpp,
             'cppfile=s' => \$cppfile,
             'lazy!' => \$lazy,
             'start=s' => \$start,
+            'bind=s' => \%bind,
+            'template=s' => \%template,
             'typedef=s' => \@typedef,
             'enum=s' => \@enum,
             'cppdup=s' => \$cppdup,
@@ -86,11 +107,14 @@ DEFAULT_LOG4PERL_CONF
 Log::Log4perl::init(\$defaultLog4perlConf);
 Log::Any::Adapter->set('Log4perl');
 
-if ($help) {
-    pod2usage(-verbose => 2, -noperldoc => 1, -exitval => EXIT_SUCCESS);
-}
-if (! @ARGV) {
-    pod2usage(-verbose => 2, -noperldoc => 1, -exitval => EXIT_FAILURE)
+if ($help || ! @ARGV) {
+  my $guard = quotemeta('(if you read this message, do not worry: this is replaced by correct value at run-time)');
+  my $pod = do {local $/; <DATA>};
+  $pod =~ s/\$path_sep\b\s*$guard/$path_sep/g;
+  $pod =~ s/\$dist_dir\b\s*$guard/$dist_dir/g;
+  $pod =~ s/\$CHOMP_NONE\b\s*$guard/$CHOMP_NONE/g;
+  my $podfh = IO::String->new($pod);
+  pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => $help ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 my $preprocessedOutput;
@@ -176,9 +200,13 @@ if ($progress) {
 # ----
 # Dump
 # ----
-if ($dump || $dumpfile || %check) {
-    $log->infof('Getting AST');
-  my $value = $cAstObject->value($allowAmbiguity);
+my $value;
+if ($dump || $dumpfile || %check || %bind) {
+  $log->infof('Getting AST');
+  if (%bind) {
+    $allowAmbiguity = 0;
+  }
+  $value = $cAstObject->value($allowAmbiguity);
   my $bless = $allowAmbiguity ? $value->[0] : $value;
 
   if (%check) {
@@ -206,6 +234,32 @@ if ($dump || $dumpfile || %check) {
       }
     }
   }
+}
+
+# ---------
+# Templates
+# ---------
+if ($bind{lang}) {
+  no warnings qw/once/;           # Because of Template::Directive::WHILE_MAX
+
+  $bind{ifceTmpl} //= File::Spec->catfile($bind{lang}, 'ifce.tmpl');
+  $bind{langTmpl} //= File::Spec->catfile($bind{lang}, 'lang.tmpl');
+
+  local $Template::Directive::WHILE_MAX = 1000000000;
+  my $tt = Template->new(\%template) || croak "$Template::ERROR";
+
+  #
+  # The semantics for our TT templates is to provide a hash with
+  # a reference to a scratchpad hash (free to use) and the AST
+  #
+  my $ttVarsHashp = {};
+  #
+  # Our hooks
+  #
+  $ttVarsHashp->{ast} = $value;
+  my $output = '';
+  $tt->process($bind{ifceTmpl}, $ttVarsHashp, \$output) || croak $tt->error();
+  $tt->process($bind{langTmpl}, $ttVarsHashp, \$output) || croak $tt->error();
 }
 
 exit(EXIT_SUCCESS);
@@ -352,11 +406,11 @@ __END__
 
 =head1 NAME
 
-c2ast.pl - C source code transformation to AST and eventual check of C Programming Best Practices
+c2ast - C source code transformation to AST and eventual check of C Programming Best Practices
 
 =head1 SYNOPSIS
 
- c2ast.pl [options] [file ...]
+ c2ast [options] [file ...]
 
  Options:
    --help               Brief help message
@@ -372,7 +426,7 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
    --logstderr          Logs to stderr or not.
 
-  Aliased options:
+ Aliased options:
    --debug              Alias to --loglevel DEBUG
    --info               Alias to --loglevel INFO
    --warn               Alias to --loglevel WARN
@@ -380,12 +434,14 @@ c2ast.pl - C source code transformation to AST and eventual check of C Programmi
    --fatal              Alias to --loglevel FATAL
    --trace              Alias to --loglevel TRACE
 
-  Advanced options:
+ Advanced options:
    --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
    --typedef <typedef>  Comma separated list of known typedefs
    --enum <enums>       Comma separated list of known enums
    --start <startRule>  Start rule in the grammar.
    --nocpp              Do not preprocess input file, but take it as is.
+   --bind <options>     Generate bindings.
+   --template <options> Template options.
 
 If file is '-' it is assumed to refer to STDIN handle.
 
@@ -430,7 +486,7 @@ lines of the form, to indicate which portions of the code originally came from '
 
   # line xxx "source.c"
 
-You can tell c2ast.pl to analyze the code originally from "source.c", as indicated by the
+You can tell c2ast to analyze the code originally from "source.c", as indicated by the
 preprocessor line directives, with the option
 
  --cppfile "source.c"
@@ -606,6 +662,58 @@ But doing a wrong hint, saying size_t is an enum will imply a parse failure, bec
 
 In conclusion, the options --nocpp and --lazy, even with --typedef or --enum hints, should be rarelly be used, unless your engine is prepared to hand over failure. The L<cpretty> program, for instance, is doing so.
 
+=item B<--bind <options>>
+
+ Bind options are:
+   lang=<language>          Target language.
+   ifceTmpl=<template name> C template. Default value is ifce.tmpl.
+   langTmpl=<template name> Language template Default value is lang.tmpl.
+
+   There is no default target language, i.e. no binding generated.
+
+  For example:
+
+   --bind lang=perl5
+
+  Notes:
+   Selecting the bind option automatically sets the --allowAmbiguity option to a false value.
+   Setting the lang option value automatically triggers two calls to the template engine:
+     one with <lang option value>/<ifceTmpl option value> that will generate a C code
+     one with <lang option value>/<langTmpl option value> that will generate a language module
+
+  For instance, saying only:
+
+   --bind lang=perl5
+
+  will trigger templates perl5/ifce.tmpl and perl5/lang.tmpl.
+
+=item B<--template <options>>
+
+ Template options are all options mentionned in Template::Manual::Config, i.e.:
+   templateOption=<templateOptionvalue>
+
+   Default (considered by the author) sane options are:
+
+   STRICT       1
+   DELIMITER    $path_sep (if you read this message, do not worry: this is replaced by correct value at run-time)
+   INCLUDE_PATH $dist_dir (if you read this message, do not worry: this is replaced by correct value at run-time)
+   INTERPOLATE  1
+   EVAL_PERL    1
+   PRE_CHOMP    $CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
+   POST_CHOMP   $CHOMP_NONE (if you read this message, do not worry: this is replaced by correct value at run-time)
+   RELATIVE     1
+
+   Notes:
+   DELIMITER    default value is the path separator in your environment as per perl knowledge
+   INCLUDE_PATH default value is the the shared directory installed with this module. If you overwrite INCLUDE_PATH, the shared directory installed with this module will always be appended, so that you do not have to specify it on the command-line.
+   Internally, the Template directive WHILE_MAX is forced to the value 1000000000. Do no worry, this is just to allow you to have a enormous loop (and if you reach this value you are anyway in a probable big trouble -;).
+
+  For example:
+
+  --template STRICT=0 --template INCLUDE_PATH=/your/template/path
+
+  will disable strict mode in L<Template> and make it use your private templates before the ones distributed with this module.
+
 =back
 
 Any option not documented upper will be considered as a cpp option, and sent to the underlying the cpp program. A restriction is that the filename must be the last argument.
@@ -630,20 +738,26 @@ Say --help on the command-line to have the full list of options, and examples.
 
 Examples:
 
- c2ast.pl                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c
+ c2ast                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c
 
- c2ast.pl                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --lexeme IDENTIFIER --lexeme TYPEDEF_NAME
+ c2ast                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --lexeme IDENTIFIER --lexeme TYPEDEF_NAME
 
- c2ast.pl --cpp cl --cpp -E -D MYDEFINE1 -D MYDEFINE2 -I C:/Windows/myIncludeDir C:/Windows/Temp/myfile.c
+ c2ast --cpp cl --cpp -E -D MYDEFINE1 -D MYDEFINE2 -I C:/Windows/myIncludeDir C:/Windows/Temp/myfile.c
 
- c2ast.pl                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --progress --check reservedNames
+ c2ast                   -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --progress --check reservedNames
+
+ c2ast --bind lang=perl5 -D MYDEFINE1 -D MYDEFINE2 -I       /tmp/myIncludeDir            /tmp/myfile.c --progress --check reservedNames
 
 Less typical usage:
 
- c2ast.pl -I libmarpa_build --cpp gcc --cpp -E --cppfile ./marpa.w  --progress --check reservedNames libmarpa_build/marpa.c
+ c2ast -I libmarpa_build --cpp gcc --cpp -E --cppfile ./marpa.w  --progress --check reservedNames libmarpa_build/marpa.c
 
 =head1 SEE ALSO
 
 L<Reserved Names - The GNU C Library|http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html>
 
 L<MarpaX::Languages::C::AST>
+
+L<Template>
+
+L<Template::Manual::Config>
