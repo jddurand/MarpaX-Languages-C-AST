@@ -548,13 +548,15 @@ sub  manageXsltFiles {
       local $File::Fetch::WARN = 0;
       $ff->fetch(to => $xsltTempdir)
     };
-    if (! $where) {
-      $log->infof('%s: %s', $uri->as_string, $ff->error);
-    } else {
+    #
+    # It is quite ok if a file is not reachable
+    #
+    if ($where) {
       my $depOk = 1;
       my @dep = eval {XSLT::Dependencies->new->explore($where)};
       if ($@) {
 	#
+	# But definitely not ok if it not a valid XSLT.
 	# Force stringification, c.f. XML::LibXML::Error
 	#
 	$log->infof('%s: %s', $uri->as_string, "$@");
