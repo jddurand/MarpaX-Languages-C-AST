@@ -329,6 +329,10 @@ Hash of parsed extern variable declarations.
 
 List of extern variable declarations.
 
+=item topDeclarations
+
+List of all top-level declarations.
+
 =back
 
 =item B<--xml>
