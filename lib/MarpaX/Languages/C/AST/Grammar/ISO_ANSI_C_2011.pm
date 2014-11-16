@@ -51,7 +51,7 @@ our %DEFAULT_PAUSE = (
 
 our $DEFAULTACTIONOBJECT = sprintf('%s::%s', __PACKAGE__, 'Actions');
 our $DEFAULTNONTERMINALSEMANTIC = ':default ::= action => [values] bless => ::lhs';
-our $DEFAULTTERMINALSEMANTIC = 'lexeme default = action => [start,length,value] forgiving => 1';
+our $DEFAULTTERMINALSEMANTIC = 'lexeme default = action => [start,length,value,name] forgiving => 1';
 
 our $DATA = do {local $/; <DATA>};
 
