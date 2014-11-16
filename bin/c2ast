@@ -554,7 +554,10 @@ sub  manageXsltFiles {
       my $depOk = 1;
       my @dep = eval {XSLT::Dependencies->new->explore($where)};
       if ($@) {
-	$log->infof('%s: %s', $uri->as_string, $@);
+	#
+	# Force stringification, c.f. XML::LibXML::Error
+	#
+	$log->infof('%s: %s', $uri->as_string, "$@");
       } else {
 	foreach (XSLT::Dependencies->new->explore($where)) {
 	  if (! manageXsltFiles($_, $xsltTempdir, @searchURI)) {
@@ -572,7 +575,7 @@ sub  manageXsltFiles {
 
   if (! $found) {
     #
-    # Force stringification
+    # Force stringification in case @searchUri constains URI objects
     #
     $log->errorf('%s not found within URI parent paths %s', "$xslt", [ map {"$_"} @searchURI ]);
   }
