@@ -27,6 +27,7 @@ use File::Find qw/find/;
 use File::Spec;
 use File::Basename qw/basename/;
 use Unicode::CaseFold;
+use XML::LibXML;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -439,7 +440,7 @@ sub typedef_structs {
 
 =head2 topDeclarations($self)
 
-Aside all methods that aims to do a C::Scan alternative, this module present its own view of all top-level declarations, aimed to be a used for reuse. In particular the tool c2bind is using this view. The output of topDeclarations is always an XML::LibXML::Document instance.
+All top-level declarations.
 
 =cut
 
@@ -667,6 +668,7 @@ sub _xpath {
   my ($self, $sharedFilename) = @_;
 
   if (! defined($self->{_xpath}->{$sharedFilename})) {
+    my $found = 0;
     foreach (@{$self->{_xpathDirectories}}, dist_dir('MarpaX-Languages-C-AST')) {
       #
       # The fact that filesystem could be case tolerant is not an issue here
@@ -703,11 +705,15 @@ sub _xpath {
               # Done
               #
               $log->infof('%s evaluated using %s', $sharedFilename, $filename);
+	      $found = 1;
               last;
             }
           }
         }
       }
+    }
+    if (! $found) {
+      croak "Cannot find or evaluate \"$sharedFilename\". Search path was: [" . join(', ', map {"\"$_\""} (@{$self->{_xpathDirectories}}, dist_dir('MarpaX-Languages-C-AST'))) . ']';
     }
   }
   return $self->{_xpath}->{$sharedFilename};
@@ -724,13 +730,16 @@ sub _pushNodeString {
   #
   my $text = $node->getAttribute('text');
   if (defined($text)) {
-    if (ref($outputp) eq 'ARRAY') {
-      push(@{$outputp}, $text);
-    } elsif (ref($outputp) eq 'SCALAR') {
-      ${$outputp} = $text;
-    } else {
-      croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
+    if (defined($outputp)) {
+      if (ref($outputp) eq 'ARRAY') {
+	push(@{$outputp}, $text);
+      } elsif (ref($outputp) eq 'SCALAR') {
+	${$outputp} = $text;
+      } else {
+	croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+      }
     }
+    return $text;
   } else {
     #
     ## Get first and last lexemes positions
@@ -746,13 +755,18 @@ sub _pushNodeString {
       my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
       my $length = $endPosition - $startPosition;
       my $text = substr($stdout_buf, $startPosition, $length);
-      if (ref($outputp) eq 'ARRAY') {
-        push(@{$outputp}, $text);
-      } elsif (ref($outputp) eq 'SCALAR') {
-        ${$outputp} = $text;
-      } else {
-        croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
+      if (defined($outputp)) {
+	if (ref($outputp) eq 'ARRAY') {
+	  push(@{$outputp}, $text);
+	} elsif (ref($outputp) eq 'SCALAR') {
+	  ${$outputp} = $text;
+	} else {
+	  croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+	}
       }
+      return $text;
+    } else {
+      return undef;
     }
   }
 }
@@ -780,9 +794,7 @@ sub _pushNodeFile {
   # Unless the node is already a lexeme, we have to search surrounding lexemes
   # This routine assumes that $outputp is always a reference to either an array or a scalar
   #
-  ## Get first lexeme position
-  #
-  ## Returns a false value only if filename filter is on and output does not match the filter
+  # Get first lexeme position and return a false value only if filename filter is on and output does not match the filter
   #
   my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
   my $firstLexeme = $node->findnodes($firstLexemeXpath);
@@ -798,7 +810,7 @@ sub _pushNodeFile {
   } elsif (ref($outputp) eq 'SCALAR') {
     ${$outputp} = $file;
   } else {
-    croak "Expecting a reference to an array or to a scalar, not a reference to " . (ref($outputp) || 'nothing');
+    croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
   }
 
   return $self->_fileOk($file);
@@ -987,13 +999,16 @@ sub _ast2topDeclarations {
 
   if (! defined($self->{_topDeclarations})) {
     $self->{_topDeclarations} = XML::LibXML::Document->new();
+    my $declarationList = XML::LibXML::Element->new('declarationList');
+    $self->{_topDeclarations}->addChild($declarationList);
 
-    foreach my $topDeclaration ($self->ast()->findnodes($self->_xpath('xpath/topDeclarations.xpath'))) {
-      my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $topDeclaration)) {
+    foreach ($self->ast()->findnodes($self->_xpath('xpath/topDeclarations.xpath'))) {
+      my $declaration = $_;
+      my $file;
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
         next;
       }
-      $self->{_topDeclarations}->addChild($topDeclaration);
+      $declarationList->addChild($declaration->cloneNode(1));
     }
   }
 
