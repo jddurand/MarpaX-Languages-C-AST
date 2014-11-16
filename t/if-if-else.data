@@ -9,7 +9,8 @@
                                                                           [
                                                                             0,
                                                                             4,
-                                                                            'void'
+                                                                            'void',
+                                                                            'VOID'
                                                                           ]
                                                                         ], 'C::AST::typeSpecifier1' )
                                                                ], 'C::AST::declarationSpecifiers1' )
@@ -24,19 +25,22 @@
                                                                                    [
                                                                                      5,
                                                                                      8,
-                                                                                     'function'
+                                                                                     'function',
+                                                                                     'IDENTIFIER'
                                                                                    ]
                                                                                  ], 'C::AST::directDeclaratorIdentifier' )
                                                                         ], 'C::AST::directDeclarator' ),
                                                                  [
                                                                    13,
                                                                    1,
-                                                                   '('
+                                                                   '(',
+                                                                   'LPAREN_SCOPE'
                                                                  ],
                                                                  [
                                                                    14,
                                                                    1,
-                                                                   ')'
+                                                                   ')',
+                                                                   'RPAREN_SCOPE'
                                                                  ]
                                                                ], 'C::AST::directDeclarator' )
                                                       ], 'C::AST::declarator' )
@@ -45,7 +49,8 @@
                                                [
                                                  16,
                                                  1,
-                                                 '{'
+                                                 '{',
+                                                 'LCURLY_REENTERSCOPE'
                                                ],
                                                bless( [
                                                         bless( [
@@ -54,12 +59,14 @@
                                                                                    [
                                                                                      19,
                                                                                      2,
-                                                                                     'if'
+                                                                                     'if',
+                                                                                     'IF'
                                                                                    ],
                                                                                    [
                                                                                      22,
                                                                                      1,
-                                                                                     '('
+                                                                                     '(',
+                                                                                     'LPAREN'
                                                                                    ],
                                                                                    bless( [
                                                                                             bless( [
@@ -82,7 +89,8 @@
                                                                                                                                                                                                                                                      [
                                                                                                                                                                                                                                                        23,
                                                                                                                                                                                                                                                        1,
-                                                                                                                                                                                                                                                       '1'
+                                                                                                                                                                                                                                                       '1',
+                                                                                                                                                                                                                                                       'I_CONSTANT'
                                                                                                                                                                                                                                                      ]
                                                                                                                                                                                                                                                    ], 'C::AST::constant' )
                                                                                                                                                                                                                                           ], 'C::AST::primaryExpression' )
@@ -105,19 +113,22 @@
                                                                                    [
                                                                                      24,
                                                                                      1,
-                                                                                     ')'
+                                                                                     ')',
+                                                                                     'RPAREN'
                                                                                    ],
                                                                                    bless( [
                                                                                             bless( [
                                                                                                      [
                                                                                                        28,
                                                                                                        2,
-                                                                                                       'if'
+                                                                                                       'if',
+                                                                                                       'IF'
                                                                                                      ],
                                                                                                      [
                                                                                                        31,
                                                                                                        1,
-                                                                                                       '('
+                                                                                                       '(',
+                                                                                                       'LPAREN'
                                                                                                      ],
                                                                                                      bless( [
                                                                                                               bless( [
@@ -140,7 +151,8 @@
                                                                                                                                                                                                                                                                        [
                                                                                                                                                                                                                                                                          32,
                                                                                                                                                                                                                                                                          1,
-                                                                                                                                                                                                                                                                         '2'
+                                                                                                                                                                                                                                                                         '2',
+                                                                                                                                                                                                                                                                         'I_CONSTANT'
                                                                                                                                                                                                                                                                        ]
                                                                                                                                                                                                                                                                      ], 'C::AST::constant' )
                                                                                                                                                                                                                                                             ], 'C::AST::primaryExpression' )
@@ -163,19 +175,22 @@
                                                                                                      [
                                                                                                        33,
                                                                                                        1,
-                                                                                                       ')'
+                                                                                                       ')',
+                                                                                                       'RPAREN'
                                                                                                      ],
                                                                                                      bless( [
                                                                                                               bless( [
                                                                                                                        [
                                                                                                                          38,
                                                                                                                          2,
-                                                                                                                         'if'
+                                                                                                                         'if',
+                                                                                                                         'IF'
                                                                                                                        ],
                                                                                                                        [
                                                                                                                          41,
                                                                                                                          1,
-                                                                                                                         '('
+                                                                                                                         '(',
+                                                                                                                         'LPAREN'
                                                                                                                        ],
                                                                                                                        bless( [
                                                                                                                                 bless( [
@@ -198,7 +213,8 @@
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            42,
                                                                                                                                                                                                                                                                                            1,
-                                                                                                                                                                                                                                                                                           '3'
+                                                                                                                                                                                                                                                                                           '3',
+                                                                                                                                                                                                                                                                                           'I_CONSTANT'
                                                                                                                                                                                                                                                                                          ]
                                                                                                                                                                                                                                                                                        ], 'C::AST::constant' )
                                                                                                                                                                                                                                                                               ], 'C::AST::primaryExpression' )
@@ -221,7 +237,8 @@
                                                                                                                        [
                                                                                                                          43,
                                                                                                                          1,
-                                                                                                                         ')'
+                                                                                                                         ')',
+                                                                                                                         'RPAREN'
                                                                                                                        ],
                                                                                                                        bless( [
                                                                                                                                 bless( [
@@ -246,19 +263,22 @@
                                                                                                                                                                                                                                                                                                            [
                                                                                                                                                                                                                                                                                                              49,
                                                                                                                                                                                                                                                                                                              10,
-                                                                                                                                                                                                                                                                                                             'something3'
+                                                                                                                                                                                                                                                                                                             'something3',
+                                                                                                                                                                                                                                                                                                             'IDENTIFIER'
                                                                                                                                                                                                                                                                                                            ]
                                                                                                                                                                                                                                                                                                          ], 'C::AST::primaryExpression' )
                                                                                                                                                                                                                                                                                                 ], 'C::AST::postfixExpression' ),
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            59,
                                                                                                                                                                                                                                                                                            1,
-                                                                                                                                                                                                                                                                                           '('
+                                                                                                                                                                                                                                                                                           '(',
+                                                                                                                                                                                                                                                                                           'LPAREN'
                                                                                                                                                                                                                                                                                          ],
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            60,
                                                                                                                                                                                                                                                                                            1,
-                                                                                                                                                                                                                                                                                           ')'
+                                                                                                                                                                                                                                                                                           ')',
+                                                                                                                                                                                                                                                                                           'RPAREN'
                                                                                                                                                                                                                                                                                          ]
                                                                                                                                                                                                                                                                                        ], 'C::AST::postfixExpression' )
                                                                                                                                                                                                                                                                               ], 'C::AST::unaryExpression' )
@@ -279,14 +299,16 @@
                                                                                                                                          [
                                                                                                                                            61,
                                                                                                                                            1,
-                                                                                                                                           ';'
+                                                                                                                                           ';',
+                                                                                                                                           'SEMICOLON'
                                                                                                                                          ]
                                                                                                                                        ], 'C::AST::expressionStatement' )
                                                                                                                               ], 'C::AST::statement' ),
                                                                                                                        [
                                                                                                                          66,
                                                                                                                          4,
-                                                                                                                         'else'
+                                                                                                                         'else',
+                                                                                                                         'ELSE'
                                                                                                                        ],
                                                                                                                        bless( [
                                                                                                                                 bless( [
@@ -311,19 +333,22 @@
                                                                                                                                                                                                                                                                                                            [
                                                                                                                                                                                                                                                                                                              75,
                                                                                                                                                                                                                                                                                                              14,
-                                                                                                                                                                                                                                                                                                             'somethingElse3'
+                                                                                                                                                                                                                                                                                                             'somethingElse3',
+                                                                                                                                                                                                                                                                                                             'IDENTIFIER'
                                                                                                                                                                                                                                                                                                            ]
                                                                                                                                                                                                                                                                                                          ], 'C::AST::primaryExpression' )
                                                                                                                                                                                                                                                                                                 ], 'C::AST::postfixExpression' ),
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            89,
                                                                                                                                                                                                                                                                                            1,
-                                                                                                                                                                                                                                                                                           '('
+                                                                                                                                                                                                                                                                                           '(',
+                                                                                                                                                                                                                                                                                           'LPAREN'
                                                                                                                                                                                                                                                                                          ],
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            90,
                                                                                                                                                                                                                                                                                            1,
-                                                                                                                                                                                                                                                                                           ')'
+                                                                                                                                                                                                                                                                                           ')',
+                                                                                                                                                                                                                                                                                           'RPAREN'
                                                                                                                                                                                                                                                                                          ]
                                                                                                                                                                                                                                                                                        ], 'C::AST::postfixExpression' )
                                                                                                                                                                                                                                                                               ], 'C::AST::unaryExpression' )
@@ -344,7 +369,8 @@
                                                                                                                                          [
                                                                                                                                            91,
                                                                                                                                            1,
-                                                                                                                                           ';'
+                                                                                                                                           ';',
+                                                                                                                                           'SEMICOLON'
                                                                                                                                          ]
                                                                                                                                        ], 'C::AST::expressionStatement' )
                                                                                                                               ], 'C::AST::statement' )
@@ -353,7 +379,8 @@
                                                                                                      [
                                                                                                        95,
                                                                                                        4,
-                                                                                                       'else'
+                                                                                                       'else',
+                                                                                                       'ELSE'
                                                                                                      ],
                                                                                                      bless( [
                                                                                                               bless( [
@@ -378,19 +405,22 @@
                                                                                                                                                                                                                                                                                          [
                                                                                                                                                                                                                                                                                            103,
                                                                                                                                                                                                                                                                                            14,
-                                                                                                                                                                                                                                                                                           'somethingElse2'
+                                                                                                                                                                                                                                                                                           'somethingElse2',
+                                                                                                                                                                                                                                                                                           'IDENTIFIER'
                                                                                                                                                                                                                                                                                          ]
                                                                                                                                                                                                                                                                                        ], 'C::AST::primaryExpression' )
                                                                                                                                                                                                                                                                               ], 'C::AST::postfixExpression' ),
                                                                                                                                                                                                                                                                        [
                                                                                                                                                                                                                                                                          117,
                                                                                                                                                                                                                                                                          1,
-                                                                                                                                                                                                                                                                         '('
+                                                                                                                                                                                                                                                                         '(',
+                                                                                                                                                                                                                                                                         'LPAREN'
                                                                                                                                                                                                                                                                        ],
                                                                                                                                                                                                                                                                        [
                                                                                                                                                                                                                                                                          118,
                                                                                                                                                                                                                                                                          1,
-                                                                                                                                                                                                                                                                         ')'
+                                                                                                                                                                                                                                                                         ')',
+                                                                                                                                                                                                                                                                         'RPAREN'
                                                                                                                                                                                                                                                                        ]
                                                                                                                                                                                                                                                                      ], 'C::AST::postfixExpression' )
                                                                                                                                                                                                                                                             ], 'C::AST::unaryExpression' )
@@ -411,7 +441,8 @@
                                                                                                                        [
                                                                                                                          119,
                                                                                                                          1,
-                                                                                                                         ';'
+                                                                                                                         ';',
+                                                                                                                         'SEMICOLON'
                                                                                                                        ]
                                                                                                                      ], 'C::AST::expressionStatement' )
                                                                                                             ], 'C::AST::statement' )
@@ -420,7 +451,8 @@
                                                                                    [
                                                                                      122,
                                                                                      4,
-                                                                                     'else'
+                                                                                     'else',
+                                                                                     'ELSE'
                                                                                    ],
                                                                                    bless( [
                                                                                             bless( [
@@ -445,19 +477,22 @@
                                                                                                                                                                                                                                                                        [
                                                                                                                                                                                                                                                                          129,
                                                                                                                                                                                                                                                                          14,
-                                                                                                                                                                                                                                                                         'somethingElse1'
+                                                                                                                                                                                                                                                                         'somethingElse1',
+                                                                                                                                                                                                                                                                         'IDENTIFIER'
                                                                                                                                                                                                                                                                        ]
                                                                                                                                                                                                                                                                      ], 'C::AST::primaryExpression' )
                                                                                                                                                                                                                                                             ], 'C::AST::postfixExpression' ),
                                                                                                                                                                                                                                                      [
                                                                                                                                                                                                                                                        143,
                                                                                                                                                                                                                                                        1,
-                                                                                                                                                                                                                                                       '('
+                                                                                                                                                                                                                                                       '(',
+                                                                                                                                                                                                                                                       'LPAREN'
                                                                                                                                                                                                                                                      ],
                                                                                                                                                                                                                                                      [
                                                                                                                                                                                                                                                        144,
                                                                                                                                                                                                                                                        1,
-                                                                                                                                                                                                                                                       ')'
+                                                                                                                                                                                                                                                       ')',
+                                                                                                                                                                                                                                                       'RPAREN'
                                                                                                                                                                                                                                                      ]
                                                                                                                                                                                                                                                    ], 'C::AST::postfixExpression' )
                                                                                                                                                                                                                                           ], 'C::AST::unaryExpression' )
@@ -478,7 +513,8 @@
                                                                                                      [
                                                                                                        145,
                                                                                                        1,
-                                                                                                       ';'
+                                                                                                       ';',
+                                                                                                       'SEMICOLON'
                                                                                                      ]
                                                                                                    ], 'C::AST::expressionStatement' )
                                                                                           ], 'C::AST::statement' )
@@ -489,7 +525,8 @@
                                                [
                                                  147,
                                                  1,
-                                                 '}'
+                                                 '}',
+                                                 'RCURLY_SCOPE'
                                                ]
                                              ], 'C::AST::compoundStatementReenterScope' )
                                     ], 'C::AST::functionDefinitionCheck2' )
