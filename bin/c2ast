@@ -344,14 +344,42 @@ if ($bind{lang} && defined($value) && defined(${$value})) {
 	   #
 	   # start and length are not needed
 	   #
-	   # $child->setAttribute('start', $o->[0]);
-	   # $child->setAttribute('length', $o->[1]);
+	   $child->setAttribute('start', $o->[0]);
+	   $child->setAttribute('length', $o->[1]);
 	   $child->setAttribute('value', $o->[2]);
 	   $parentsp->[-1]->addChild($child);
 	 }
        },
        callbackArgs => [ \@parents ],
       )->process(${$value});
+
+  #
+  # Now revisit the dom to put a value attribute on all elements
+  #
+  my $allNodesXpath = XML::LibXML::XPathExpression->new('//*');
+  my $firstLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
+  my $lastLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
+
+  foreach ($file->findnodes($allNodesXpath)) {
+    my $value = $_->getAttribute('value');
+    if (! $value) {
+      #
+      ## Get first and last lexemes positions
+      #
+      my $firstLexeme = $_->findnodes($firstLexemeXpath);
+      my $lastLexeme = $_->findnodes($lastLexemeXpath);
+
+      if ($firstLexeme && $lastLexeme) {
+	my $startPosition = $firstLexeme->[0]->findvalue('./@start');
+	my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
+	my $length = $endPosition - $startPosition;
+	$value = substr($preprocessedOutput, $startPosition, $length);
+	$_->setAttribute('value', $value);
+      }
+    }
+  }
+
+  print STDERR $dom->toString(1);
 
   #
   # Manage XSLT files. This is a bit painful, but xslt, if writen in the 1.0 format,
