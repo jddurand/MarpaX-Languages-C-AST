@@ -7,11 +7,11 @@ use Carp qw/croak/;
 use Config;
 use Data::Dumper;
 use File::Basename qw/basename dirname/;
+use File::Copy qw/copy/;
 use File::Slurp qw/read_file/;
 use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
 use File::Spec;
 use File::Temp qw/tempdir/;
-use File::Fetch;
 use Getopt::Long;
 use IO::Handle;
 use IO::String;
@@ -27,10 +27,8 @@ use MarpaX::Languages::C::AST::Util::Data::Find;
 use Scalar::Util qw/blessed/;
 use Template;
 use Template::Constants qw/:chomp :debug/;
-use URI;
 use URI::file;
 use XML::LibXML;
-use XSLT::Dependencies;
 
 autoflush STDOUT 1;
 
@@ -72,7 +70,7 @@ my %template = (STRICT       => 1,
 		PRE_CHOMP    => $TEMPLATE_CHOMP_NONE,
 		POST_CHOMP   => $TEMPLATE_CHOMP_NONE,
 		RELATIVE     => 1);
-my @xsltURI = ();
+my @xsltINC = ();
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'cpp=s' => \@cpp,
@@ -81,7 +79,7 @@ GetOptions ('help!' => \$help,
             'start=s' => \$start,
             'bind=s' => \%bind,
             'template=s' => \%template,
-            'xsltURI=s' => \@xsltURI,
+            'xsltINC=s' => \@xsltINC,
             'typedef=s' => \@typedef,
             'enum=s' => \@enum,
             'cppdup=s' => \$cppdup,
@@ -366,8 +364,11 @@ if ($bind{lang} && defined($value) && defined(${$value})) {
   $bind{ifceXslt} //= File::Spec->catfile($bind{lang}, 'ifce.xslt');
   $bind{langXslt} //= File::Spec->catfile($bind{lang}, 'lang.xslt');
 
-  push(@xsltURI, URI::file->new(File::Spec->catdir(dist_dir('MarpaX-Languages-C-AST'), 'xslt')));
-  if (manageXsltFiles($bind{ifceXslt}, $xsltTempdir, @xsltURI)) {
+  #
+  # Note: we suppor explicitely ONLY local xslt files
+  #
+  push(@xsltINC, File::Spec->catdir(dist_dir('MarpaX-Languages-C-AST'), 'xslt'));
+  if (manageXsltFiles($bind{ifceXslt}, $xsltTempdir, @xsltINC)) {
   }
 
   $bind{ifceTmpl} //= File::Spec->catfile($bind{lang}, 'ifce.tmpl');
@@ -533,56 +534,44 @@ sub lexemeCallback {
 }
 
 sub  manageXsltFiles {
-  my ($xslt, $xsltTempdir, @searchURI) = @_;
+  my ($xslt, $xsltTempdir, @searchINC) = @_;
 
-  my $found = 0;
-  foreach (@searchURI) {
-    my $uriBase = ref($_) ? $_ : URI->new($_);
-    my $uri = ((ref($uriBase) eq 'URI::file')) ? URI::file->new(File::Spec->catfile($uriBase->path, $xslt)) : URI->new($xslt)->abs($uriBase);
-    my $ff;
-    {
-      local $File::Fetch::WARN = 0;
-      $ff = File::Fetch->new(uri => $uri);
-    }
-    my $where = eval {
-      local $File::Fetch::WARN = 0;
-      $ff->fetch(to => $xsltTempdir)
-    };
-    #
-    # It is quite ok if a file is not reachable
-    #
-    if ($where) {
+  my $ok = 1;
+  foreach (@searchINC) {
+    use filetest 'access';
+
+    my $file = File::Spec->file_name_is_absolute($xslt) ? $xslt : File::Spec->catfile($_, $xslt);
+    if (-r $file) {
+      copy($file, $xsltTempdir);
       my $depOk = 1;
-      my @dep = eval {XSLT::Dependencies->new->explore($where)};
-      if ($@) {
-	#
-	# But definitely not ok if it not a valid XSLT.
-	# Force stringification, c.f. XML::LibXML::Error
-	#
-	$log->infof('%s: %s', $uri->as_string, "$@");
-      } else {
-	foreach (XSLT::Dependencies->new->explore($where)) {
-	  if (! manageXsltFiles($_, $xsltTempdir, @searchURI)) {
-	    $depOk = 0;
-	    last;
-	  }
-	}
-	if ($depOk) {
-	  $found = 1;
+      $log->infof('Exploring %s', $file);
+      #
+      # This is very similar to XSLT::Dependencies except that search ourself the files
+      #
+      my ($volume, $directory, $filename) = File::Spec->splitpath($file);
+      my $parser = new XML::LibXML;
+      my $doc = $parser->parse_file($file);
+      my $root = $doc->documentElement();
+      my @deps;
+      foreach ($root->findnodes('//xsl:include|//xsl:import')) {
+        my $dependency = $_->find('string(@href)')->value();
+	$log->infof('Dependency %s', $dependency);
+	if (! manageXsltFiles($dependency, $xsltTempdir, @searchINC, File::Spec->catpath($volume, $directory, ''))) {
+	  $ok = 0;
 	  last;
 	}
       }
     }
   }
 
-  if (! $found) {
+  if (! $ok) {
     #
-    # Force stringification in case @searchUri constains URI objects
+    # Force stringification in case @searchINC constains URI objects
     #
-    $log->errorf('%s not found within URI parent paths %s', "$xslt", [ map {"$_"} @searchURI ]);
+    $log->errorf('%s not found within URI parent paths %s', "$xslt", \@searchINC);
   }
 
-  return $found;
+  return $ok;
 }
 
 
