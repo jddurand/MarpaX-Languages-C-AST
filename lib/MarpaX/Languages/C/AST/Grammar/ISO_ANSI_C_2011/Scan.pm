@@ -28,6 +28,7 @@ use File::Spec;
 use File::Basename qw/basename/;
 use Unicode::CaseFold;
 use XML::LibXML;
+use XML::LibXSLT;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -86,6 +87,10 @@ Say that all C::Scan-like methods should return an xml document.
 
 A reference to an array giving xpath directories that will have precedence over the shared directory installed with this module.
 
+=item xsltDirectories
+
+A reference to an array giving xslt directories that will have precedence over the shared directory installed with this module.
+
 =item cpprun
 
 Preprocessor command, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN}, or $Config{cpprun}. It is assume that cpprun is already correctly quoted for your system shell.
@@ -127,11 +132,12 @@ sub new {
   }
 
   my $self = {
-              _asDOM           => exists($opts{asDOM})             ? $opts{asDOM}               : undef,
-              _xpathDirectories => exists($opts{xpathDirectories}) ? $opts{xpathDirectories}    : [],
-              _filename_filter => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
-              _cpprun          => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
-              _cppflags        => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
+              _asDOM            => exists($opts{asDOM})             ? $opts{asDOM}               : undef,
+              _xpathDirectories => exists($opts{xpathDirectories})  ? $opts{xpathDirectories}    : [],
+              _xsltDirectories  => exists($opts{xsltDirectories})   ? $opts{xsltDirectories}     : [],
+              _filename_filter  => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
+              _cpprun           => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
+              _cppflags         => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
              };
 
   #
@@ -665,16 +671,17 @@ sub _analyse_with_grammar {
 # ----------------------------------------------------------------------------------------
 
 sub _xpath {
-  my ($self, $sharedFilename) = @_;
+  my ($self, $wantedFilename) = @_;
 
-  if (! defined($self->{_xpath}->{$sharedFilename})) {
+  if (! defined($self->{_xpath}->{$wantedFilename})) {
     my $found = 0;
-    foreach (@{$self->{_xpathDirectories}}, dist_dir('MarpaX-Languages-C-AST')) {
+    my @searchPath = (@{$self->{_xpathDirectories}}, File::Spec->catdir(dist_dir('MarpaX-Languages-C-AST'), 'xpath'));
+    foreach (@searchPath) {
       #
       # The fact that filesystem could be case tolerant is not an issue here
       #
-      my $filename = File::Spec->canonpath(File::Spec->catfile($_, $sharedFilename));
-      $log->tracef('%s: trying with %s', $sharedFilename, $filename);
+      my $filename = File::Spec->canonpath(File::Spec->catfile($_, $wantedFilename));
+      $log->tracef('%s: trying with %s', $wantedFilename, $filename);
       {
         use filetest 'access';
         if (-r $filename) {
@@ -693,18 +700,18 @@ sub _xpath {
             #
             $xpath =~ s/^\s*//;
             $xpath =~ s/\s*$//;
-            $self->{_xpath}->{$sharedFilename} = eval {XML::LibXML::XPathExpression->new($xpath)};
+            $self->{_xpath}->{$wantedFilename} = eval {XML::LibXML::XPathExpression->new($xpath)};
             if ($@) {
               $log->warnf('Cannot evaluate xpath in %s, %s', $filename, $@);
               #
               # Make sure it is really undefined
               #
-              $self->{_xpath}->{$sharedFilename} = undef;
+              $self->{_xpath}->{$wantedFilename} = undef;
             } else {
               #
               # Done
               #
-              $log->infof('%s evaluated using %s', $sharedFilename, $filename);
+              $log->infof('%s evaluated using %s', $wantedFilename, $filename);
 	      $found = 1;
               last;
             }
@@ -713,10 +720,52 @@ sub _xpath {
       }
     }
     if (! $found) {
-      croak "Cannot find or evaluate \"$sharedFilename\". Search path was: [" . join(', ', map {"\"$_\""} (@{$self->{_xpathDirectories}}, dist_dir('MarpaX-Languages-C-AST'))) . ']';
+      croak "Cannot find or evaluate \"$wantedFilename\". Search path was: [" . join(', ', map {"\"$_\""} (@searchPath)) . ']';
     }
   }
-  return $self->{_xpath}->{$sharedFilename};
+  return $self->{_xpath}->{$wantedFilename};
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _xslt {
+  my ($self, $wantedFilename) = @_;
+
+  if (! defined($self->{_xslt}->{$wantedFilename})) {
+    my $found = 0;
+    my @searchPath = (@{$self->{_xsltDirectories}}, File::Spec->catdir(dist_dir('MarpaX-Languages-C-AST'), 'xslt'));
+    foreach (@searchPath) {
+      #
+      # The fact that filesystem could be case tolerant is not an issue here
+      #
+      my $filename = File::Spec->canonpath(File::Spec->catfile($_, $wantedFilename));
+      $log->tracef('%s: trying with %s', $wantedFilename, $filename);
+      {
+        use filetest 'access';
+        if (-r $filename) {
+          $self->{_xslt}->{$wantedFilename} = eval {XML::LibXSLT->new()->parse_stylesheet_file($filename)};
+          if ($@) {
+            $log->warnf('Cannot evaluate xslt in %s, %s', $filename, $@);
+            #
+            # Make sure it is really undefined
+            #
+            $self->{_xslt}->{$wantedFilename} = undef;
+          } else {
+            #
+            # Done
+            #
+            $log->infof('%s evaluated using %s', $wantedFilename, $filename);
+            $found = 1;
+            last;
+          }
+        }
+      }
+    }
+    if (! $found) {
+      croak "Cannot find or evaluate \"$wantedFilename\". Search path was: [" . join(', ', map {"\"$_\""} (@searchPath)) . ']';
+    }
+  }
+  return $self->{_xslt}->{$wantedFilename};
 }
 
 # ----------------------------------------------------------------------------------------
@@ -744,8 +793,8 @@ sub _pushNodeString {
     #
     ## Get first and last lexemes positions
     #
-    my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
-    my $lastLexemeXpath = $self->_xpath('xpath/lastLexeme.xpath');
+    my $firstLexemeXpath = $self->_xpath('firstLexeme.xpath');
+    my $lastLexemeXpath = $self->_xpath('lastLexeme.xpath');
 
     my $firstLexeme = $node->findnodes($firstLexemeXpath);
     my $lastLexeme = $node->findnodes($lastLexemeXpath);
@@ -796,7 +845,7 @@ sub _pushNodeFile {
   #
   # Get first lexeme position and return a false value only if filename filter is on and output does not match the filter
   #
-  my $firstLexemeXpath = $self->_xpath('xpath/firstLexeme.xpath');
+  my $firstLexemeXpath = $self->_xpath('firstLexeme.xpath');
   my $firstLexeme = $node->findnodes($firstLexemeXpath);
   my $file = '';
 
@@ -913,7 +962,7 @@ sub _ast2vdecl_hash {
     #
     # a vdecl is a "declaration" node
     #
-    foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/vdecl.xpath'))) {
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('vdecl.xpath'))) {
       my $file = '';
       if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
         next;
@@ -921,7 +970,7 @@ sub _ast2vdecl_hash {
       #
       # Get first declarationSpecifiers
       #
-      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -948,7 +997,7 @@ sub _ast2vdecl_hash {
       #
       # variable name
       #
-      my @declarator = $declaration->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
+      my @declarator = $declaration->findnodes($self->_xpath('declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
@@ -956,7 +1005,7 @@ sub _ast2vdecl_hash {
 	my $declarator;
 	$self->_pushNodeString($stdout_buf, \$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
+	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
 	if (@IDENTIFIER) {
 	  $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	} else {
@@ -1002,7 +1051,7 @@ sub _ast2topDeclarations {
     my $declarationList = XML::LibXML::Element->new('declarationList');
     $self->{_topDeclarations}->addChild($declarationList);
 
-    foreach ($self->ast()->findnodes($self->_xpath('xpath/topDeclarations.xpath'))) {
+    foreach ($self->ast()->findnodes($self->_xpath('topDeclarations.xpath'))) {
       my $declaration = $_;
       my $file;
       if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
@@ -1027,13 +1076,13 @@ sub _ast2typedef_hash {
     #
     # typedef is a "declaration" node
     #
-    foreach my $declaration ($self->ast()->findnodes($self->_xpath('xpath/typedef.xpath'))) {
+    foreach my $declaration ($self->ast()->findnodes($self->_xpath('typedef.xpath'))) {
       my $file;
       if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
         next;
       }
 
-      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
+      my @declarationSpecifiers = $declaration->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -1060,7 +1109,7 @@ sub _ast2typedef_hash {
       #
       # typedef name
       #
-      my @declarator = $declaration->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
+      my @declarator = $declaration->findnodes($self->_xpath('declaration2Declarator.xpath'));
       my @keys = ();
       my @before = ();
       my @after = ();
@@ -1068,7 +1117,7 @@ sub _ast2typedef_hash {
 	my $declarator;
 	$self->_pushNodeString($stdout_buf, \$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
+	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
 	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	$declarator =~ /(.*)$keys[-1](.*)/;
         my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
@@ -1109,15 +1158,15 @@ sub _ast2typedef_hash {
       #
       # Is a struct or union declaration ?
       #
-      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('xpath/declarationSpecifiers2structOrUnionSpecifier.xpath'));
+      my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
 	my $struct = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
 	my $declsDOM = undef;
 
-        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('xpath/structOrUnionSpecifier2structDeclaration.xpath'));
+        my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
 
-          my @specifierQualifierList = $_->findnodes($self->_xpath('xpath/structDeclaration2specifierQualifierList.xpath'));
+          my @specifierQualifierList = $_->findnodes($self->_xpath('structDeclaration2specifierQualifierList.xpath'));
 	  if (! @specifierQualifierList) {
 	    # Gcc extension
 	    next;
@@ -1125,7 +1174,7 @@ sub _ast2typedef_hash {
           my $specifierQualifierList;
           $self->_pushNodeString($stdout_buf, \$specifierQualifierList, $specifierQualifierList[0]);
 
-          my @structDeclarator = $_->findnodes($self->_xpath('xpath/structDeclaration2structDeclarator.xpath'));
+          my @structDeclarator = $_->findnodes($self->_xpath('structDeclaration2structDeclarator.xpath'));
           my @keys = ();
           my @before = ();
           my @after = ();
@@ -1133,7 +1182,7 @@ sub _ast2typedef_hash {
             my $structDeclarator;
             $self->_pushNodeString($stdout_buf, \$structDeclarator, $_);
 
-            my @IDENTIFIER = $_->findnodes($self->_xpath('xpath/structDeclarator2IDENTIFIER.xpath'));
+            my @IDENTIFIER = $_->findnodes($self->_xpath('structDeclarator2IDENTIFIER.xpath'));
 	    if (@IDENTIFIER) {
 	      $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
 	    } else {
@@ -1221,7 +1270,7 @@ sub _ast2parsed_fdecls {
     $self->{_parsed_fdecls} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
     $self->{_fdecls} = $self->{_asDOM} ? XML::LibXML::Element->new('fdecls') : [];
 
-    foreach my $node ($self->ast()->findnodes($self->_xpath('xpath/fdecls.xpath'))) {
+    foreach my $node ($self->ast()->findnodes($self->_xpath('fdecls.xpath'))) {
       my $file = '';
       if (! $self->_pushNodeFile($stdout_buf, \$file, $node)) {
         next;
@@ -1231,7 +1280,7 @@ sub _ast2parsed_fdecls {
       #
       # rt
       #
-      my @declarationSpecifiers = $node->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
+      my @declarationSpecifiers = $node->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
 	#
 	# Could be a static assert declaration
@@ -1247,9 +1296,9 @@ sub _ast2parsed_fdecls {
       # nm. In case of a function declaration, there can be only a single declarator
       # in the declaration
       #
-      my @declarator = $node->findnodes($self->_xpath('xpath/declaration2Declarator.xpath'));
+      my @declarator = $node->findnodes($self->_xpath('declaration2Declarator.xpath'));
 
-      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('xpath/declarator2IDENTIFIER.xpath'));
+      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
       if (@IDENTIFIER) {
 	$self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
       } else {
@@ -1260,7 +1309,7 @@ sub _ast2parsed_fdecls {
       # args
       #
       my $args = $self->{_asDOM} ? XML::LibXML::Element->new('args') : [];
-      my @args = $node->findnodes($self->_xpath('xpath/fdecl2args.xpath'));
+      my @args = $node->findnodes($self->_xpath('fdecl2args.xpath'));
       foreach (@args) {
 	#
 	# arg is a parameterDeclaration
@@ -1269,13 +1318,13 @@ sub _ast2parsed_fdecls {
 	#
 	# arg.rt
 	#
-	my @declarationSpecifiers = $_->findnodes($self->_xpath('xpath/firstDeclarationSpecifiers.xpath'));
+	my @declarationSpecifiers = $_->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
 	$self->_pushNodeString($stdout_buf, $arg, $declarationSpecifiers[0]);
 	#
 	# arg.nm or ANON
 	#
         my $anon = undef;
-	my @nm = $_->findnodes($self->_xpath('xpath/arg2nm.xpath'));
+	my @nm = $_->findnodes($self->_xpath('arg2nm.xpath'));
 	if (@nm) {
 	  $self->_pushNodeString($stdout_buf, $arg, $nm[0]);
 	} else {
@@ -1299,7 +1348,7 @@ sub _ast2parsed_fdecls {
 	#
 	# arg.mod
 	#
-        my @mod = $_->findnodes($self->_xpath('xpath/arg2mod.xpath'));
+        my @mod = $_->findnodes($self->_xpath('arg2mod.xpath'));
         if (@mod) {
 	  #
 	  # Per def $mod[0] is a directDeclarator that can be:
@@ -1385,7 +1434,7 @@ sub _ast2inlines {
     #
     # Simply, any path matching functionDefinition
     #
-    foreach ($self->ast()->findnodes($self->_xpath('xpath/inlines.xpath'))) {
+    foreach ($self->ast()->findnodes($self->_xpath('inlines.xpath'))) {
       my $file = '';
       if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
         next;
@@ -1544,6 +1593,27 @@ sub _posprocess_heuristics {
     }
   }
 }
+
+# ----------------------------------------------------------------------------------------
+
+=head2 c2cifce($self, $lang, %params)
+
+Applies the transformation $lang, with parameters %params, and returns an array composed of the XML::LibXSLT instance and the transformed new XML::LibXML::Document.
+
+=cut
+
+sub c2cifce {
+  my ($self, $lang, %params) = @_;
+
+  $log->tracef('Calling transformation with parameters %s', \%params);
+
+  my $langXslt = $self->_xslt($lang);
+  my $transform = $langXslt->transform($self->ast(), %params);
+
+  return ($langXslt, $transform);
+}
+
+# ----------------------------------------------------------------------------------------
 
 =head1 NOTES
 
