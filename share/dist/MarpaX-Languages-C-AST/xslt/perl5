@@ -3,6 +3,11 @@
                 xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <xsl:output method="text" omit-xml-declaration="yes" />
   <xsl:template match="/">
-MY OUTPUT
+/*
+ * Perl5 binding of <xsl:value-of select="$module"/>, generated <xsl:value-of select="$current-date"/>
+ */
+#define PERL_NO_GET_CONTEXT
+#include "EXTERN.h"
+#include "perl.h"
   </xsl:template>
 </xsl:stylesheet>
