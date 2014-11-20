@@ -1,0 +1,382 @@
+#!perl
+use strict;
+use warnings FATAL => 'all';
+use diagnostics;
+use MarpaX::Languages::C::Scan;
+use Getopt::Long;
+use Pod::Usage;
+use POSIX qw/EXIT_FAILURE EXIT_SUCCESS/;
+use Config;
+use File::Basename qw/fileparse/;
+use Log::Any qw/$log/;
+use Log::Any::Adapter;
+use Log::Log4perl qw/:easy/;
+
+# ABSTRACT: C bindings generation
+
+# VERSION
+
+# PODNAME: c2bind
+
+my $help = 0;
+my $cpprun = undef;
+my @cppflags = ();
+my $filter = undef;
+my @xsltDirectories = ();
+my $module = undef;
+my $lang = undef;
+my %params = ();
+my $cifce = undef;
+my $langifce = undef;
+my $out = '';
+my $err = '';
+my $loglevel = 'WARN';
+my $logstderr = 0;
+
+Getopt::Long::Configure("pass_through");
+GetOptions ('help!' => \$help,
+            'cpprun=s' => \$cpprun,
+            'cppflags=s' => \@cppflags,
+            'filter=s' => \$filter,
+            'xsltDirectories=s' => \@xsltDirectories,
+            'lang=s' => \$lang,
+            'params=s' => \%params,
+            'module=s' => \$module,
+            'cifce=s' => \$cifce,
+            'langifce=s' => \$langifce,
+            'out=s' => \$out,
+            'err=s' => \$err,
+            'loglevel=s' => \$loglevel,
+	    'debug' => sub { $loglevel = 'DEBUG' },
+	    'info' => sub { $loglevel = 'INFO' },
+	    'warn' => sub { $loglevel = 'WARN' },
+	    'error' => sub { $loglevel = 'ERROR' },
+	    'fatal' => sub { $loglevel = 'FATAL' },
+	    'trace' => sub { $loglevel = 'TRACE' },
+            'logstderr!' => \$logstderr);
+
+#
+# Do redirection asap, i.e. now, err first, unless help is requested
+#
+my $saveerr = undef;
+my $saveout = undef;
+
+if (! $help) {
+    my $saveerr = _redirect(\*STDERR, $err);
+    my $saveout = _redirect(\*STDOUT, $out);
+
+    sub END {
+        _unredirect(\*STDOUT, $saveout);
+        _unredirect(\*STDERR, $saveerr);
+    }
+}
+
+# ----
+# Init 
+# ----
+my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
+log4perl.rootLogger              = $loglevel, Screen
+log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.stderr  = $logstderr
+log4perl.appender.Screen.layout  = PatternLayout
+log4perl.appender.Screen.layout.ConversionPattern = %d %-5p %6P %m{chomp}%n
+DEFAULT_LOG4PERL_CONF
+Log::Log4perl::init(\$defaultLog4perlConf);
+Log::Any::Adapter->set('Log4perl');
+
+my $guard = quotemeta('(if you read this message, do not worry: this is replaced by correct value at run-time)');
+my $pod = do {local $/; <DATA>};
+$pod =~ s/\$CPPRUN\b\s*$guard/$Config{cpprun}/g;
+$pod =~ s/\$CPPFLAGS\b\s*$guard/$Config{cppflags}/g;
+my $podfh = IO::String->new($pod);
+pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_SUCCESS) if ($help);
+pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_FAILURE) if (! @ARGV || ! $lang);
+#
+# If there is more than one thing in @ARGV, assume these are (@cppflags, $file)
+#
+if ($#ARGV > 0) {
+    push(@cppflags, splice(@ARGV, 0, $#ARGV));
+}
+#
+# If there is no filter, assume the last file is the one we want
+#
+if (! $filter) {
+    my $quoted = quotemeta($ARGV[-1]);
+    $filter = "/$quoted/";
+}
+#
+# If there is no module, assume the basename of last file, without extension
+#
+if (! $module) {
+    $module = fileparse($ARGV[-1], qr/\.[^.]*/);
+}
+#
+# If there is no cifce, assume this is module.c
+#
+if (! $cifce) {
+    $cifce = "$module.c";
+}
+#
+# If there is no langifce, assume this is module.$lang
+#
+if (! $langifce) {
+    $langifce = "$module.$lang";
+}
+
+#
+# If filter starts with '/' assume this is a regexp
+# -------------------------------------------------
+if (defined($filter)) {
+    if (substr($filter, 0, 1) eq '/') {
+        $filter = eval "qr$filter"; ## no critic (ProhibitStringyEval)
+        die $@ if ($@);
+    }
+}
+
+my %config = ();
+$config{cpprun} = $cpprun if ($cpprun);
+$config{cppflags} = join(' ', @cppflags) if (@cppflags);
+$config{filename_filter} = $filter if ($filter);
+$config{asDOM} = 1;
+$config{xsltDirectories} = \@xsltDirectories;
+
+# -------
+# Parse C
+# -------
+my $c = MarpaX::Languages::C::Scan->new(filename => shift, %config);
+
+# -----------------
+# Generate bindings
+# -----------------
+$params{'prefix'} //= "'cifce_'";
+$params{'module'} //= "'$module'";
+$params{'current-date'} //= "'" . localtime . "'";
+{
+    #
+    # C interface
+    #
+    my ($langXslt, $transform) = $c->c2cifce($lang, %params);
+    $log->tracef('Saving C transformation to %s', $cifce);
+    $langXslt->output_file($transform, $cifce);
+}
+{
+    #
+    # Language interface
+    #
+    my ($langXslt, $transform) = $c->c2langifce($lang, %params);
+    $log->tracef('Saving %s transformation to %s', $lang, $langifce);
+    $langXslt->output_file($transform, $langifce);
+}
+exit(EXIT_SUCCESS);
+
+sub _redirect {
+    my ($fh, $filename) = @_;
+
+    my $savefh = undef;
+
+    if (defined($filename) && "$filename") {
+        if (! open($savefh, '>&', $fh)) {
+            warn "Cannot save $fh handle, $!";
+        } else {
+            if (! open($fh, '>', $filename)) {
+                warn "Cannot redirect $fh to $filename, $!";
+                if (! open($fh, '>&', $savefh)) {
+                    warn "Cannot restore $fh, $!";
+                }
+                $savefh = undef;
+            } else {
+                #
+                # Unbuffer the redirected filehandle
+                #
+                my $oldfh = select($fh);
+                $| = 1;
+                select($oldfh);
+            }
+        }
+    }
+    return $savefh;
+}
+
+sub _unredirect {
+    my ($fh, $savefh) = @_;
+
+    if (defined($savefh)) {
+        if (! close($fh)) {
+            warn "Cannot close $fh";
+        }
+        #
+        # Unredirect anyway
+        #
+        if (! open($fh, '>&', $savefh)) {
+            warn "Cannot restore $fh, $!";
+        }
+    }
+}
+
+__DATA__
+
+# --------------------------------------------------------------------------------------
+
+=head1 NAME
+
+c2bind - C bindings generation
+
+=head1 SYNOPSIS
+
+ c2bind [options] file
+
+ Startup Options:
+   --help                      This help.
+   --cpprun <argument>         Preprocessor run command.
+   --cppflags <argument>       Preprocessor flags.
+   --filter <argument>         File to look at after preprocessing.
+   --out <argument>            Redirect any output to this filename.
+   --err <argument>            Redirect any error to this filename.
+   --lang <argument>           Target language. Required option.
+   --param <parameter=value>   XSLT parameters. Can be repeated.
+   --xsltDirectories <path>    XSLT directories. Default to the one distributed with this package. Can be repeated.
+   --module <argument>         Target module name. Default to the basename of file, with no suffix.
+   --cifce <path>              Target C interface filepath. Required option.
+   --langifce <path>           Target language interface filepath. Required option.
+   --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
+   --logstderr          Logs to stderr or not.
+
+ Aliased options:
+   --debug              Alias to --loglevel DEBUG
+   --info               Alias to --loglevel INFO
+   --warn               Alias to --loglevel WARN
+   --error              Alias to --loglevel ERROR
+   --fatal              Alias to --loglevel FATAL
+   --trace              Alias to --loglevel TRACE
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+This help
+
+=item B<--cpprun <argument>>
+
+cpp run command. Default is the value when perl was compiled, i.e.:
+
+$CPPRUN (if you read this message, do not worry: this is replaced by correct value at run-time)
+
+This option can be repeated.
+
+=item B<--cppflags <argument>>
+
+cpp flags. Default is the value when perl was compiled, i.e.:
+
+$CPPFLAGS (if you read this message, do not worry: this is replaced by correct value at run-time)
+
+=item B<--filter <argument>>
+
+File to look at after proprocessing. Defaults to file argument.
+
+c2bind is using the preprocessor. Every #include statement in your original source code is telling the preprocessor to look at another file, this is marked down by a line like:
+
+ #line ... "information on the file processed"
+
+in the generated output. The --filter argument is used to select which processed files is/are of interest. If $filter is starting with a slash "/" it is assumed to be a full regular expression (including modifier flags). The regexp can be used to handle the case of multiple input files.
+
+=item B<--xsltDirectories <path>>
+
+The whole binding framework is using XSLT transformation. This option specifies alternate directories, lookup in prior to the one distributed with this package.
+
+=item B<--lang <argument>>
+
+Target language. E.g. perl5, lua, etc. There must be an XSLT file named like that.
+
+=item B<--param <parameter=value>>
+
+XSLT parameters, expected to be in the XPATH format. I.e. make sure this is a quoted string on the command-line if you wish to pass a string. For example (on a bash shell): --param mode="'moose'". The parameters can be accessed in the XSLT template(s) using the form: "$parameter". Predefined parameters are:
+
+=over
+
+=item prefix
+
+prefix added to all generated identifiers. Default is 'cifce_'.
+
+=item module 
+
+Default is the 'module' name.
+
+=item current-date
+
+Default is 'current time' as return by perl's function localtime.
+
+=back
+
+=item B<--module <argument>>
+
+Usually, target interface are bound to a module namespace. Default value is the basename of process file, without suffix.
+
+=item B<--cifce <path>>
+
+Filename where of the generated C interface.
+
+=item B<--langifce <path>>
+
+Filename where of the generated language interface.
+
+=item B<--loglevel level>
+
+A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
+Default is WARN.
+
+Note that tracing Marpa library itself is possible, but only using environment variable MARPA_TRACE /and/ saying --loglevel TRACE.
+
+In case of trouble, typical debugging phases c2ast are:
+--loglevel INFO
+then:
+--loglevel DEBUG
+then:
+--loglevel TRACE
+
+=item B<--debug>
+
+Shortcut for --loglevel DEBUG
+
+=item B<--info>
+
+Shortcut for --loglevel INFO
+
+=item B<--warn>
+
+Shortcut for --loglevel WARN
+
+=item B<--error>
+
+Shortcut for --loglevel ERROR
+
+=item B<--fatal>
+
+Shortcut for --loglevel FATAL
+
+=item B<--trace>
+
+Shortcut for --loglevel TRACE
+
+=item B<--logstderr>
+
+Logs to stderr or not. Default is $logstderr.
+
+=back
+
+=head1 NOTES
+
+Any unknown option on the command line is passed through to --cppflags. I.e.:
+
+ c2bind --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE /tmp/file.c
+
+and
+
+ c2bind -I/tmp/dir1 -DMYDEFINE /tmp/file.c
+
+are equivalent. A restriction is that the filename must be the last argument.
+
+=head1 SEE ALSO
+
+L<MarpaX::Languages::C::Scan>
