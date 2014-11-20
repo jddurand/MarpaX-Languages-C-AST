@@ -636,6 +636,22 @@ sub _analyse_with_grammar {
   #
   $self->_getAst($stdout_buf);
 
+  #
+  # We want to systematically provide a "text" attribute on all nodes
+  #
+  foreach ($self->ast()->findnodes($self->_xpath('allNodes.xpath'))) {
+    #
+    # And file information, which is acting as a filter
+    #
+    my $file = '';
+    if ($self->_pushNodeFile($stdout_buf, \$file, $_)) {
+      next;
+    }
+    $_->setAttribute('file', $file);
+    $self->_pushNodeString($stdout_buf, undef, $_, 1);
+  }
+
+
   # -------------------------------------------------------------------------------------------
   # Producing a C::Scan equivalent is just a matter of revisiting the XML, i.e. the AST's value
   #
@@ -771,7 +787,9 @@ sub _xslt {
 # ----------------------------------------------------------------------------------------
 
 sub _pushNodeString {
-  my ($self, $stdout_buf, $outputp, $node) = @_;
+  my ($self, $stdout_buf, $outputp, $node, $setAttributes) = @_;
+
+  $setAttributes //= 0;
 
   #
   # Unless the node is already a lexeme, we have to search surrounding lexemes
@@ -779,6 +797,9 @@ sub _pushNodeString {
   #
   my $text = $node->getAttribute('text');
   if (defined($text)) {
+    #
+    # Per def text, start and length attributes already exist
+    #
     if (defined($outputp)) {
       if (ref($outputp) eq 'ARRAY') {
 	push(@{$outputp}, $text);
@@ -813,6 +834,11 @@ sub _pushNodeString {
 	  croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
 	}
       }
+      if ($setAttributes) {
+        $node->setAttribute('start', $startPosition);
+        $node->setAttribute('length', $length);
+        $node->setAttribute('text', $text);
+      }
       return $text;
     } else {
       return undef;
@@ -825,10 +851,16 @@ sub _pushNodeString {
 sub _fileOk {
   my ($self, $file) = @_;
 
+  my ($volume, $directories, $filename) = File::Spec->splitpath($file);
+
   if (exists($self->{_filename_filter_re})) {
-    return ($file =~ $self->{_filename_filter_re}) ? 1 : 0;
+    if (File::Spec->case_tolerant($volume)) {
+      return ($file =~ /$self->{_filename_filter_re}/i) ? 1 : 0;
+    } else {
+      return ($file =~ $self->{_filename_filter_re}) ? 1 : 0;
+    }
   } elsif (defined($self->{_filename_filter})) {
-    return ($file eq $self->{_filename_filter}) ? 1 : 0;
+    return (fc($file) eq fc($self->{_filename_filter})) ? 1 : 0;
   } else {
     return 1;
   }
@@ -1468,7 +1500,7 @@ sub _lexemeCallback {
   #
   if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
     if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
-	my $currentFile = substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]);
+	my $currentFile = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
         if (! defined($self->{_filename})) {
           #
           # The very first filename is always the original source.
@@ -1607,8 +1639,12 @@ sub c2cifce {
 
   $log->tracef('Calling transformation with parameters %s', \%params);
 
+  my $ast = $self->ast();
+  print STDERR $ast->toString(1);
+  exit;
+
   my $langXslt = $self->_xslt($lang);
-  my $transform = $langXslt->transform($self->ast(), %params);
+  my $transform = $langXslt->transform($ast, %params);
 
   return ($langXslt, $transform);
 }
