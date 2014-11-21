@@ -642,11 +642,7 @@ sub _analyse_with_grammar {
     #
     # And file information, which is acting as a filter
     #
-    my $file = '';
-    if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
-      next;
-    }
-    $_->setAttribute('file', $file);
+    $self->_pushNodeFile($stdout_buf, undef, $_, 1);
     $self->_pushNodeString($stdout_buf, undef, $_, 1);
   }
 
@@ -871,8 +867,10 @@ sub _fileOk {
 
 # ----------------------------------------------------------------------------------------
 
-sub _getNodeFile {
-  my ($self, $stdout_buf, $outputp, $node) = @_;
+sub _pushNodeFile {
+  my ($self, $stdout_buf, $outputp, $node, $setAttribute) = @_;
+
+  $setAttribute //= 0;
 
   #
   # Unless the node is already a lexeme, we have to search surrounding lexemes
@@ -894,12 +892,18 @@ sub _getNodeFile {
     $file = $self->_position2File($startPosition);
   }
 
-  if (ref($outputp) eq 'ARRAY') {
-    push(@{$outputp}, $file);
-  } elsif (ref($outputp) eq 'SCALAR') {
-    ${$outputp} = $file;
-  } else {
-    croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+  if (defined($outputp)) {
+    if (ref($outputp) eq 'ARRAY') {
+      push(@{$outputp}, $file);
+    } elsif (ref($outputp) eq 'SCALAR') {
+      ${$outputp} = $file;
+    } else {
+      croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+    }
+  }
+
+  if ($setAttribute) {
+    $node->setAttribute('file', $file);
   }
 
   return $self->_fileOk($file);
@@ -1004,7 +1008,7 @@ sub _ast2vdecl_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('vdecl.xpath'))) {
       my $file = '';
-      if (! $self->_getNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
         next;
       }
       #
@@ -1094,7 +1098,7 @@ sub _ast2topDeclarations {
     foreach ($self->ast()->findnodes($self->_xpath('topDeclarations.xpath'))) {
       my $declaration = $_;
       my $file;
-      if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
         next;
       }
       $declarationList->addChild($declaration->cloneNode(1));
@@ -1118,7 +1122,7 @@ sub _ast2typedef_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('typedef.xpath'))) {
       my $file;
-      if (! $self->_getNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
         next;
       }
 
@@ -1312,7 +1316,7 @@ sub _ast2parsed_fdecls {
 
     foreach my $node ($self->ast()->findnodes($self->_xpath('fdecls.xpath'))) {
       my $file = '';
-      if (! $self->_getNodeFile($stdout_buf, \$file, $node)) {
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $node)) {
         next;
       }
 
@@ -1476,7 +1480,7 @@ sub _ast2inlines {
     #
     foreach ($self->ast()->findnodes($self->_xpath('inlines.xpath'))) {
       my $file = '';
-      if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
         next;
       }
       my $text = '';
