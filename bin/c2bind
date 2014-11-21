@@ -146,7 +146,7 @@ $params{'file'} //= "'" . File::Spec->canonpath($ARGV[-1]) . "'";
     # C interface
     #
     my ($langXslt, $transform) = $c->c2cifce($lang, %params);
-    $log->tracef('Saving C transformation to %s', $cifce);
+    $log->infof('Saving C transformation to %s', $cifce);
     $langXslt->output_file($transform, $cifce);
 }
 {
@@ -154,7 +154,7 @@ $params{'file'} //= "'" . File::Spec->canonpath($ARGV[-1]) . "'";
     # Language interface
     #
     my ($langXslt, $transform) = $c->c2langifce($lang, %params);
-    $log->tracef('Saving %s transformation to %s', $lang, $langifce);
+    $log->infof('Saving %s transformation to %s', $lang, $langifce);
     $langXslt->output_file($transform, $langifce);
 }
 exit(EXIT_SUCCESS);
