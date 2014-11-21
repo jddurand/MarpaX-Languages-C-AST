@@ -351,7 +351,7 @@ Shortcut for --loglevel TRACE
 
 =item B<--logstderr>
 
-Logs to stderr or not. Default is $logstderr.
+Logs to stderr or not. Default is 0.
 
 =back
 
