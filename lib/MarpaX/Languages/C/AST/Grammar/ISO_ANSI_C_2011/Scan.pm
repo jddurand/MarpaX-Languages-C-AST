@@ -591,7 +591,6 @@ sub _getAst {
   # For lookup, do a sorted version of position2File
   #
   $self->{_sortedPosition2File}  = [ map { [ $_, $self->{_position2File}->{$_} ] } sort { $a <=> $b } keys %{$self->{_position2File}} ];
-
   #
   # Includes was a hash in %tmpHash
   #
@@ -610,7 +609,7 @@ sub _getAst {
 sub _position2File {
   my ($self, $position) = @_;
 
-  my $output = '';
+  my $file = '';
   if (! exists($ENV{MARPAX_LANGUAGES_C_AST_T_SCAN})) {
     #
     # In the test suite, we cannot rely on filename that is compiler+OS dependant
@@ -619,11 +618,11 @@ sub _position2File {
       if ($_->[0] > $position) {
         last;
       }
-      $output = $_->[1];
+      $file = $_->[1];
     }
   }
 
-  return $output;
+  return $file;
 }
 
 # ----------------------------------------------------------------------------------------
@@ -644,7 +643,7 @@ sub _analyse_with_grammar {
     # And file information, which is acting as a filter
     #
     my $file = '';
-    if ($self->_pushNodeFile($stdout_buf, \$file, $_)) {
+    if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
       next;
     }
     $_->setAttribute('file', $file);
@@ -853,17 +852,21 @@ sub _fileOk {
 
   my ($volume, $directories, $filename) = File::Spec->splitpath($file);
 
+  my $rc = 0;
+
   if (exists($self->{_filename_filter_re})) {
     if (File::Spec->case_tolerant($volume)) {
-      return ($file =~ /$self->{_filename_filter_re}/i) ? 1 : 0;
+      $rc = ($file =~ /$self->{_filename_filter_re}/i) ? 1 : 0;
     } else {
-      return ($file =~ $self->{_filename_filter_re}) ? 1 : 0;
+      $rc = ($file =~ $self->{_filename_filter_re}) ? 1 : 0;
     }
   } elsif (defined($self->{_filename_filter})) {
-    return (fc($file) eq fc($self->{_filename_filter})) ? 1 : 0;
+    $rc = (fc($file) eq fc($self->{_filename_filter})) ? 1 : 0;
   } else {
-    return 1;
+    $rc = 1;
   }
+
+  return $rc;
 }
 
 # ----------------------------------------------------------------------------------------
@@ -877,8 +880,13 @@ sub _pushNodeFile {
   #
   # Get first lexeme position and return a false value only if filename filter is on and output does not match the filter
   #
-  my $firstLexemeXpath = $self->_xpath('firstLexeme.xpath');
-  my $firstLexeme = $node->findnodes($firstLexemeXpath);
+  my $firstLexeme;
+  if ($node->getAttribute('text')) {
+    $firstLexeme = [$node];
+  } else {
+    my $firstLexemeXpath = $self->_xpath('firstLexeme.xpath');
+    $firstLexeme = $node->findnodes($firstLexemeXpath);
+  }
   my $file = '';
 
   if ($firstLexeme) {
@@ -1640,9 +1648,6 @@ sub c2cifce {
   $log->tracef('Calling transformation with parameters %s', \%params);
 
   my $ast = $self->ast();
-  print STDERR $ast->toString(1);
-  exit;
-
   my $langXslt = $self->_xslt($lang);
   my $transform = $langXslt->transform($ast, %params);
 
