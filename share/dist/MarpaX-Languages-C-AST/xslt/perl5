@@ -2,12 +2,22 @@
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format">
   <xsl:output method="text" omit-xml-declaration="yes" />
-  <xsl:template match="/">
+
+  <!-- =================================== -->
+
+  <xsl:template match="translationUnit">
 /*
- * Perl5 binding of <xsl:value-of select="$module"/>, generated <xsl:value-of select="$current-date"/>
+ * C binding pseudo code of <xsl:value-of select="$module"/>, generated <xsl:value-of select="$current-date"/>
  */
-#define PERL_NO_GET_CONTEXT
-#include "EXTERN.h"
-#include "perl.h"
+[%~ PROCESS file_start ~%]
+  <xsl:apply-templates/>
+[%~ PROCESS file_end ~%]
   </xsl:template>
+
+  <!-- =================================== -->
+
+  <xsl:template match="translationUnit/externalDeclaration/declaration">
+[%~ PROCESS decl_start('<xsl:value-of select="@text"/>') ~%]
+  </xsl:template>
+
 </xsl:stylesheet>
