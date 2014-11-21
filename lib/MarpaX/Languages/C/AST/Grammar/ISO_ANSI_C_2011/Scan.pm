@@ -643,7 +643,7 @@ sub _analyse_with_grammar {
     # And file information, which is acting as a filter
     #
     my $file = '';
-    if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+    if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
       next;
     }
     $_->setAttribute('file', $file);
@@ -871,7 +871,7 @@ sub _fileOk {
 
 # ----------------------------------------------------------------------------------------
 
-sub _pushNodeFile {
+sub _getNodeFile {
   my ($self, $stdout_buf, $outputp, $node) = @_;
 
   #
@@ -1004,7 +1004,7 @@ sub _ast2vdecl_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('vdecl.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_getNodeFile($stdout_buf, \$file, $declaration)) {
         next;
       }
       #
@@ -1094,7 +1094,7 @@ sub _ast2topDeclarations {
     foreach ($self->ast()->findnodes($self->_xpath('topDeclarations.xpath'))) {
       my $declaration = $_;
       my $file;
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
         next;
       }
       $declarationList->addChild($declaration->cloneNode(1));
@@ -1118,7 +1118,7 @@ sub _ast2typedef_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('typedef.xpath'))) {
       my $file;
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_getNodeFile($stdout_buf, \$file, $declaration)) {
         next;
       }
 
@@ -1312,7 +1312,7 @@ sub _ast2parsed_fdecls {
 
     foreach my $node ($self->ast()->findnodes($self->_xpath('fdecls.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $node)) {
+      if (! $self->_getNodeFile($stdout_buf, \$file, $node)) {
         next;
       }
 
@@ -1476,7 +1476,7 @@ sub _ast2inlines {
     #
     foreach ($self->ast()->findnodes($self->_xpath('inlines.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_getNodeFile($stdout_buf, \$file, $_)) {
         next;
       }
       my $text = '';
