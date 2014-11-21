@@ -9,15 +9,17 @@
 /*
  * C binding pseudo code of <xsl:value-of select="$module"/>, generated <xsl:value-of select="$current-date"/>
  */
-[%~ PROCESS file_start ~%]
-  <xsl:apply-templates/>
-[%~ PROCESS file_end ~%]
+[%~ PROCESS module_start('module', '<xsl:value-of select="$module"/>') ~%]
+    <xsl:apply-templates/>
+[%~ PROCESS module_end('module', '<xsl:value-of select="$module"/>') ~%]
   </xsl:template>
 
   <!-- =================================== -->
 
   <xsl:template match="translationUnit/externalDeclaration/declaration">
-[%~ PROCESS decl_start('<xsl:value-of select="@text"/>') ~%]
+[%~ PROCESS decl_start('file', '<xsl:value-of select="@file"/>', 'text', '<xsl:value-of select="@text"/>') ~%]
+    <xsl:apply-templates/>
+[%~ PROCESS decl_end('file', '<xsl:value-of select="@file"/>', 'text', '<xsl:value-of select="@text"/>') ~%]
   </xsl:template>
 
 </xsl:stylesheet>
