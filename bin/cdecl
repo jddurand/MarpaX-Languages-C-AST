@@ -198,7 +198,7 @@ __DATA__
 
 =head1 NAME
 
-c2bind - C gibberish <-> English
+cdecl - C gibberish <-> English
 
 =head1 SYNOPSIS
 
@@ -268,7 +268,7 @@ Shortcut for --loglevel TRACE
 
 =item B<--logstderr>
 
-Log to stderr or not. Default is 0.
+Log to stderr or not. Default is a false value.
 
 =item B<--Version>
 
