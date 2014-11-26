@@ -80,117 +80,73 @@ my $pod = do {local $/; <DATA>};
 my $podfh = IO::String->new($pod);
 pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_SUCCESS) if ($help);
 
-#
-# We expect input from STDIN
-#
-
-my %config = ();
-$config{start} = 'declaration';
-#
-# We use the action_object from MarpaX::Languages::C::Scan that is producing an ast in the DOM format
-#
-$config{actionObject} = 'MarpaX::Languages::C::Scan::Actions';
-$config{nonTerminalSemantic} = ':default ::= action => nonTerminalSemantic';
-
-# -------
-# Parse C
-# -------
-my $c = MarpaX::Languages::C::AST->new(%config);
-my $input = <STDIN>;
+# -----
+# Input
+# -----
+my $fh;
+if (@ARGV) {
+    if ($ARGV[0] eq '-') {
+        $fh = \*STDIN;
+    } else {
+        if (! open($fh, '<', $ARGV[0])) {
+            print STDERR "Cannot open $ARGV[0], $!\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+} else {
+    $fh = \*STDIN;
+}
+my $input = <$fh>;
 #
 # People might often forget the last semicolon. Add it eventually.
 #
 if (! ($input =~ /;\s*$/)) {
   $input .= ';'
 }
-$c->parse(\$input);
-my $dom = ${$c->value()};
 
-# -------------------------------------------------------------
-# We look for the first identifier and apply the C golden rule:
-# -------------------------------------------------------------
-# [Reference: Expert C Programming – Deep C Secrets]
-# A. Declarations are read by starting with the name and then reading in precedence order
-# B. The precedence, from high to low, is:
-# B.1 parentheses grouping together parts of a declaration
-# B.2 the posfix operators:
-#     parentheses () indicating a function, and
-#     square brackets [] indicating an array.
-# B.3 the prefix operator: the asterisk denoting "pointer to".
-# C. If a const and/or volatile keyword is next to a type specifier (e.g. int, long
-#    etc.) it applies to the type specifier. Otherwise the const and/or volatile keyword
-#    applies to the pointer asterisk on its immediate left.
-#--------------------------------------------------------------
-# We use the "Approach 1: stack of tokens" as of http://codinghighway.com/?p=986
-#--------------------------------------------------------------
-my @output;
-my @tokens = $dom->findnodes(XML::LibXML::XPathExpression->new('.//*[@start]'));
-while (@tokens) {
-  my $token = shift(@tokens);
-  my $localname = $token->localname();
-  if ($localname eq 'IDENTIFIER' || $localname eq 'IDENTIFIER_UNAMBIGUOUS') {
-    push(@output, $token->getAttribute('text');
-  }
+# -------------
+# Configuration
+# -------------
+my %config = ();
+$config{start} = 'declaration';
+$config{actionObject} = 'MarpaX::Languages::C::Scan::Actions';
+$config{nonTerminalSemantic} = ':default ::= action => nonTerminalSemantic';
+
+# -------
+# Get DOM
+# -------
+my $dom = ${MarpaX::Languages::C::AST->new(%config)->parse(\$input)->value()};
+
+# ---------
+# Giberrish
+# ---------
+#
+# Special case of of static assert declaration
+#
+if ($dom->firstChild()->localname() eq 'staticAssertDeclaration') {
+    my $constantExpression = $dom->firstChild()->nextSibling()->nextSibling();
+    my $stringLiteral = $constantExpression->nextSibling()->nextSibling();
+    printf "Static assertion with condition (%s) and message %s\n", _nodeToString($constantExpression, $input), _nodeToString($stringLiteral, $input);
+    exit(EXIT_SUCCESS);
 }
-
-sub parse_declarator {
-  my ($node, $stackp, $outputp) = @_;
-
-  my $next = $node->nextSibling();
-  # -------------------
-  # Array or function ?
-  # -------------------
-  if (defined($next)) {
-    if ($next->localname() eq 'LBRACKET') {
-      my $last = $next->nextSibling();
-      while (defined($last->nextSibling)) {
-	$last = $last->nextSibling;
-      }
-      #
-      # No need of 'length' attribute: we know that the length of [LR]BRACKET is 1
-      #
-      my $size = substr($input, $next->getAttribute('start') + 1, $last->getAttribute('start') - $next->getAttribute('start') - 1);
-      push(@{$outputp}, 'array of', (length($size) > 0) ? 'size ' . $size : 'unknown size');
-      push(@{$outputp}, 'of');
-    }
-    elsif ($next->localname() eq 'LPAREN_SCOPE') {
-      push(@{$outputp}, 'function');
-    }
-  }
-  while (@{$stackp}) {
-    my $token = shift(@{$stackp});
-    my $localname = $token->localname();
-    if ($localname eq 'pointer') {
-      push(@{$output}, 'pointer to');
-    }
-      $first = $first->previousSibling();
-    }
-  }
-  # ------------------------
-  # Specifiers on the left ?
-  # ------------------------
-  my $prev = $node->previousSibling();
-  if (defined($prev)) {
-    if ($prev->localname() eq 'declarationCheckdeclarationSpecifiers') {
-      my $firstLexeme = $prev->findnodes(XML::LibXML::XPathExpression->new('(.//*[@start])[1]'));
-      my $lastLexeme = $prev->findnodes(XML::LibXML::XPathExpression->new('(.//*[@start])[last()]'));
-      if (defined($firstLexeme) && defined($lastLexeme)) {
-	my $startPosition = $firstLexeme->[0]->findvalue('./@start');
-	my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
-	my $length = $endPosition - $startPosition;
-	push(@output, substr($input, $startPosition, $length));
-      }
-    }
-  }
-  # ------------
-  # Go to parent
-  # ------------
-  $node = $node->parentNode;
-}
-
-print join(' ', @output) . "\n";
 
 exit(EXIT_SUCCESS);
+
+sub _nodeToString {
+    my ($node, $string) = @_;
+
+    my $firstLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
+    my $lastLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
+
+    if (defined($firstLexeme) && defined($lastLexeme)) {
+        my $startPosition = $firstLexeme->[0]->findvalue('./@start');
+        my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
+        my $length = $endPosition - $startPosition;
+        return substr($string, $startPosition, $length);
+    } else {
+        return '';
+    }
+}
 
 sub _redirect {
     my ($fh, $filename) = @_;
@@ -319,6 +275,10 @@ Log to stderr or not. Default is 0.
 Print version and exit.
 
 =back
+
+=head1 NOTES
+
+If argument B<file> is absent or equal to "-", then STDIN is assumed.
 
 =head1 SEE ALSO
 
