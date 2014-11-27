@@ -129,20 +129,50 @@ if ($dom->firstChild()->localname() eq 'staticAssertDeclaration') {
     printf "Static assertion with condition (%s) and message %s\n", _nodeToString($constantExpression, $input), _nodeToString($stringLiteral, $input);
     exit(EXIT_SUCCESS);
 }
+#
+# We are left with:
+# declaration ::= declarationSpecifiers SEMICOLON
+#                 declarationCheck
+#
+# declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON
+# declarationCheckdeclarationSpecifiers ::= declarationSpecifiers
+# declarationCheckinitDeclaratorList    ::= initDeclaratorList
+#
+my $declarationSpecifiers = undef;
+my @declarators = ();
+if ($dom->firstChild()->localname() eq 'declarationSpecifiers') {
+  $declarationSpecifiers = $dom->firstChild();
+} else {
+  $declarationSpecifiers = $dom->firstChild()->firstChild()->firstChild();
+  my $initDeclaratorList = $dom->firstChild()->firstChild()->nextSibling()->firstChild();
+  # initDeclaratorList ::= initDeclarator+ separator => COMMA proper => 1
+  my @initDeclarator = $initDeclaratorList->childNodes();
+  foreach (@initDeclarator) {
+    push(@declarators, $_->firstChild());
+  }
+}
+
+$log->debugf('Declaration Specifiers: %s', _nodeToString($declarationSpecifiers, $input));
+foreach (@declarators) {
+  $log->debugf('Declarator: %s', _nodeToString($_, $input));
+}
 
 exit(EXIT_SUCCESS);
 
 sub _nodeToString {
-    my ($node, $string) = @_;
+    my ($node, $input) = @_;
 
     my $firstLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
     my $lastLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
 
-    if (defined($firstLexeme) && defined($lastLexeme)) {
-        my $startPosition = $firstLexeme->[0]->findvalue('./@start');
-        my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
+    my @firstLexemes = $node->findnodes($firstLexeme);
+    my @lastLexemes = $node->findnodes($lastLexeme);
+
+    if (@firstLexemes && @lastLexemes) {
+        my $startPosition = $firstLexemes[0]->findvalue('./@start');
+        my $endPosition = $lastLexemes[0]->findvalue('./@start') + $lastLexemes[0]->findvalue('./@length');
         my $length = $endPosition - $startPosition;
-        return substr($string, $startPosition, $length);
+        return substr($input, $startPosition, $length);
     } else {
         return '';
     }
