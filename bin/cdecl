@@ -169,8 +169,8 @@ sub _nodeToString {
     my @lastLexemes = $node->findnodes($lastLexeme);
 
     if (@firstLexemes && @lastLexemes) {
-        my $startPosition = $firstLexemes[0]->findvalue('./@start');
-        my $endPosition = $lastLexemes[0]->findvalue('./@start') + $lastLexemes[0]->findvalue('./@length');
+        my $startPosition = $firstLexemes[0]->getAttribute('start');
+        my $endPosition = $lastLexemes[0]->getAttribute('start') + $lastLexemes[0]->getAttribute('length');
         my $length = $endPosition - $startPosition;
         return substr($input, $startPosition, $length);
     } else {
