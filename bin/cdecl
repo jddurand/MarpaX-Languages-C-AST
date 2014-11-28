@@ -105,6 +105,7 @@ if (! defined($input)) {
 # People might often forget the last semicolon. Add it eventually.
 #
 if (! ($input =~ /;\s*$/)) {
+  $log->infof('Semicolon ";" character added to input');
   $input .= ';'
 }
 
@@ -156,9 +157,9 @@ if ($dom->firstChild()->localname() eq 'declarationSpecifiers') {
   }
 }
 
-$log->debugf('Declaration Specifiers: %s', _nodeToString($declarationSpecifiers, $input));
+$log->infof('Declaration Specifiers: %s', _nodeToString($declarationSpecifiers, $input));
 foreach (@declarators) {
-  $log->debugf('Declarator: %s', _nodeToString($_, $input));
+  $log->infof('Declarator: %s', _nodeToString($_, $input));
 }
 
 exit(EXIT_SUCCESS);
