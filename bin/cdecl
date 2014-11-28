@@ -37,6 +37,8 @@ our $CURRENTVERSION;
 our $firstLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
 our $lastLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
 our $allLexemesXpath = XML::LibXML::XPathExpression->new('(.//*[@start])');
+our $alignmentSpecifierXpath = XML::LibXML::XPathExpression->new('.//alignmentSpecifier');
+our $notInISOXpath = XML::LibXML::XPathExpression->new('.//msvsAttributeAny|.//gccAsmExpression');
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
@@ -125,6 +127,23 @@ $config{nonTerminalSemantic} = ':default ::= action => nonTerminalSemantic';
 # Get DOM
 # -------
 my $dom = ${MarpaX::Languages::C::AST->new(%config)->parse(\$input)->value()};
+#
+# Because we will modify the DOM, make a copy of it
+#
+$dom = $dom->cloneNode(1);
+#
+# Remove any child not stricly part of the standard
+#
+foreach ($dom->findnodes($notInISOXpath)) {
+    my $parent = $_->parentNode();
+    #
+    # Do not log if this is a node with no child
+    #
+    if ($_->childNodes()) {
+        $log->debugf('Removing node %s: %s', $_->localname(), _nodeToString($_, $input));
+    }
+    $parent->removeChild($_);
+}
 
 # ---------
 # Giberrish
@@ -166,9 +185,99 @@ foreach (@declarators) {
   $log->infof('Declarator: %s', _nodeToString($_, $input));
 }
 
-my @allLexemes = $dom->findnodes($allLexemesXpath);
+foreach (0..$#declarators) {
+    my @decl = ();
+    declaratorToDecl(\@decl, $declarators[$_]);
+    print "@decl";
+    if ($_ < $#declarators) {
+        print ', ';
+    } else {
+        print "\n";
+    }
+}
+
+{
+    my @decl = ();
+    # declarationSpecifiersToDecl(\@decl, $declarationSpecifiers);
+}
 
 exit(EXIT_SUCCESS);
+
+sub declaratorToDecl {
+    my ($declArrayp, $declarator) = @_;
+    #
+    # declarator ::= pointer directDeclarator
+    #              | directDeclarator
+    #              | MSVS___C_ASSERT__ LBRACKET expression RBRACKET
+    #
+    my $directDeclarator = undef;
+    my $firstChild = $declarator->firstChild();
+    if ($firstChild->localname() eq 'pointer') {
+        unshift(@{$declArrayp}, 'pointer to');
+        $directDeclarator = $firstChild->nextSibling();
+    } elsif ($firstChild->localname() eq 'directDeclarator') {
+        $directDeclarator = $firstChild;
+    } else {
+        #
+        # Ignore MSVS C assertion (not removed when cleaning the DOM)
+        #
+    }
+
+    if (defined($directDeclarator)) {
+        my @directDeclaratorArray = ();
+        directDeclaratorToDecl(\@directDeclaratorArray, $directDeclarator);
+        unshift(@{$declArrayp}, @directDeclaratorArray);
+    }
+}
+
+sub directDeclaratorToDecl {
+    my ($declArrayp, $directDeclarator) = @_;
+
+    # directDeclarator
+    # ::= directDeclaratorIdentifier
+    # | LPAREN declarator RPAREN
+    # | directDeclarator LBRACKET ... RBRACKET
+    # | directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+    # | directDeclarator LPAREN_SCOPE RPAREN_SCOPE
+    # | directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
+
+    my $firstChild = $directDeclarator->firstChild();
+    if ($firstChild->localname() eq 'directDeclaratorIdentifier') {
+        push(@{$declArrayp}, 'declare ' . $firstChild->firstChild()->getAttribute('text') . ' as');
+    } elsif ($firstChild->localname() eq 'LPAREN') {
+        my $declarator = $firstChild->nextSibling();
+        my @declaratorArray = ();
+        declaratorToDecl(\@declaratorArray, $declarator);
+        #
+        # Inner declarator: should be prepended
+        #
+        unshift(@{$declArrayp}, @declaratorArray);
+    } else {
+        my @declaratorArray = ();
+        directDeclaratorToDecl(\@declaratorArray, $firstChild);
+        #
+        # Inner declarator: should be prepended
+        #
+        unshift(@{$declArrayp}, @declaratorArray);
+        my $secondChild = $firstChild->nextSibling();
+        if ($secondChild->localname() eq 'LBRACKET') {
+            my @arraySize = ();
+            my $nextChild = $secondChild->nextSibling();
+            while (defined($nextChild) && $nextChild->localname() ne 'RBRACKET') {
+                push(@arraySize, _nodeToString($nextChild, $input));
+                $nextChild = $nextChild->nextSibling();
+            }
+            if (@arraySize) {
+                push(@{$declArrayp}, 'array ' . join('', @arraySize) . ' of');
+            } else {
+                push(@{$declArrayp}, 'array of');
+            }
+        } else {
+            push(@{$declArrayp}, 'function returning');
+        }
+    }
+
+}
 
 sub _nodeToString {
     my ($node, $input) = @_;
@@ -184,17 +293,6 @@ sub _nodeToString {
     } else {
         return '';
     }
-}
-
-sub gettoken {
-  #
-  # This will return undef when no more token
-  #
-  my $node = shift(@allLexemes);
-  if (! defined($node)) {
-    return undef;
-  }
-  return { node => $node, classify => _classifyNode($node) };
 }
 
 sub _redirect {
