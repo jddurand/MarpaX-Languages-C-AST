@@ -34,6 +34,10 @@ our $CURRENTVERSION;
   $CURRENTVERSION = $VERSION;
 }
 
+our $firstLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
+our $lastLexemeXpath = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
+our $allLexemesXpath = XML::LibXML::XPathExpression->new('(.//*[@start])');
+
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'out=s' => \$out,
@@ -162,16 +166,15 @@ foreach (@declarators) {
   $log->infof('Declarator: %s', _nodeToString($_, $input));
 }
 
+my @allLexemes = $dom->findnodes($allLexemesXpath);
+
 exit(EXIT_SUCCESS);
 
 sub _nodeToString {
     my ($node, $input) = @_;
 
-    my $firstLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[1]');
-    my $lastLexeme = XML::LibXML::XPathExpression->new('(.//*[@start])[last()]');
-
-    my @firstLexemes = $node->findnodes($firstLexeme);
-    my @lastLexemes = $node->findnodes($lastLexeme);
+    my @firstLexemes = $node->findnodes($firstLexemeXpath);
+    my @lastLexemes = $node->findnodes($lastLexemeXpath);
 
     if (@firstLexemes && @lastLexemes) {
         my $startPosition = $firstLexemes[0]->getAttribute('start');
@@ -181,6 +184,17 @@ sub _nodeToString {
     } else {
         return '';
     }
+}
+
+sub gettoken {
+  #
+  # This will return undef when no more token
+  #
+  my $node = shift(@allLexemes);
+  if (! defined($node)) {
+    return undef;
+  }
+  return { node => $node, classify => _classifyNode($node) };
 }
 
 sub _redirect {
