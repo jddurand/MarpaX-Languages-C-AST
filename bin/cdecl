@@ -21,6 +21,7 @@ use XML::LibXML;
 my $help = 0;
 my $out = '';
 my $err = '';
+my $input = undef;
 my $loglevel = 'WARN';
 my $logstderr = 0;
 
@@ -37,6 +38,7 @@ Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'out=s' => \$out,
             'err=s' => \$err,
+            'input=s' => \$input,
             'loglevel=s' => \$loglevel,
 	    'debug' => sub { $loglevel = 'DEBUG' },
 	    'info' => sub { $loglevel = 'INFO' },
@@ -83,20 +85,22 @@ pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_SUC
 # -----
 # Input
 # -----
-my $fh;
-if (@ARGV) {
+if (! defined($input)) {
+  my $fh;
+  if (@ARGV) {
     if ($ARGV[0] eq '-') {
-        $fh = \*STDIN;
+      $fh = \*STDIN;
     } else {
-        if (! open($fh, '<', $ARGV[0])) {
-            print STDERR "Cannot open $ARGV[0], $!\n";
-            exit(EXIT_FAILURE);
-        }
+      if (! open($fh, '<', $ARGV[0])) {
+	print STDERR "Cannot open $ARGV[0], $!\n";
+	exit(EXIT_FAILURE);
+      }
     }
-} else {
+  } else {
     $fh = \*STDIN;
+  }
+  $input = <$fh>;
 }
-my $input = <$fh>;
 #
 # People might often forget the last semicolon. Add it eventually.
 #
@@ -232,10 +236,11 @@ cdecl - C gibberish <-> English
 
 =head1 SYNOPSIS
 
- cdecl [options] file
+ cdecl [options] [file]
 
  Startup Options:
    --help               This help.
+   --input <statement>  Statement to parse.
    --out <argument>     Redirect any output to this filename.
    --err <argument>     Redirect any error to this filename.
    --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
@@ -256,7 +261,11 @@ cdecl - C gibberish <-> English
 
 =item B<--help>
 
-This help
+This help.
+
+=item B<--input>
+
+Statement to parse.
 
 =item B<--loglevel level>
 
@@ -308,7 +317,7 @@ Print version and exit.
 
 =head1 NOTES
 
-If argument B<file> is absent or equal to "-", then STDIN is assumed.
+If argument B<input> is not given and argument B<file> is absent or equal to "-", then STDIN is assumed.
 
 =head1 SEE ALSO
 
