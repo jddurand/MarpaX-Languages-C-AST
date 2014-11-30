@@ -6,7 +6,6 @@ package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan;
 # ABSTRACT: Scan C source
 
 use MarpaX::Languages::C::AST;
-use MarpaX::Languages::C::AST::Util::Data::Find;
 use Config;
 use Carp qw/croak/;
 use IPC::Cmd qw/run/;
@@ -29,6 +28,7 @@ use File::Basename qw/basename/;
 use Unicode::CaseFold;
 use XML::LibXML;
 use XML::LibXSLT;
+use constant { TYPE => 0, QUALIFIER => 1, IDENTIFIER => 2, OTHER => 3, SKIPPED => 4 };
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -446,14 +446,18 @@ sub typedef_structs {
 
 =head2 topDeclarations($self)
 
-All top-level declarations.
+All top-level declarations. This is a XML::LibXML::Document containing a list of declaration children. Available only when asDOM option is a true value.
 
 =cut
 
 sub topDeclarations {
   my ($self) = @_;
 
-  return $self->{_topDeclarations};
+  if ($self->{_asDOM}) {
+    return $self->{_topDeclarations};
+  }
+  $log->warnf('topDeclarations is available only when asDOM option is a true value');
+  return undef;
 }
 
 # ----------------------------------------------------------------------------------------
@@ -507,7 +511,7 @@ sub _init {
     # It is assumed (and is the case with %Config value), that cpprun and cppflags
     # will be already properly escaped.
     # Remains the filename that we do ourself.
-    # Tyo big categories: Win32, others
+    # Two big categories: Win32, others
     #
     my $quotedFilename;
     my $cmd = "$self->{_cpprun} $self->{_cppflags} ";
@@ -640,6 +644,13 @@ sub _analyse_with_grammar {
   #
   foreach ($self->ast()->findnodes($self->_xpath('allNodes.xpath'))) {
     #
+    # In order to distringuish between a lexeme or not in the future, we remember
+    # if there was originally a lexeme -;
+    #
+    my $text = $_->getAttribute('text');
+    my $isLexeme = defined($text) ? 'true' : 'false';
+    $_->setAttribute('isLexeme', $isLexeme);
+    #
     # And file information, which is acting as a filter
     #
     $self->_pushNodeFile($stdout_buf, undef, $_, 1);
@@ -676,7 +687,7 @@ sub _analyse_with_grammar {
   $self->_ast2vdecl_hash($stdout_buf);
   $self->_ast2typedef_structs($stdout_buf);
   $self->_ast2topDeclarations($stdout_buf);
-
+  $self->_ast2cdecl($stdout_buf);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -1090,7 +1101,7 @@ sub _ast2vdecl_hash {
 sub _ast2topDeclarations {
   my ($self, $stdout_buf) = @_;
 
-  if (! defined($self->{_topDeclarations})) {
+  if ($self->{_asDOM} && ! defined($self->{_topDeclarations})) {
     $self->{_topDeclarations} = XML::LibXML::Document->new();
     my $declarationList = XML::LibXML::Element->new('declarationList');
     $self->{_topDeclarations}->addChild($declarationList);
@@ -1099,12 +1110,316 @@ sub _ast2topDeclarations {
       my $declaration = $_;
       my $file;
       if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
-        next;
+	next;
       }
       $declarationList->addChild($declaration->cloneNode(1));
     }
   }
+}
 
+# ----------------------------------------------------------------------------------------
+
+=head2 cdecl($self)
+
+Cdecl-like string of top-level declarations. Available only when asDOM option is atrue value. Returns a reference to an array.
+
+=cut
+
+sub cdecl {
+  my ($self) = @_;
+
+  if ($self->{_asDOM}) {
+    return $self->{_cdecl};
+  } else {
+    $log->warnf('cdecl is available only when asDOM option is a true value');
+    return undef;
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _ast2cdecl {
+  my ($self, $stdout_buf) = @_;
+
+  if ($self->{_asDOM} && ! defined($self->{_cdecl})) {
+    $self->{_cdeclAnonNb} = 0;
+    $self->{_cdecl} = [];
+    #
+    # We will analyse topDeclarations
+    #
+    foreach ($self->topDeclarations()->firstChild()->childNodes()) {
+      push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($_, $stdout_buf));
+    }
+    delete($self->{_cdeclAnonNb});
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _topDeclaration2Cdecl {
+  my ($self, $declaration, $stdout_buf) = @_;
+
+  $self->_logCdecl('[>]_topDeclaration2Cdecl');
+
+  #
+  # For every declaration we scan all the lexemes, aka tokens.
+  #
+  my $allNodesXpath = $self->_xpath('allNodes.xpath');
+  my @nodes = $declaration->findnodes($allNodesXpath);
+  my $cdecl = '';
+  my @stack = ();
+  my $last = $self->_readToId($stdout_buf, \@nodes, \@stack, \$cdecl);
+  $self->_parseDeclarator($stdout_buf, \@nodes, \@stack, \$cdecl, $last);
+
+  $self->_logCdecl('[<]_topDeclaration2Cdecl', cdecl => $cdecl);
+
+  return $cdecl;
+}
+
+sub _logCdecl {
+  my ($self, $function, %h) = @_;
+
+  #
+  # Rework case of stack
+  #
+  if (exists($h{stack})) {
+    $h{stack} = [ map { $_->{string} } @{$h{stack}} ];
+  }
+  $log->debugf('%s: %s', $function, \%h);
+}
+
+sub _checkPtr {
+  my ($self, $tokensp, $stackp, $cdeclp) = @_;
+
+  $self->_logCdecl('[>]_checkPtr', stack => $stackp, cdecl => $cdeclp);
+
+  if (! @{$stackp}) {
+    $self->_logCdecl('[<]_checkPtr', stack => $stackp, cdecl => $cdeclp);
+    return;
+  }
+
+  my $t;
+  for ($t = pop(@{$stackp});
+
+       $t->{token}->localname() eq 'STAR';
+
+       $t = pop(@{$stackp})) {
+    ${$cdeclp} .= 'pointer to ';
+  }
+  push(@{$stackp}, $t);
+
+  $self->_logCdecl('[<]_checkPtr', stack => $stackp, cdecl => $cdeclp);
+
+}
+
+sub _parseDeclarator {
+  my ($self, $stdout_buf, $tokensp, $stackp, $cdeclp, $last) = @_;
+
+  $self->_logCdecl('[>]_parseDeclarator', stack => $stackp, cdecl => $cdeclp);
+
+  if ($last->{token}->localname() eq 'LBRACKET') {
+    while ($last->{token}->localname() eq 'LBRACKET') {
+      $last = $self->_readArraySize($stdout_buf, $tokensp, $cdeclp);
+    }
+  } elsif ($last->{token}->localname() eq 'LPAREN_SCOPE') {
+    $last = $self->_readFunctionArgs($stdout_buf, $tokensp, $cdeclp);
+  }
+  $self->_checkPtr($tokensp, $stackp, $cdeclp);
+
+  while (@{$stackp}) {
+    my $t = pop(@{$stackp});
+    if ($t->{token}->localname() eq 'LPAREN') {
+      $last = $self->_getToken($stdout_buf, $tokensp);
+      $self->_parseDeclarator($stdout_buf, $tokensp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
+    } else {
+      ${$cdeclp} .= sprintf('%s ', $t->{string});
+    }
+  }
+
+  $self->_logCdecl('[<]_parseDeclarator', stack => $stackp, cdecl => $cdeclp);
+
+}
+
+sub _readFunctionArgs {
+  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+
+  $self->_logCdecl('[>]_readFunctionArgs', cdecl => $cdeclp);
+
+  my $last = $self->_getToken($stdout_buf, $tokensp);
+
+  if ($last->{token}->localname() eq 'RPAREN_SCOPE') {
+    ${$cdeclp} .= 'function returning ';
+    $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
+    return;
+  }
+
+  #
+  # Push back the token
+  #
+  unshift(@{$tokensp}, $last->{token});
+
+  ${$cdeclp} .= 'function receiving ';
+
+  do {
+    my @stack = ();
+    my $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
+
+    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
+
+    if ($last->{token}->localname() eq 'COMMA') {
+      ${$cdeclp} .= 'and ';
+    }
+  } while ($last->{token}->localname() eq 'COMMA');
+
+  ${$cdeclp} .= 'and returning ';
+
+  $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
+  return $self->_getToken($stdout_buf, $tokensp);
+}
+
+sub _readArraySize {
+  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+
+  $self->_logCdecl('[>]_readArraySize', cdecl => $cdeclp);
+
+  #
+  # Per def next token in the list is the one just after LBRACKET
+  #
+  my $last = $self->_getToken($stdout_buf, $tokensp);
+  my $start = $last->{token}->getAttribute('start');
+  my $end = 0;
+
+  $self->_logCdecl('_parseDeclarator', last => $last);
+
+  while ($last->{token}->localname() ne 'RBRACKET') {
+    $end = $last->{token}->getAttribute('start') + $last->{token}->getAttribute('length');
+    $last = $self->_getToken($stdout_buf, $tokensp);
+  }
+  my $size = '';
+  if ($end > 0) {
+    ${$cdeclp} .= sprintf('array[%s] of ', substr($stdout_buf, $start, $end - $start));
+  } else {
+    ${$cdeclp} .= sprintf('array[] of ');
+  }
+
+  $self->_logCdecl('[<]_readArraySize', cdecl => $cdeclp);
+
+  return $self->_getToken($stdout_buf, $tokensp);
+}
+
+sub _readToId {
+  my ($self, $stdout_buf, $tokensp, $stackp, $cdeclp) = @_;
+
+  $self->_logCdecl('[>]_readToId', stack => $stackp, cdecl => $cdeclp);
+
+  my $last;
+
+  for ($last = $self->_getToken($stdout_buf, $tokensp);
+       $last->{type} != IDENTIFIER;
+       push(@{$stackp}, $last), $last = $self->_getToken($stdout_buf, $tokensp)) {}
+
+  ${$cdeclp} .= sprintf('%s: ', $last->{string});
+
+  $self->_logCdecl('[<]_readToId', stack => $stackp, cdecl => $cdeclp);
+
+  return $self->_getToken($stdout_buf, $tokensp);
+}
+
+sub _classifyNode {
+  my ($self, $stdout_buf, $token) = @_;
+
+  my $last = {token => $token,
+	      string => undef,
+	      type => undef};
+
+  $self->_logCdecl('[<]_classifyNode', name => $token->localname(), isLexeme => $token->getAttribute('isLexeme'), text => $token->getAttribute('text'));
+
+  my $name = $token->localname();
+  my $previous = $token->previousSibling();
+  my $next = $token->nextSibling();
+  my $isLexeme = $last->{token}->getAttribute('isLexeme') || 'false';
+
+
+  if ($name eq 'CONST') { # We call const "read-only" to clarify
+    $last->{string} = 'read-only';
+  } else {
+    $last->{string} = $last->{token}->getAttribute('text');
+  }
+
+  my $parent = $last->{token}->parentNode();
+  my $parentName = $parent->localname();
+
+  if ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ELLIPSIS') {
+    $last->{type} = IDENTIFIER;
+  }
+  #
+  # Case of anonymous thingies
+  #
+  elsif ($name eq 'LCURLY' && defined($previous) && $previous->localname() eq 'structOrUnion') {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'LCURLY' && defined($previous) && $previous->localname() eq 'ENUM') {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'declarationSpecifiers' && $parentName eq 'parameterDeclaration' && ! defined($next)) {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'msvsAttributeAny' && $parentName eq 'abstractDeclarator' && ! defined($next)) {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'directAbstractDeclarator' && $parentName ne 'directAbstractDeclarator') {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  }
+  #
+  # Types stuff
+  #
+  elsif ($parentName eq 'typeQualifier') {
+    $last->{type} = QUALIFIER;
+  }
+  elsif ($parentName eq 'structOrUnion' ||
+      $parentName eq 'enumSpecifier' ||
+      $parentName eq 'typeSpecifier1' ||
+      $parentName eq 'typeSpecifier2' ||
+      $parentName eq 'atomicTypeSpecifier' ||
+      $parentName eq 'msvsBuiltinType' ||
+      $parentName eq 'gccBuiltinType' ||
+      $parentName eq 'gccTypeof') {
+    $last->{type} = TYPE;
+  }
+  elsif ($isLexeme eq 'true') {
+    $last->{type} = OTHER;
+    if ($name eq 'STAR') {
+      # Make string contain "pointer to", otherwise, qualified pointers would be printed as '*'
+      $last->{string} = 'pointer to';
+    }
+  } else {
+    $last->{type} = SKIPPED;
+  }
+
+  $self->_logCdecl('[>]_classifyNode', name => $token->localname(), isLexeme => $token->getAttribute('isLexeme'), text => $token->getAttribute('text'));
+
+  return $last;
+}
+
+sub _getToken {
+  my ($self, $stdout_buf, $tokensp) = @_;
+
+  $self->_logCdecl('[>]_getToken');
+
+  my $token;
+  my $last;
+  do {
+    $token = shift(@{$tokensp});
+    if (! defined($token)) {
+      return undef;
+    }
+    $last = $self->_classifyNode($stdout_buf, $token);
+  } while ($last->{type} == SKIPPED);
+
+  $self->_logCdecl('[>]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
+
+  return $last;
 }
 
 # ----------------------------------------------------------------------------------------
