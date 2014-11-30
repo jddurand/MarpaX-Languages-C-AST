@@ -1258,7 +1258,7 @@ sub _readFunctionArgs {
   #
   unshift(@{$tokensp}, $last->{token});
 
-  ${$cdeclp} .= 'function receiving ';
+  ${$cdeclp} .= 'function receiving (';
 
   do {
     my @stack = ();
@@ -1271,7 +1271,7 @@ sub _readFunctionArgs {
     }
   } while ($last->{token}->localname() eq 'COMMA');
 
-  ${$cdeclp} .= 'and returning ';
+  ${$cdeclp} .= ') and returning ';
 
   $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
   return $self->_getToken($stdout_buf, $tokensp);
@@ -1417,7 +1417,7 @@ sub _getToken {
     $last = $self->_classifyNode($stdout_buf, $token);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[>]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
+  $self->_logCdecl('[<]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
 
   return $last;
 }
