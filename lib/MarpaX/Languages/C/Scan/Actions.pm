@@ -3,7 +3,6 @@ use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::Scan::Actions;
 use XML::LibXML;
-use Scalar::Util qw/blessed/;
 use Carp qw/croak/;
 
 # ABSTRACT: ISO ANSI C grammar actions in Scan mode
