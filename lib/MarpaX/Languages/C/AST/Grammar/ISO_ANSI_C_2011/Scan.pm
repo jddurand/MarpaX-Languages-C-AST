@@ -1262,13 +1262,24 @@ sub _readFunctionArgs {
 
   do {
     my @stack = ();
-    my $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
 
-    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
+    my $nextToken = $last->{token}->nextSibling();
+    if (defined($nextToken) && $nextToken->localname() eq 'ELLIPSIS') {
+      #
+      # "..." is a special case in function arguments. Eat it.
+      #
+      ${$cdeclp} .= '... ';
+      $last = $self->_getToken($stdout_buf, $tokensp);
+    } else {
 
-    if ($last->{token}->localname() eq 'COMMA') {
-      ${$cdeclp} .= 'and ';
+      $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
+      $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
+
+      if ($last->{token}->localname() eq 'COMMA') {
+	${$cdeclp} .= 'and ';
+      }
     }
+
   } while ($last->{token}->localname() eq 'COMMA');
 
   ${$cdeclp} .= ') and returning ';
