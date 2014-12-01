@@ -1148,7 +1148,29 @@ sub _ast2cdecl {
     # We will analyse topDeclarations
     #
     foreach ($self->topDeclarations()->firstChild()->childNodes()) {
-      push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($_, $stdout_buf));
+      #
+      # Because we will reinsert COMMAs where needed, we modify the DOM
+      #
+      my $declaration = $_->cloneNode(1);
+      foreach ($declaration->findnodes($self->_xpath('missingComma.xpath'))) {
+	my $i = 0;
+	my $previous;
+	foreach ($_->childNodes()) {
+	  if ($i++ > 0) {
+	    my $text;
+	    $self->_pushNodeString($stdout_buf, \$text, $previous);
+	    $log->debugf('[.]_ast2cdecl: restoring comma after "%s"', $text);
+	    my $newNode = XML::LibXML::Element->new('COMMA');
+	    $newNode->setAttribute('isLexeme', 'true');
+	    $newNode->setAttribute('text', ',');
+	    $newNode->setAttribute('start', $previous->getAttribute('start') + $previous->getAttribute('length'));
+	    $newNode->setAttribute('length', $_->getAttribute('start') - $previous->getAttribute('start'));
+	    $previous->addSibling($newNode);
+	  }
+	  $previous = $_;
+	}
+      }
+      push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
     }
     delete($self->{_cdeclAnonNb});
   }
