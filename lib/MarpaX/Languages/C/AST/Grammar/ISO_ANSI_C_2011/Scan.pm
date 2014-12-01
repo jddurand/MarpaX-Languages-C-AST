@@ -29,6 +29,7 @@ use Unicode::CaseFold;
 use XML::LibXML;
 use XML::LibXSLT;
 use constant { TYPE => 0, QUALIFIER => 1, IDENTIFIER => 2, OTHER => 3, SKIPPED => 4 };
+our @type2String = qw/TYPE QUALIFIER IDENTIFIER OTHER SKIPPED/;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -1217,9 +1218,9 @@ sub _logCdecl {
   #
   if (exists($h{last})) {
     if (exists($h{last}->{token}) && defined($h{last}->{token})) {
-      $h{last} = {last => {name => $h{last}->{token}->localname(), isLexeme => $h{last}->{token}->getAttribute('isLexeme'), text => $h{last}->{token}->getAttribute('text')}};
+      $h{last} = {name => $h{last}->{token}->localname(), isLexeme => $h{last}->{token}->getAttribute('isLexeme'), text => $h{last}->{token}->getAttribute('text'), type => defined($h{last}->{type}) ? ($type2String[$h{last}->{type}] || 'UNKNOWN') : undef};
     } else {
-      $h{last} = {last => {name => undef, isLexeme => undef, text => undef}};
+      $h{last} = undef;
     }
   }
   $log->debugf('%s: %s', $function, \%h);
@@ -1260,6 +1261,16 @@ sub _parseDeclarator {
     }
   } elsif ($last->{token}->localname() eq 'LPAREN_SCOPE') {
     $last = $self->_readFunctionArgs($stdout_buf, $tokensp, $cdeclp);
+  } elsif ($last->{token}->localname() eq 'LCURLY') {
+    my $parent = $last->{token}->parentNode();
+    if (defined($parent)) {
+      if ($parent->localname() eq 'structOrUnionSpecifier') {
+        $last = $self->_readStructDeclarationList($stdout_buf, $tokensp, $cdeclp);
+      }
+      elsif ($parent->localname() eq 'enumSpecifier') {
+        $log->debugf('TO DO: enum');
+      }
+    }
   }
   $self->_checkPtr($tokensp, $stackp, $cdeclp);
 
@@ -1300,8 +1311,10 @@ sub _readFunctionArgs {
   my @stack = ();
   my $cdecl = '';
   do {
+    #
+    # Every argument has its own stack. No need to save it.
+    #
     $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
-
     $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, \$cdecl, $last);
 
     if ($last->{token}->localname() eq 'COMMA') {
@@ -1314,6 +1327,45 @@ sub _readFunctionArgs {
   $last = $self->_getToken($stdout_buf, $tokensp);
 
   $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp, last => $last);
+
+  return $last;
+}
+
+sub _readStructDeclarationList {
+  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+
+  $self->_logCdecl('[>]_readStructDeclarationList', cdecl => $cdeclp);
+
+  ${$cdeclp} .= 'structure defined as ';
+
+  my @stack = ();
+  my $cdecl = '';
+  my $last;
+
+  do {
+    $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
+    do {
+      #
+      # Every declarator will share the stack up to first (eventually faked) identifier
+      #
+      my @saveStack = @stack;
+      $self->_parseDeclarator($stdout_buf, $tokensp, \@saveStack, \$cdecl, $last);
+
+      if ($last->{token}->localname() eq 'COMMA') {
+        $cdecl .= ', ';
+      }
+    } while ($last->{token}->localname() eq 'COMMA');
+
+    if ($last->{token}->localname() eq 'SEMICOLON') {
+      $cdecl .= '; ';
+    }
+  } while ($last->{token}->localname() eq 'SEMICOLON');
+
+  ${$cdeclp} .= '{' . $cdecl . '} ';
+
+  $last = $self->_getToken($stdout_buf, $tokensp);
+
+  $self->_logCdecl('[<]_readStructDeclarationList', cdecl => $cdeclp, last => $last);
 
   return $last;
 }
@@ -1389,7 +1441,6 @@ sub _classifyNode {
   my $next = $token->nextSibling();
   my $isLexeme = $last->{token}->getAttribute('isLexeme') || 'false';
 
-
   if ($name eq 'CONST') { # We call const "read-only" to clarify
     $last->{string} = 'read-only';
   } elsif ($name eq 'ELLIPSIS') { # We call ... "etc."
@@ -1413,13 +1464,22 @@ sub _classifyNode {
   } elsif ($name eq 'LCURLY' && defined($previous) && $previous->localname() eq 'ENUM') {
     $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
     $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'declarationSpecifiers' && $parentName eq 'parameterDeclaration' && ! defined($next)) {
+  } elsif ($name eq 'COMMA' && defined($previous) && $previous->localname() eq 'parameterDeclaration' && $previous->lastChild()->localname() eq 'declarationSpecifiers') {
+    #
+    # This is the comma after an anonymous function parameter
+    #
     $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
     $last->{type} = IDENTIFIER;
   } elsif ($name eq 'msvsAttributeAny' && $parentName eq 'abstractDeclarator' && ! defined($next)) {
     $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
     $last->{type} = IDENTIFIER;
   } elsif ($name eq 'directAbstractDeclarator' && $parentName ne 'directAbstractDeclarator') {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'specifierQualifierList' && defined($next) && $next->localname() eq 'SEMICOLON') {
+    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $last->{type} = IDENTIFIER;
+  } elsif ($name eq 'COLON' && ! defined($previous) && defined($parent) && $parent->localname() eq 'structDeclarator') {
     $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
     $last->{type} = IDENTIFIER;
   }
@@ -1429,9 +1489,8 @@ sub _classifyNode {
   elsif ($parentName eq 'typeQualifier') {
     $last->{type} = QUALIFIER;
   }
-  elsif ($parentName eq 'structOrUnion' ||
-      $parentName eq 'enumSpecifier' ||
-      $parentName eq 'typeSpecifier1' ||
+  elsif ($parentName eq 'enumSpecifier' ||
+      ($parentName eq 'typeSpecifier1' && $name ne 'structOrUnionSpecifier') ||
       $parentName eq 'typeSpecifier2' ||
       $parentName eq 'atomicTypeSpecifier' ||
       $parentName eq 'msvsBuiltinType' ||
