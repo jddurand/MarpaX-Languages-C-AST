@@ -1157,15 +1157,8 @@ sub _ast2cdecl {
 	my $i = 0;
 	my $previousNode;
 	foreach ($_->childNodes()) {
-          {
-	    my $text;
-	    $self->_pushNodeString($stdout_buf, \$text, $_);
-            $log->debugf('[.]_ast2cdecl: checking child No %d of type %s: "%s"', $i, $_->localname(), $text);
-          }
-	  if ($i++ > 0) {
-	    my $text;
-	    $self->_pushNodeString($stdout_buf, \$text, $previousNode);
-	    $log->debugf('[.]_ast2cdecl: restoring comma after "%s"', $text);
+	  if ($i > 0) {
+	    $log->debugf('[.]_ast2cdecl: %s: restoring comma lexeme after child No %d "%s"', $declaration->getAttribute('text'), $i - 1, $previousNode->getAttribute('text'));
 	    my $newNode = XML::LibXML::Element->new('COMMA');
 	    $newNode->setAttribute('isLexeme', 'true');
 	    $newNode->setAttribute('text', ',');
@@ -1173,15 +1166,24 @@ sub _ast2cdecl {
 	    $newNode->setAttribute('length', $_->getAttribute('start') - $previousNode->getAttribute('start'));
             $previousNode->parentNode->insertAfter($newNode, $previousNode);
 	  }
+	  ++$i;
 	  $previousNode = $_;
 	}
       }
       #
-      # Our model do not mind if we do not respect exactly the AST. In fact, it requires IDENTIFIER
-      # to know when to "stop" when scanning tokens.
+      # Our model do not mind if we do not respect exactly the AST. In fact, it requires an IDENTIFIER
+      # or an IDENTIFIER_UNAMBIGUOUS (or ELLIPSIS exceptionnaly) to know when to "stop" when scanning tokens.
       # We insert fake identifiers wherever needed.
       #
       foreach ($declaration->findnodes($self->_xpath('missingIdentifier.xpath'))) {
+	my $identifier = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+	$log->debugf('[.]_ast2cdecl: %s: faking identifier %s', $declaration->getAttribute('text'), $identifier);
+	my $newNode = XML::LibXML::Element->new('IDENTIFIER');
+	$newNode->setAttribute('isLexeme', 'true');
+	$newNode->setAttribute('text', $identifier);
+	$newNode->setAttribute('start', -1);
+	$newNode->setAttribute('length', length($identifier));
+	$_->parentNode->insertAfter($newNode, $_);
       }
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
     }
@@ -1462,37 +1464,6 @@ sub _classifyNode {
   if ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ELLIPSIS') {
     $last->{type} = IDENTIFIER;
   }
-  #
-  # Case of anonymous thingies
-  #
-  elsif ($name eq 'LCURLY' && defined($previous) && $previous->localname() eq 'structOrUnion') {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'LCURLY' && defined($previous) && $previous->localname() eq 'ENUM') {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'COMMA' && defined($previous) && $previous->localname() eq 'parameterDeclaration' && $previous->lastChild()->localname() eq 'declarationSpecifiers') {
-    #
-    # This is the comma after an anonymous function parameter
-    #
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'msvsAttributeAny' && $parentName eq 'abstractDeclarator' && ! defined($next)) {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'directAbstractDeclarator' && $parentName ne 'directAbstractDeclarator') {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'specifierQualifierList' && defined($next) && $next->localname() eq 'SEMICOLON') {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  } elsif ($name eq 'COLON' && ! defined($previous) && defined($parent) && $parent->localname() eq 'structDeclarator') {
-    $last->{string} = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-    $last->{type} = IDENTIFIER;
-  }
-  #
-  # Types stuff
-  #
   elsif ($parentName eq 'typeQualifier') {
     $last->{type} = QUALIFIER;
   }
