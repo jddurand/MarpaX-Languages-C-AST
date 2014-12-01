@@ -1,0 +1,13 @@
+.//structOrUnionSpecifier/structOrUnion/LCURLY
+|
+.//enumSpecifier/ENUM/LCURLY
+|
+.//parameterDeclaration/declarationSpecifiers[not(following-sibling::*)]
+|
+.//abstractDeclarator/msvsAttributeAny[not(following-sibling::*)]
+|
+.//structDeclaration/specifierQualifierList/SEMICOLON
+|
+.//structDeclaration/SEMICOLON
+|
+.//structDeclarator/COLON
