@@ -1149,25 +1149,30 @@ sub _ast2cdecl {
     #
     foreach ($self->topDeclarations()->firstChild()->childNodes()) {
       #
-      # Because we will reinsert COMMAs where needed, we modify the DOM
+      # Because we will recover COMMAs where needed, we may modify the DOM, so we clone it.
       #
       my $declaration = $_->cloneNode(1);
       foreach ($declaration->findnodes($self->_xpath('missingComma.xpath'))) {
 	my $i = 0;
-	my $previous;
+	my $previousNode;
 	foreach ($_->childNodes()) {
+          {
+	    my $text;
+	    $self->_pushNodeString($stdout_buf, \$text, $_);
+            $log->debugf('[.]_ast2cdecl: checking %s: "%s"', $_->localname(), $text);
+          }
 	  if ($i++ > 0) {
 	    my $text;
-	    $self->_pushNodeString($stdout_buf, \$text, $previous);
+	    $self->_pushNodeString($stdout_buf, \$text, $previousNode);
 	    $log->debugf('[.]_ast2cdecl: restoring comma after "%s"', $text);
 	    my $newNode = XML::LibXML::Element->new('COMMA');
 	    $newNode->setAttribute('isLexeme', 'true');
 	    $newNode->setAttribute('text', ',');
-	    $newNode->setAttribute('start', $previous->getAttribute('start') + $previous->getAttribute('length'));
-	    $newNode->setAttribute('length', $_->getAttribute('start') - $previous->getAttribute('start'));
-	    $previous->addSibling($newNode);
+	    $newNode->setAttribute('start', $previousNode->getAttribute('start') + $previousNode->getAttribute('length'));
+	    $newNode->setAttribute('length', $_->getAttribute('start') - $previousNode->getAttribute('start'));
+            $previousNode->parentNode->insertAfter($newNode, $previousNode);
 	  }
-	  $previous = $_;
+	  $previousNode = $_;
 	}
       }
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
@@ -1282,18 +1287,19 @@ sub _readFunctionArgs {
 
   ${$cdeclp} .= 'function receiving ';
 
+  my @stack = ();
+  my $cdecl = '';
   do {
-    my @stack = ();
-    my $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
+    $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
 
-    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
+    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, \$cdecl, $last);
 
     if ($last->{token}->localname() eq 'COMMA') {
-      ${$cdeclp} .= 'and ';
+      $cdecl .= ', ';
     }
   } while ($last->{token}->localname() eq 'COMMA');
 
-  ${$cdeclp} .= 'and returning ';
+  ${$cdeclp} .= '(' . $cdecl . ') and returning ';
 
   $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
   return $self->_getToken($stdout_buf, $tokensp);
@@ -1340,7 +1346,14 @@ sub _readToId {
        $last->{type} != IDENTIFIER;
        push(@{$stackp}, $last), $last = $self->_getToken($stdout_buf, $tokensp)) {}
 
-  ${$cdeclp} .= sprintf('%s: ', $last->{string});
+  #
+  # Subtility with ELLIPSIS, per def there is no declaration at all
+  #
+  if ($last->{token}->localname() eq 'ELLIPSIS') {
+    ${$cdeclp} .= sprintf('%s ', $last->{string});
+  } else {
+    ${$cdeclp} .= sprintf('%s: ', $last->{string});
+  }
 
   $self->_logCdecl('[<]_readToId', stack => $stackp, cdecl => $cdeclp);
 
@@ -1364,6 +1377,8 @@ sub _classifyNode {
 
   if ($name eq 'CONST') { # We call const "read-only" to clarify
     $last->{string} = 'read-only';
+  } elsif ($name eq 'ELLIPSIS') { # We call ... "etc."
+    $last->{string} = 'etc.';
   } else {
     $last->{string} = $last->{token}->getAttribute('text');
   }
