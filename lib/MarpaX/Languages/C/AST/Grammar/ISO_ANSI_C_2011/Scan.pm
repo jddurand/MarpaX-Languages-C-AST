@@ -1159,7 +1159,7 @@ sub _ast2cdecl {
           {
 	    my $text;
 	    $self->_pushNodeString($stdout_buf, \$text, $_);
-            $log->debugf('[.]_ast2cdecl: checking %s: "%s"', $_->localname(), $text);
+            $log->debugf('[.]_ast2cdecl: checking child No %d of type %s: "%s"', $i, $_->localname(), $text);
           }
 	  if ($i++ > 0) {
 	    my $text;
@@ -1212,6 +1212,16 @@ sub _logCdecl {
   if (exists($h{stack})) {
     $h{stack} = [ map { $_->{string} } @{$h{stack}} ];
   }
+  #
+  # Rework case of last
+  #
+  if (exists($h{last})) {
+    if (exists($h{last}->{token}) && defined($h{last}->{token})) {
+      $h{last} = {last => {name => $h{last}->{token}->localname(), isLexeme => $h{last}->{token}->getAttribute('isLexeme'), text => $h{last}->{token}->getAttribute('text')}};
+    } else {
+      $h{last} = {last => {name => undef, isLexeme => undef, text => undef}};
+    }
+  }
   $log->debugf('%s: %s', $function, \%h);
 }
 
@@ -1242,7 +1252,7 @@ sub _checkPtr {
 sub _parseDeclarator {
   my ($self, $stdout_buf, $tokensp, $stackp, $cdeclp, $last) = @_;
 
-  $self->_logCdecl('[>]_parseDeclarator', stack => $stackp, cdecl => $cdeclp);
+  $self->_logCdecl('[>]_parseDeclarator', stack => $stackp, cdecl => $cdeclp, last => $last);
 
   if ($last->{token}->localname() eq 'LBRACKET') {
     while ($last->{token}->localname() eq 'LBRACKET') {
@@ -1301,8 +1311,11 @@ sub _readFunctionArgs {
 
   ${$cdeclp} .= '(' . $cdecl . ') and returning ';
 
-  $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
-  return $self->_getToken($stdout_buf, $tokensp);
+  $last = $self->_getToken($stdout_buf, $tokensp);
+
+  $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp, last => $last);
+
+  return $last;
 }
 
 sub _readArraySize {
@@ -1317,8 +1330,6 @@ sub _readArraySize {
   my $start = $last->{token}->getAttribute('start');
   my $end = 0;
 
-  $self->_logCdecl('_parseDeclarator', last => $last);
-
   while ($last->{token}->localname() ne 'RBRACKET') {
     $end = $last->{token}->getAttribute('start') + $last->{token}->getAttribute('length');
     $last = $self->_getToken($stdout_buf, $tokensp);
@@ -1330,9 +1341,11 @@ sub _readArraySize {
     ${$cdeclp} .= sprintf('array[] of ');
   }
 
-  $self->_logCdecl('[<]_readArraySize', cdecl => $cdeclp);
+  $last = $self->_getToken($stdout_buf, $tokensp);
 
-  return $self->_getToken($stdout_buf, $tokensp);
+  $self->_logCdecl('[<]_readArraySize', cdecl => $cdeclp, last => $last);
+
+  return $last;
 }
 
 sub _readToId {
@@ -1355,9 +1368,11 @@ sub _readToId {
     ${$cdeclp} .= sprintf('%s: ', $last->{string});
   }
 
-  $self->_logCdecl('[<]_readToId', stack => $stackp, cdecl => $cdeclp);
+  $last = $self->_getToken($stdout_buf, $tokensp);
 
-  return $self->_getToken($stdout_buf, $tokensp);
+  $self->_logCdecl('[<]_readToId', stack => $stackp, cdecl => $cdeclp, last => $last);
+
+  return $last;
 }
 
 sub _classifyNode {
@@ -1367,7 +1382,7 @@ sub _classifyNode {
 	      string => undef,
 	      type => undef};
 
-  $self->_logCdecl('[<]_classifyNode', name => $token->localname(), isLexeme => $token->getAttribute('isLexeme'), text => $token->getAttribute('text'));
+  $self->_logCdecl('[>]_classifyNode', last => $last);
 
   my $name = $token->localname();
   my $previous = $token->previousSibling();
@@ -1434,7 +1449,7 @@ sub _classifyNode {
     $last->{type} = SKIPPED;
   }
 
-  $self->_logCdecl('[>]_classifyNode', name => $token->localname(), isLexeme => $token->getAttribute('isLexeme'), text => $token->getAttribute('text'));
+  $self->_logCdecl('[<]_classifyNode', last => $last);
 
   return $last;
 }
@@ -1454,7 +1469,7 @@ sub _getToken {
     $last = $self->_classifyNode($stdout_buf, $token);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[>]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
+  $self->_logCdecl('[<]_getToken', last => $last);
 
   return $last;
 }
