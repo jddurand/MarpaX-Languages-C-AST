@@ -1258,31 +1258,20 @@ sub _readFunctionArgs {
   #
   unshift(@{$tokensp}, $last->{token});
 
-  ${$cdeclp} .= 'function receiving (';
+  ${$cdeclp} .= 'function receiving ';
 
   do {
     my @stack = ();
+    my $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
 
-    my $nextToken = $last->{token}->nextSibling();
-    if (defined($nextToken) && $nextToken->localname() eq 'ELLIPSIS') {
-      #
-      # "..." is a special case in function arguments. Eat it.
-      #
-      ${$cdeclp} .= '... ';
-      $last = $self->_getToken($stdout_buf, $tokensp);
-    } else {
+    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
 
-      $last = $self->_readToId($stdout_buf, $tokensp, \@stack, $cdeclp);
-      $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, $cdeclp, $last);
-
-      if ($last->{token}->localname() eq 'COMMA') {
-	${$cdeclp} .= 'and ';
-      }
+    if ($last->{token}->localname() eq 'COMMA') {
+      ${$cdeclp} .= 'and ';
     }
-
   } while ($last->{token}->localname() eq 'COMMA');
 
-  ${$cdeclp} .= ') and returning ';
+  ${$cdeclp} .= 'and returning ';
 
   $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp);
   return $self->_getToken($stdout_buf, $tokensp);
@@ -1428,7 +1417,7 @@ sub _getToken {
     $last = $self->_classifyNode($stdout_buf, $token);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[<]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
+  $self->_logCdecl('[>]_getToken', name => $last->{token}->localname(), isLexeme => $last->{token}->getAttribute('isLexeme'), text => $last->{token}->getAttribute('text'));
 
   return $last;
 }
