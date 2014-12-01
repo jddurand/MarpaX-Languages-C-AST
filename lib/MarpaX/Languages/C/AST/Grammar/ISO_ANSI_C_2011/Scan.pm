@@ -1176,6 +1176,13 @@ sub _ast2cdecl {
 	  $previousNode = $_;
 	}
       }
+      #
+      # Our model do not mind if we do not respect exactly the AST. In fact, it requires IDENTIFIER
+      # to know when to "stop" when scanning tokens.
+      # We insert fake identifiers wherever needed.
+      #
+      foreach ($declaration->findnodes($self->_xpath('missingIdentifier.xpath'))) {
+      }
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
     }
     delete($self->{_cdeclAnonNb});
