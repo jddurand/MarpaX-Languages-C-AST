@@ -27,9 +27,7 @@ sub new {
 sub nonTerminalSemantic {
   my $self = shift;
 
-  my $rule_id     = $Marpa::R2::Context::rule;
-  my $slg         = $Marpa::R2::Context::slg;
-  my ($lhs, @rhs) = map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id);
+  my ($lhs, @rhs) = $self->getRuleDescription();
   my $maxRhs = $#rhs;
 
   my $node = XML::LibXML::Element->new($lhs);
@@ -69,6 +67,16 @@ sub nonTerminalSemantic {
   } else {
     return $node;
   }
+}
+
+sub getRuleDescription {
+  my ($self) = @_;
+
+  my $rule_id     = $Marpa::R2::Context::rule;
+  my $slg         = $Marpa::R2::Context::slg;
+  my ($lhs, @rhs) = map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id);
+
+  return ($lhs, @rhs);
 }
 
 1;
