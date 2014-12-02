@@ -1347,27 +1347,40 @@ sub _readStructDeclarationList {
 
   ${$cdeclp} .= 'structure defined as ';
 
-  my @stack = ();
   my $cdecl = '';
   my $last;
 
   do {
-    $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
-    do {
-      #
-      # Every declarator will share the stack up to first (eventually faked) identifier
-      #
-      my @saveStack = @stack;
-      $self->_parseDeclarator($stdout_buf, $tokensp, \@saveStack, \$cdecl, $last);
+    my @stack = ();
 
-      if ($last->{token}->localname() eq 'COMMA') {
-        $cdecl .= ', ';
+    $last = $self->_getToken($stdout_buf, $tokensp);
+    #
+    # Push back the token
+    #
+    unshift(@{$tokensp}, $last->{token});
+
+    if ($last->{token}->localname() ne 'RCURLY') {
+      $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
+
+      do {
+	#
+	# Every declarator will share the stack up to first (eventually faked) identifier
+	#
+	my @saveStack = @stack;
+	$self->_parseDeclarator($stdout_buf, $tokensp, \@saveStack, \$cdecl, $last);
+
+	if ($last->{token}->localname() eq 'COMMA') {
+	  $cdecl .= ', ';
+	}
+
+      } while ($last->{token}->localname() eq 'COMMA');
+
+      if ($last->{token}->localname() eq 'SEMICOLON') {
+	$cdecl .= '; ';
       }
-    } while ($last->{token}->localname() eq 'COMMA');
 
-    if ($last->{token}->localname() eq 'SEMICOLON') {
-      $cdecl .= '; ';
     }
+
   } while ($last->{token}->localname() eq 'SEMICOLON');
 
   ${$cdeclp} .= '{' . $cdecl . '} ';
@@ -1467,13 +1480,12 @@ sub _classifyNode {
   elsif ($parentName eq 'typeQualifier') {
     $last->{type} = QUALIFIER;
   }
-  elsif ($parentName eq 'enumSpecifier' ||
-      ($parentName eq 'typeSpecifier1' && $name ne 'structOrUnionSpecifier') ||
-      $parentName eq 'typeSpecifier2' ||
-      $parentName eq 'atomicTypeSpecifier' ||
-      $parentName eq 'msvsBuiltinType' ||
-      $parentName eq 'gccBuiltinType' ||
-      $parentName eq 'gccTypeof') {
+  elsif ($parentName eq 'typeSpecifier1' ||
+	 $parentName eq 'typeSpecifier2' ||
+	 $parentName eq 'atomicTypeSpecifier' ||
+	 $parentName eq 'msvsBuiltinType' ||
+	 $parentName eq 'gccBuiltinType' ||
+	 $parentName eq 'gccTypeof') {
     $last->{type} = TYPE;
   }
   elsif ($isLexeme eq 'true') {
@@ -1501,6 +1513,7 @@ sub _getToken {
   do {
     $token = shift(@{$tokensp});
     if (! defined($token)) {
+      $self->_logCdecl('[<]_getToken', last => undef);
       return undef;
     }
     $last = $self->_classifyNode($stdout_buf, $token);
