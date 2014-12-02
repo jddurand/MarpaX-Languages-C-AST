@@ -1137,6 +1137,28 @@ sub cdecl {
   }
 }
 
+
+# ----------------------------------------------------------------------------------------
+
+sub _addMissingIdentifiers {
+  my ($self, $root) = @_;
+  #
+  # Our model do not mind if we do not respect exactly the AST. In fact, it requires an IDENTIFIER
+  # or an IDENTIFIER_UNAMBIGUOUS (or ELLIPSIS exceptionnaly) to know when to "stop" when scanning tokens.
+  # We insert fake identifiers wherever needed.
+  #
+  foreach ($root->findnodes($self->_xpath('missingIdentifier.xpath'))) {
+    my $identifier = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
+    $log->debugf('[.]_ast2cdecl: %s: faking identifier %s', $root->getAttribute('text'), $identifier);
+    my $newNode = XML::LibXML::Element->new('IDENTIFIER');
+    $newNode->setAttribute('isLexeme', 'true');
+    $newNode->setAttribute('text', $identifier);
+    $newNode->setAttribute('start', -1);
+    $newNode->setAttribute('length', length($identifier));
+    $_->parentNode->insertAfter($newNode, $_);
+  }
+}
+
 # ----------------------------------------------------------------------------------------
 
 sub _ast2cdecl {
@@ -1150,9 +1172,38 @@ sub _ast2cdecl {
     #
     foreach ($self->topDeclarations()->firstChild()->childNodes()) {
       #
-      # Because we will recover COMMAs where needed, we may modify the DOM, so we clone it.
+      # We change the DOM before processing it, so better to work on a clone
       #
       my $declaration = $_->cloneNode(1);
+      #
+      # We REMOVE unsupported things:
+      # * empty structure declaration
+      #
+      foreach ($declaration->findnodes($self->_xpath('emptyStructDeclaration.xpath'))) {
+        my $SEMICOLON = $_;
+        my $structDeclaration = $SEMICOLON->parentNode();
+        my $structDeclarationList = $structDeclaration->parentNode();
+        my $structOrUnionSpecifier = $structDeclarationList->parentNode();
+        $log->debugf('[.]_ast2cdecl: %s: removing empty declaration: %s', $structOrUnionSpecifier->getAttribute('text'), $_->getAttribute('text'));
+        $structDeclarationList->removeChild($structDeclaration);
+        #
+        # /If/ $structDeclarationList then have no child, remove it as well
+        #
+        if (! $structDeclarationList->childNodes()) {
+          $log->infof('[.]_ast2cdecl: %s: removing empty declaration list', $structOrUnionSpecifier->getAttribute('text'));
+          #
+          # We remove it and the surrounding curlies
+          #
+          my $LCURLY = $structDeclarationList->previousSibling();
+          my $RCURLY = $structDeclarationList->nextSibling();
+          $structOrUnionSpecifier->removeChild($LCURLY);
+          $structOrUnionSpecifier->removeChild($structDeclarationList);
+          $structOrUnionSpecifier->removeChild($RCURLY);
+        }
+      }
+      #
+      # Recover COMMAs that Marpa's separator hided (and this is normal btw). Our DOM processing relies on the COMMA token.
+      #
       foreach ($declaration->findnodes($self->_xpath('missingComma.xpath'))) {
 	my $i = 0;
 	my $previousNode;
@@ -1171,20 +1222,71 @@ sub _ast2cdecl {
 	}
       }
       #
-      # Our model do not mind if we do not respect exactly the AST. In fact, it requires an IDENTIFIER
-      # or an IDENTIFIER_UNAMBIGUOUS (or ELLIPSIS exceptionnaly) to know when to "stop" when scanning tokens.
-      # We insert fake identifiers wherever needed.
+      # The only real subtility with the C grammar:
+      # A type specifier should give a single lexeme, refering to a type, e.g. int, float, long etc...
+      # BUT some type specifiers can EMBED type definition: this is the case of struct/union {} and enum {}.
       #
-      foreach ($declaration->findnodes($self->_xpath('missingIdentifier.xpath'))) {
-	my $identifier = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
-	$log->debugf('[.]_ast2cdecl: %s: faking identifier %s', $declaration->getAttribute('text'), $identifier);
-	my $newNode = XML::LibXML::Element->new('IDENTIFIER');
-	$newNode->setAttribute('isLexeme', 'true');
-	$newNode->setAttribute('text', $identifier);
-	$newNode->setAttribute('start', -1);
-	$newNode->setAttribute('length', length($identifier));
-	$_->parentNode->insertAfter($newNode, $_);
+      # Therefore we trap right now all struct/union/enum {} and will replace them with a SINGLE node: their identifier,
+      # eventually faked if needed.
+      #
+      # Enums can embed NOTHING. So we start with them
+      #
+      foreach ($declaration->findnodes($self->_xpath('allEnumeratorLists.xpath'))) {
+        my $enumeratorList = $_;
+        my $enumSpecifier = $enumeratorList->parentNode();
+        $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $enumSpecifier->localname(), $enumSpecifier->getAttribute('text'));
+        #
+        # Add identifiers if needed
+        #
+        $self->_addMissingIdentifiers($enumSpecifier);
+        #
+        # This is am enumeratorList node in one of these rules, i.e. onf of:
+        # enumSpecifier          ::= ENUM LCURLY enumeratorList RCURLY
+        # enumSpecifier          ::= ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
+        #
+        # This will become:
+        #
+        # enumSpecifier          ::= IDENTIFIER_UNAMBIGUOUS_OR_FAKED
+        #
       }
+      #
+      # Technical difficulty is that structure definitions can EMBED other structure definitions or enums. Therefore there is
+      # the loop because the xpath for structures is selecting only the deepest structure declaration. For example:
+      # struct x {struct {enum {A, B} e;};};
+      #
+      while (1) {
+        my @deepestStructDeclarationList = $declaration->findnodes($self->_xpath('deepestStructDeclarationList.xpath'));
+        if (! @deepestStructDeclarationList) {
+          last;
+        }
+        foreach (@deepestStructDeclarationList) {
+          my $structDeclarationList = $_;
+          my $structOrUnionSpecifier = $structDeclarationList->parentNode();
+          $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $structOrUnionSpecifier->localname(), $structOrUnionSpecifier->getAttribute('text'));
+          #
+          # Add identifiers if needed
+          #
+          $self->_addMissingIdentifiers($structOrUnionSpecifier);
+          #
+          # This is a structDeclarationList, i.e. one of:
+          #
+          # structOrUnionSpecifier ::= structOrUnion                        LCURLY structDeclarationList RCURLY
+          # structOrUnionSpecifier ::= structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY structDeclarationList RCURLY
+          #
+          # This will become:
+          #
+          # structOrUnionSpecifier ::= IDENTIFIER_UNAMBIGUOUS_OR_FAKED
+          die "TO DO";
+        }
+      }
+      #
+      # It is now guaranteed that 100% of the structOrUnionSpecifier or enumSpecifier rules have
+      # the form:
+      # IDENTIFIER_UNAMBIGUOUS_OR_FAKED
+      #
+      # Immediate consequence: exactly like int, float, etc. any struct/union or enum will now really be
+      # a type specifier, consisting of only one lexeme.
+      #
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
     }
     delete($self->{_cdeclAnonNb});
@@ -1360,12 +1462,27 @@ sub _readStructDeclarationList {
     unshift(@{$tokensp}, $last->{token});
 
     if ($last->{token}->localname() ne 'RCURLY') {
+      my $i;
       $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
 
       do {
 	#
 	# Every declarator will share the stack up to first (eventually faked) identifier
 	#
+        if ($i++ > 0) {
+          #
+          # declarators piling up. Per def they share the same stack, and only the first
+          # one gets the stack for all the others
+          #
+          my @emptyStack = ();
+          $last = $self->_readToId($stdout_buf, $tokensp, \@emptyStack, \$cdecl);
+          if (@emptyStack) {
+            $log->debugf('Stack not empty when parsing supplementary declarators: %s', \@emptyStack);
+          }
+        }
+        #
+        # We use a copy of the initial stack, because _parseDeclarator will eat the stack argument
+        #
 	my @saveStack = @stack;
 	$self->_parseDeclarator($stdout_buf, $tokensp, \@saveStack, \$cdecl, $last);
 

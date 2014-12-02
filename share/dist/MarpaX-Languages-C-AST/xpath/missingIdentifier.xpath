@@ -1,6 +1,6 @@
-.//structOrUnionSpecifier/structOrUnion[following-sibling::*[1]/self::LCURLY]
+.//structOrUnion[following-sibling::*[1]/self::LCURLY]
 |
-.//enumSpecifier/ENUM[following-sibling::*[1]/self::LCURLY]
+.//ENUM[following-sibling::*[1]/self::LCURLY]
 |
 .//parameterDeclaration/declarationSpecifiers[not(following-sibling::*)]
 |
@@ -8,6 +8,6 @@
 |
 .//structDeclaration/specifierQualifierList[following-sibling::*[1]/self::SEMICOLON]
 |
-.//structDeclaration[following-sibling::*[1]/self::SEMICOLON]
+.//structDeclaration/SEMICOLON[not(preceding-sibling::*)]
 |
-.//structDeclarator[following-sibling::*[1]/self::COLON]
+.//structDeclarator/COLON[not(preceding-sibling::*)]
