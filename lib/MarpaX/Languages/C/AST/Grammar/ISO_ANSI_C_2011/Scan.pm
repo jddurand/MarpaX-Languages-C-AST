@@ -84,6 +84,10 @@ Filter on filename from pre-processor output.
 
 Say that all C::Scan-like methods should return an xml document.
 
+=item enumType
+
+Type for enumerators. Default is 'int'.
+
 =item xpathDirectories
 
 A reference to an array giving xpath directories that will have precedence over the shared directory installed with this module.
@@ -137,6 +141,7 @@ sub new {
               _xpathDirectories => exists($opts{xpathDirectories})  ? $opts{xpathDirectories}    : [],
               _xsltDirectories  => exists($opts{xsltDirectories})   ? $opts{xsltDirectories}     : [],
               _filename_filter  => exists($opts{filename_filter}  ) ? $opts{filename_filter}     : undef,
+              _enumType         => exists($opts{enumType})          ? $opts{enumType}            : 'int',
               _cpprun           => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
               _cppflags         => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
              };
@@ -1155,11 +1160,82 @@ sub _addMissingIdentifiers {
     $newNode->setAttribute('start', -1);
     $newNode->setAttribute('length', length($identifier));
     if ($_->localname() eq 'SEMICOLON' || $_->localname() eq 'COLON') {
-      $log->debugf('[-]_ast2cdecl: %s: faking identifier %s before: %s', $declaration->getAttribute('text'), $identifier, $_->getAttribute('text'));
+      $log->debugf('_addMissingIdentifiers: %s: faking identifier %s before: %s', $declaration->getAttribute('text'), $identifier, $_->getAttribute('text'));
       $_->parentNode->insertAfter($newNode, $_);
     } else {
-      $log->debugf('[-]_ast2cdecl: %s: faking identifier %s after: %s', $declaration->getAttribute('text'), $identifier, $_->getAttribute('text'));
+      $log->debugf('_addMissingIdentifiers: %s: faking identifier %s after: %s', $declaration->getAttribute('text'), $identifier, $_->getAttribute('text'));
       $_->parentNode->insertAfter($newNode, $_);
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _removeEmptyStructDeclaration {
+  my ($self, $declaration) = @_;
+
+  foreach ($declaration->findnodes($self->_xpath('emptyStructDeclaration.xpath'))) {
+    my $SEMICOLON = $_;
+    my $structDeclaration = $SEMICOLON->parentNode();
+    my $structDeclarationList = $structDeclaration->parentNode();
+    my $structOrUnionSpecifier = $structDeclarationList->parentNode();
+    $log->debugf('[-]_removeEmptyStructDeclaration: %s: removing empty declaration: %s', $structOrUnionSpecifier->getAttribute('text'), $_->getAttribute('text'));
+    $structDeclarationList->removeChild($structDeclaration);
+    #
+    # /If/ $structDeclarationList then have no child, remove it as well
+    #
+    if (! $structDeclarationList->childNodes()) {
+      $log->infof('_removeEmptyStructDeclaration: %s: removing empty declaration list', $structOrUnionSpecifier->getAttribute('text'));
+      #
+      # We remove it and the surrounding curlies
+      #
+      my $LCURLY = $structDeclarationList->previousSibling();
+      my $RCURLY = $structDeclarationList->nextSibling();
+      $structOrUnionSpecifier->removeChild($LCURLY);
+      $structOrUnionSpecifier->removeChild($structDeclarationList);
+      $structOrUnionSpecifier->removeChild($RCURLY);
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _recoverCommas {
+  my ($self, $declaration) = @_;
+
+  foreach ($declaration->findnodes($self->_xpath('missingComma.xpath'))) {
+    my $i = 0;
+    my $previousNode;
+    foreach ($_->childNodes()) {
+      if ($i > 0) {
+        $log->debugf('_recoverCommas: %s: restoring comma lexeme after child No %d "%s"', $declaration->getAttribute('text'), $i - 1, $previousNode->getAttribute('text'));
+        my $newNode = XML::LibXML::Element->new('COMMA');
+        $newNode->setAttribute('isLexeme', 'true');
+        $newNode->setAttribute('text', ',');
+        $newNode->setAttribute('start', $previousNode->getAttribute('start') + $previousNode->getAttribute('length'));
+        $newNode->setAttribute('length', $_->getAttribute('start') - $previousNode->getAttribute('start'));
+        $previousNode->parentNode->insertAfter($newNode, $previousNode);
+      }
+      ++$i;
+      $previousNode = $_;
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
+sub _simplifyEnumerators {
+  my ($self, $declaration) = @_;
+
+  foreach ($declaration->findnodes($self->_xpath('enumerators.xpath'))) {
+    my $i = 0;
+    my $firstChild = $_->firstChild();
+    my $EQUAL = $firstChild->nextSibling();
+    if (defined($EQUAL)) {
+      my $constantExpression = $EQUAL->nextSibling();
+      $log->debugf('_simplifyEnumerators: %s: removing constant expression "%s %s"', $_->getAttribute('text'), $EQUAL->getAttribute('text'), $constantExpression->getAttribute('text'));
+      $_->removeChild($EQUAL);
+      $_->removeChild($constantExpression);
     }
   }
 }
@@ -1181,120 +1257,25 @@ sub _ast2cdecl {
       #
       my $declaration = $_->cloneNode(1);
       #
-      # We REMOVE unsupported things:
-      # * empty structure declaration
+      # We remove unsupported things
       #
-      foreach ($declaration->findnodes($self->_xpath('emptyStructDeclaration.xpath'))) {
-        my $SEMICOLON = $_;
-        my $structDeclaration = $SEMICOLON->parentNode();
-        my $structDeclarationList = $structDeclaration->parentNode();
-        my $structOrUnionSpecifier = $structDeclarationList->parentNode();
-        $log->debugf('[-]_ast2cdecl: %s: removing empty declaration: %s', $structOrUnionSpecifier->getAttribute('text'), $_->getAttribute('text'));
-        $structDeclarationList->removeChild($structDeclaration);
-        #
-        # /If/ $structDeclarationList then have no child, remove it as well
-        #
-        if (! $structDeclarationList->childNodes()) {
-          $log->infof('[-]_ast2cdecl: %s: removing empty declaration list', $structOrUnionSpecifier->getAttribute('text'));
-          #
-          # We remove it and the surrounding curlies
-          #
-          my $LCURLY = $structDeclarationList->previousSibling();
-          my $RCURLY = $structDeclarationList->nextSibling();
-          $structOrUnionSpecifier->removeChild($LCURLY);
-          $structOrUnionSpecifier->removeChild($structDeclarationList);
-          $structOrUnionSpecifier->removeChild($RCURLY);
-        }
-      }
+      $self->_removeEmptyStructDeclaration($declaration);
       #
       # Recover COMMAs that Marpa's separator hided (and this is normal btw). Our DOM processing relies on the COMMA node.
       #
-      foreach ($declaration->findnodes($self->_xpath('missingComma.xpath'))) {
-	my $i = 0;
-	my $previousNode;
-	foreach ($_->childNodes()) {
-	  if ($i > 0) {
-	    $log->debugf('[-]_ast2cdecl: %s: restoring comma lexeme after child No %d "%s"', $declaration->getAttribute('text'), $i - 1, $previousNode->getAttribute('text'));
-	    my $newNode = XML::LibXML::Element->new('COMMA');
-	    $newNode->setAttribute('isLexeme', 'true');
-	    $newNode->setAttribute('text', ',');
-	    $newNode->setAttribute('start', $previousNode->getAttribute('start') + $previousNode->getAttribute('length'));
-	    $newNode->setAttribute('length', $_->getAttribute('start') - $previousNode->getAttribute('start'));
-            $previousNode->parentNode->insertAfter($newNode, $previousNode);
-	  }
-	  ++$i;
-	  $previousNode = $_;
-	}
-      }
-      if (0) {
-        #
-        # The only real subtility with the C grammar:
-        # A type specifier should give a single lexeme, refering to a type, e.g. int, float, long etc...
-        # BUT some type specifiers can EMBED type definition: this is the case of struct/union {} and enum {}.
-        #
-        # Therefore we trap right now all struct/union/enum {} and will replace them with a SINGLE node: a new anonymous type,
-        # regardless if they are also explicitely typedef'ed.
-        #
-        # Enums can embed NOTHING. So we start with them
-        #
-        foreach ($declaration->findnodes($self->_xpath('allEnumeratorLists.xpath'))) {
-          my $enumeratorList = $_;
-          my $enumSpecifier = $enumeratorList->parentNode();
-          $log->debugf('[-]_ast2cdecl: Isolating %s: %s', $enumSpecifier->localname(), $enumSpecifier->getAttribute('text'));
-          #
-          # Add identifiers if needed
-          #
-          $self->_addMissingIdentifiers($enumSpecifier);
-          #
-          # This is am enumeratorList node in one of these rules, i.e. onf of:
-          # enumSpecifier          ::= ENUM LCURLY enumeratorList RCURLY
-          # enumSpecifier          ::= ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
-          #
-          # This will become:
-          #
-          # enumSpecifier          ::= TYPEDEF_NAME
-          #
-        }
-        #
-        # Technical difficulty is that structure definitions can EMBED other structure definitions or enums. Therefore there is
-        # the loop because the xpath for structures is selecting only the deepest structure declaration. For example:
-        # struct x {struct {enum {A, B} e;};};
-        #
-        while (1) {
-          my @deepestStructDeclarationList = $declaration->findnodes($self->_xpath('deepestStructDeclarationList.xpath'));
-          if (! @deepestStructDeclarationList) {
-            last;
-          }
-          foreach (@deepestStructDeclarationList) {
-            my $structDeclarationList = $_;
-            my $structOrUnionSpecifier = $structDeclarationList->parentNode();
-            $log->debugf('[-]_ast2cdecl: Isolating %s: %s', $structOrUnionSpecifier->localname(), $structOrUnionSpecifier->getAttribute('text'));
-            #
-            # Add identifiers if needed
-            #
-            $self->_addMissingIdentifiers($structOrUnionSpecifier);
-            #
-            # This is a structDeclarationList, i.e. one of:
-            #
-            # structOrUnionSpecifier ::= structOrUnion                        LCURLY structDeclarationList RCURLY
-            # structOrUnionSpecifier ::= structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY structDeclarationList RCURLY
-            #
-            # This will become:
-            #
-            # structOrUnionSpecifier ::= TYPEDEF_NAME
-            die "TO DO";
-          }
-        }
-        #
-        # It is now guaranteed that 100% of the structOrUnionSpecifier or enumSpecifier rules have
-        # the form:
-        # IDENTIFIER_UNAMBIGUOUS_OR_FAKED
-        #
-        # Immediate consequence: exactly like int, float, etc. any struct/union or enum will now really be
-        # a type specifier, consisting of only one lexeme.
-        #
-      }
+      $self->_recoverCommas($declaration);
+      #
+      # Enumerators are special: they have no declarator (ok) and can have an initialisation that
+      # is irrelevant for us (and that would cause trouble in fact)
+      #
+      $self->_simplifyEnumerators($declaration);
+      #
+      # We rely on presence of identifiers : insert fake ones wherever needed
+      #
       $self->_addMissingIdentifiers($declaration);
+      #
+      # Parse the declaration
+      #
       my $callLevel = -1;
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($callLevel, $declaration, $stdout_buf));
     }
@@ -1518,6 +1499,43 @@ sub _readStructDeclarationList {
   return $last;
 }
 
+sub _readEnumeratorList {
+  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  #
+  # This is very similar to _readFunctionArgs()
+  #
+  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readEnumeratorList', cdecl => $cdeclp);
+  #
+  # Empty enumeratorList is not allowed. No need to pre-read the next node.
+  #
+  ${$cdeclp} .= 'enumeration defined as ';
+
+  my @stack = ();
+  my $cdecl = '';
+  my $last;
+  do {
+    #
+    # Every argument has its own stack, that will be empty.
+    #
+    $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl);
+    #
+    # There is no declarator, really - we fake one.
+    #
+    $cdecl .= $self->{_enumType};
+
+    if ($last->{node}->localname() eq 'COMMA') {
+      $cdecl .= ', ';
+    }
+
+  } while ($last->{node}->localname() eq 'COMMA');
+
+  ${$cdeclp} .= '{' . $cdecl . '} ';
+
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readEnumeratorList', cdecl => $cdeclp, last => $last);
+
+  return $last;
+}
+
 sub _readArraySize {
   my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
 
@@ -1626,7 +1644,7 @@ sub _classifyNode {
     #
     if (defined($firstChild->nextSibling()->nextSibling())) {
       #
-      # The test on the third child if necessary because of recursive calls to this routine
+      # The test on the third child is necessary because of recursive calls to this routine
       #
       my $structOrUnion = $firstChild;
       my $IDENTIFIER = $structOrUnion->nextSibling();
@@ -1637,6 +1655,7 @@ sub _classifyNode {
       # Get a verbose string for this structure definition
       #
       $last->{string} = $self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf);
+      $node->setAttribute('text', $last->{string});
       #
       # Eat all nodes until /this/ RCURLY
       #
@@ -1657,10 +1676,58 @@ sub _classifyNode {
     $last->{type} = TYPE;
   }
   #
-  # We do not want to the words 'struct' or 'union' to be repeated: they will be in the
-  # return of the embedded call to _topDeclaration2Cdecl() upper
+  # We do not want to the words 'struct' or 'union' to appear: full decl is in the return value of the embedded call to _topDeclaration2Cdecl() upper
   #
   elsif ($name eq 'STRUCT' || $name eq 'UNION') {
+    $last->{type} = SKIPPED;
+  }
+  elsif ($name eq 'enumSpecifier') {
+    #
+    # Remember (bis) that we guaranteed to have inserted a fake identifier if there is none, i.e.
+    # the rule is:
+    #
+    # enumSpecifier
+    # ::= ENUM ANON_IDENTIFIER LCURLY enumeratorList RCURLY
+    # | ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
+    # | ENUM IDENTIFIER_UNAMBIGUOUS
+    #
+    if (defined($firstChild->nextSibling()->nextSibling())) {
+      #
+      # The test on the third child is necessary because of recursive calls to this routine
+      #
+      my $ENUM = $firstChild;
+      my $IDENTIFIER = $ENUM->nextSibling();
+      my $LCURLY = $IDENTIFIER->nextSibling();
+      my $enumeratorList = $LCURLY->nextSibling();
+      my $RCURLY = $enumeratorList->nextSibling();
+      #
+      # Get a verbose string for this enum definition
+      #
+      $last->{string} = $self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf);
+      $node->setAttribute('text', $last->{string});
+      #
+      # Eat all nodes until /this/ RCURLY
+      #
+      do {
+        my $nextNode = @{$nodesp} ? $nodesp->[0] : undef;
+        $self->_logCdecl('[-]' . (' ' x $callLevel) . '_classifyNode: pass-through', node => {node => $nextNode});
+      } while (shift(@{$nodesp}) != $RCURLY);
+      #
+      # We remove also children from LCURLY up to RCURLY
+      #
+      $node->removeChild($LCURLY);
+      $node->removeChild($enumeratorList);
+      $node->removeChild($RCURLY);
+    }
+    #
+    # Say that current node, a 'enumSpecifier' is a type (and it is)
+    #
+    $last->{type} = TYPE;
+  }
+  #
+  # We do not want to the word 'enum' to appear: full decl is in the return value of the embedded call to _topDeclaration2Cdecl() upper
+  #
+  elsif ($name eq 'ENUM') {
     $last->{type} = SKIPPED;
   }
   elsif ($parentName eq 'typeSpecifier1' ||
@@ -1702,7 +1769,7 @@ sub _getNode {
     $last = $self->_classifyNode($callLevel, $stdout_buf, $node, $nodesp, $cdeclp);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => , $cdeclp, last => $last);
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => , $cdeclp, last => $last, string => $last->{string});
 
   return $last;
 }
