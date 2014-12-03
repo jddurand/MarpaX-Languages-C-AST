@@ -10,6 +10,7 @@ use Config;
 use IO::String;
 use Data::Dumper;
 use XML::LibXML;
+use File::Basename;
 use File::Temp;
 use Log::Any qw/$log/;
 use Log::Any::Adapter;
@@ -108,6 +109,8 @@ if (defined($filter)) {
         $filter = eval "qr$filter"; ## no critic (ProhibitStringyEval)
         die $@ if ($@);
     }
+} else {
+    $filter = basename($ARGV[-1]);
 }
 
 my %config = ();
@@ -301,13 +304,15 @@ $CPPFLAGS (if you read this message, do not worry: this is replaced by correct v
 
 =item B<--filter <argument>>
 
-File to look at after proprocessing. Defaults to file argument.
+File to look at after proprocessing. Defaults to basename of file argument.
 
 cscan is using the preprocessor. Every #include statement in your original source code is telling the preprocessor to look at another file, this is marked down by a line like:
 
  #line ... "information on the file processed"
 
 in the generated output. The --filter argument is used to select which processed files is/are of interest. If $filter is starting with a slash "/" it is assumed to be a full regular expression (including modifier flags). The regexp can be used to handle the case of multiple input files.
+
+In case the file you parse I<already> contains preprocessing information, for example a generated C source code from a source file xxx.w, then you migh want to say: --filter xxx.w, or --filter '/xxx\\.w$/'
 
 =item B<--get <argument,...>>
 
