@@ -864,9 +864,9 @@ sub _fileOk {
   my ($self, $file) = @_;
 
   my $rc = 0;
+  my ($volume, $directories, $filename) = File::Spec->splitpath($file);
 
   if (exists($self->{_filename_filter_re})) {
-    my ($volume, $directories, $filename) = File::Spec->splitpath($file);
     if (File::Spec->case_tolerant($volume)) {
       $rc = ($file =~ /$self->{_filename_filter_re}/i) ? 1 : 0;
     } else {
@@ -879,7 +879,11 @@ sub _fileOk {
     if (length($file) <= 0) {
       $rc = (length($self->{_filename_filter}) <= 0) ? 1 : 0;
     } else {
-      $rc = (fc($file) eq fc($self->{_filename_filter})) ? 1 : 0;
+      if (File::Spec->case_tolerant($volume)) {
+        $rc = (fc($file) eq fc($self->{_filename_filter})) ? 1 : 0;
+      } else {
+        $rc = ($file eq $self->{_filename_filter}) ? 1 : 0;
+      }
     }
   } else {
     $rc = 1;
