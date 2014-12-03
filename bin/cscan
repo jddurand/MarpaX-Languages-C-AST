@@ -33,6 +33,7 @@ my $out = '';
 my $err = '';
 my $loglevel = 'WARN';
 my $logstderr = 0;
+my $enumType = '';
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
@@ -50,6 +51,7 @@ GetOptions ('help!' => \$help,
 	    'fatal' => sub { $loglevel = 'FATAL' },
 	    'trace' => sub { $loglevel = 'TRACE' },
 	    'logstderr!' => \$logstderr,
+	    'enumType=s' => \$enumType,
             'out=s' => \$out,
             'err=s' => \$err,
             'get=s' => \$get);
@@ -112,6 +114,7 @@ my %config = ();
 $config{cpprun} = $cpprun if ($cpprun);
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if ($filter);
+$config{enumType} = $enumType if ($enumType);
 $config{asDOM} = 1;
 
 # --------------------------
@@ -262,8 +265,9 @@ cscan - C source scsan
    --err <argument>      Redirect any error to this filename.
    --in <argument>       Load a full XML view of all declarations and definitions from this filename.
    --xpath <argument>    Dump the result of an xpath query on declarations and definitions.
-   --loglevel <level>   A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
-   --logstderr          Logs to stderr or not.
+   --loglevel <level>    A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
+   --logstderr           Logs to stderr or not.
+   --enumType            Type for enumerators.
 
  Aliased options:
    --debug              Alias to --loglevel DEBUG
@@ -555,6 +559,10 @@ Shortcut for --loglevel TRACE
 =item B<--logstderr>
 
 Log to stderr or not. Default is a false value.
+
+=item B<--enumType>
+
+Type for enumerators. Default is 'int'.
 
 =back
 
