@@ -11,3 +11,5 @@
 .//structDeclaration/SEMICOLON[not(preceding-sibling::*)]
 |
 .//structDeclarator/COLON[not(preceding-sibling::*)]
+|
+./declarationSpecifiers[following-sibling::*[1]/self::SEMICOLON]
