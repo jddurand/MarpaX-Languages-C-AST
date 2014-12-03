@@ -1150,7 +1150,7 @@ sub _addMissingIdentifiers {
   foreach ($root->findnodes($self->_xpath('missingIdentifier.xpath'))) {
     my $identifier = sprintf('__ANON%d', ++$self->{_cdeclAnonNb});
     $log->debugf('[.]_ast2cdecl: %s: faking identifier %s', $root->getAttribute('text'), $identifier);
-    my $newNode = XML::LibXML::Element->new('IDENTIFIER');
+    my $newNode = XML::LibXML::Element->new('ANON_IDENTIFIER');
     $newNode->setAttribute('isLexeme', 'true');
     $newNode->setAttribute('text', $identifier);
     $newNode->setAttribute('start', -1);
@@ -1221,72 +1221,75 @@ sub _ast2cdecl {
 	  $previousNode = $_;
 	}
       }
-      #
-      # The only real subtility with the C grammar:
-      # A type specifier should give a single lexeme, refering to a type, e.g. int, float, long etc...
-      # BUT some type specifiers can EMBED type definition: this is the case of struct/union {} and enum {}.
-      #
-      # Therefore we trap right now all struct/union/enum {} and will replace them with a SINGLE node: their identifier,
-      # eventually faked if needed.
-      #
-      # Enums can embed NOTHING. So we start with them
-      #
-      foreach ($declaration->findnodes($self->_xpath('allEnumeratorLists.xpath'))) {
-        my $enumeratorList = $_;
-        my $enumSpecifier = $enumeratorList->parentNode();
-        $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $enumSpecifier->localname(), $enumSpecifier->getAttribute('text'));
+      if (0) {
         #
-        # Add identifiers if needed
+        # The only real subtility with the C grammar:
+        # A type specifier should give a single lexeme, refering to a type, e.g. int, float, long etc...
+        # BUT some type specifiers can EMBED type definition: this is the case of struct/union {} and enum {}.
         #
-        $self->_addMissingIdentifiers($enumSpecifier);
+        # Therefore we trap right now all struct/union/enum {} and will replace them with a SINGLE node: a new anonymous type,
+        # regardless if they are also explicitely typedef'ed.
         #
-        # This is am enumeratorList node in one of these rules, i.e. onf of:
-        # enumSpecifier          ::= ENUM LCURLY enumeratorList RCURLY
-        # enumSpecifier          ::= ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
+        # Enums can embed NOTHING. So we start with them
         #
-        # This will become:
-        #
-        # enumSpecifier          ::= IDENTIFIER_UNAMBIGUOUS_OR_FAKED
-        #
-      }
-      #
-      # Technical difficulty is that structure definitions can EMBED other structure definitions or enums. Therefore there is
-      # the loop because the xpath for structures is selecting only the deepest structure declaration. For example:
-      # struct x {struct {enum {A, B} e;};};
-      #
-      while (1) {
-        my @deepestStructDeclarationList = $declaration->findnodes($self->_xpath('deepestStructDeclarationList.xpath'));
-        if (! @deepestStructDeclarationList) {
-          last;
-        }
-        foreach (@deepestStructDeclarationList) {
-          my $structDeclarationList = $_;
-          my $structOrUnionSpecifier = $structDeclarationList->parentNode();
-          $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $structOrUnionSpecifier->localname(), $structOrUnionSpecifier->getAttribute('text'));
+        foreach ($declaration->findnodes($self->_xpath('allEnumeratorLists.xpath'))) {
+          my $enumeratorList = $_;
+          my $enumSpecifier = $enumeratorList->parentNode();
+          $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $enumSpecifier->localname(), $enumSpecifier->getAttribute('text'));
           #
           # Add identifiers if needed
           #
-          $self->_addMissingIdentifiers($structOrUnionSpecifier);
+          $self->_addMissingIdentifiers($enumSpecifier);
           #
-          # This is a structDeclarationList, i.e. one of:
-          #
-          # structOrUnionSpecifier ::= structOrUnion                        LCURLY structDeclarationList RCURLY
-          # structOrUnionSpecifier ::= structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY structDeclarationList RCURLY
+          # This is am enumeratorList node in one of these rules, i.e. onf of:
+          # enumSpecifier          ::= ENUM LCURLY enumeratorList RCURLY
+          # enumSpecifier          ::= ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
           #
           # This will become:
           #
-          # structOrUnionSpecifier ::= IDENTIFIER_UNAMBIGUOUS_OR_FAKED
-          die "TO DO";
+          # enumSpecifier          ::= TYPEDEF_NAME
+          #
         }
+        #
+        # Technical difficulty is that structure definitions can EMBED other structure definitions or enums. Therefore there is
+        # the loop because the xpath for structures is selecting only the deepest structure declaration. For example:
+        # struct x {struct {enum {A, B} e;};};
+        #
+        while (1) {
+          my @deepestStructDeclarationList = $declaration->findnodes($self->_xpath('deepestStructDeclarationList.xpath'));
+          if (! @deepestStructDeclarationList) {
+            last;
+          }
+          foreach (@deepestStructDeclarationList) {
+            my $structDeclarationList = $_;
+            my $structOrUnionSpecifier = $structDeclarationList->parentNode();
+            $log->debugf('[.]_ast2cdecl: Isolating %s: %s', $structOrUnionSpecifier->localname(), $structOrUnionSpecifier->getAttribute('text'));
+            #
+            # Add identifiers if needed
+            #
+            $self->_addMissingIdentifiers($structOrUnionSpecifier);
+            #
+            # This is a structDeclarationList, i.e. one of:
+            #
+            # structOrUnionSpecifier ::= structOrUnion                        LCURLY structDeclarationList RCURLY
+            # structOrUnionSpecifier ::= structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY structDeclarationList RCURLY
+            #
+            # This will become:
+            #
+            # structOrUnionSpecifier ::= TYPEDEF_NAME
+            die "TO DO";
+          }
+        }
+        #
+        # It is now guaranteed that 100% of the structOrUnionSpecifier or enumSpecifier rules have
+        # the form:
+        # IDENTIFIER_UNAMBIGUOUS_OR_FAKED
+        #
+        # Immediate consequence: exactly like int, float, etc. any struct/union or enum will now really be
+        # a type specifier, consisting of only one lexeme.
+        #
       }
-      #
-      # It is now guaranteed that 100% of the structOrUnionSpecifier or enumSpecifier rules have
-      # the form:
-      # IDENTIFIER_UNAMBIGUOUS_OR_FAKED
-      #
-      # Immediate consequence: exactly like int, float, etc. any struct/union or enum will now really be
-      # a type specifier, consisting of only one lexeme.
-      #
+      $self->_addMissingIdentifiers($declaration);
       push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($declaration, $stdout_buf));
     }
     delete($self->{_cdeclAnonNb});
@@ -1325,20 +1328,22 @@ sub _logCdecl {
     $h{stack} = [ map { $_->{string} } @{$h{stack}} ];
   }
   #
-  # Rework case of last
+  # Rework case of last, next, or previous
   #
-  if (exists($h{last})) {
-    if (exists($h{last}->{token}) && defined($h{last}->{token})) {
-      $h{last} = {name => $h{last}->{token}->localname(), isLexeme => $h{last}->{token}->getAttribute('isLexeme'), text => $h{last}->{token}->getAttribute('text'), type => defined($h{last}->{type}) ? ($type2String[$h{last}->{type}] || 'UNKNOWN') : undef};
-    } else {
-      $h{last} = undef;
+  foreach (qw/previous last next/) {
+    if (exists($h{$_})) {
+      if (exists($h{$_}->{token}) && defined($h{$_}->{token})) {
+	$h{$_} = {name => $h{$_}->{token}->localname(), isLexeme => $h{$_}->{token}->getAttribute('isLexeme'), text => $h{$_}->{token}->getAttribute('text'), type => defined($h{$_}->{type}) ? ($type2String[$h{$_}->{type}] || 'UNKNOWN') : undef};
+      } else {
+	$h{$_} = undef;
+      }
     }
   }
   $log->debugf('%s: %s', $function, \%h);
 }
 
 sub _checkPtr {
-  my ($self, $tokensp, $stackp, $cdeclp) = @_;
+  my ($self, $nodesp, $stackp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]_checkPtr', stack => $stackp, cdecl => $cdeclp);
 
@@ -1362,34 +1367,26 @@ sub _checkPtr {
 }
 
 sub _parseDeclarator {
-  my ($self, $stdout_buf, $tokensp, $stackp, $cdeclp, $last) = @_;
+  my ($self, $stdout_buf, $nodesp, $stackp, $cdeclp, $last) = @_;
 
   $self->_logCdecl('[>]_parseDeclarator', stack => $stackp, cdecl => $cdeclp, last => $last);
 
   if ($last->{token}->localname() eq 'LBRACKET') {
     while ($last->{token}->localname() eq 'LBRACKET') {
-      $last = $self->_readArraySize($stdout_buf, $tokensp, $cdeclp);
+      $last = $self->_readArraySize($stdout_buf, $nodesp, $cdeclp);
     }
   } elsif ($last->{token}->localname() eq 'LPAREN_SCOPE') {
-    $last = $self->_readFunctionArgs($stdout_buf, $tokensp, $cdeclp);
-  } elsif ($last->{token}->localname() eq 'LCURLY') {
-    my $parent = $last->{token}->parentNode();
-    if (defined($parent)) {
-      if ($parent->localname() eq 'structOrUnionSpecifier') {
-        $last = $self->_readStructDeclarationList($stdout_buf, $tokensp, $cdeclp);
-      }
-      elsif ($parent->localname() eq 'enumSpecifier') {
-        $log->debugf('TO DO: enum');
-      }
-    }
+    $last = $self->_readFunctionArgs($stdout_buf, $nodesp, $cdeclp);
+  } elsif ($last->{token}->localname() eq 'structDeclarationList') {
+    $last = $self->_readStructDeclarationList($stdout_buf, $nodesp, $cdeclp);
   }
-  $self->_checkPtr($tokensp, $stackp, $cdeclp);
+  $self->_checkPtr($nodesp, $stackp, $cdeclp);
 
   while (@{$stackp}) {
     my $t = pop(@{$stackp});
     if ($t->{token}->localname() eq 'LPAREN') {
-      $last = $self->_getToken($stdout_buf, $tokensp);
-      $self->_parseDeclarator($stdout_buf, $tokensp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
+      $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
+      $self->_parseDeclarator($stdout_buf, $nodesp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
     } else {
       ${$cdeclp} .= sprintf('%s ', $t->{string});
     }
@@ -1400,11 +1397,11 @@ sub _parseDeclarator {
 }
 
 sub _readFunctionArgs {
-  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+  my ($self, $stdout_buf, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]_readFunctionArgs', cdecl => $cdeclp);
 
-  my $last = $self->_getToken($stdout_buf, $tokensp);
+  my $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
 
   if ($last->{token}->localname() eq 'RPAREN_SCOPE') {
     ${$cdeclp} .= 'function returning ';
@@ -1415,7 +1412,7 @@ sub _readFunctionArgs {
   #
   # Push back the token
   #
-  unshift(@{$tokensp}, $last->{token});
+  unshift(@{$nodesp}, $last->{token});
 
   ${$cdeclp} .= 'function receiving ';
 
@@ -1425,8 +1422,8 @@ sub _readFunctionArgs {
     #
     # Every argument has its own stack. No need to save it.
     #
-    $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
-    $self->_parseDeclarator($stdout_buf, $tokensp, \@stack, \$cdecl, $last);
+    $last = $self->_readToId($stdout_buf, $nodesp, \@stack, \$cdecl);
+    $self->_parseDeclarator($stdout_buf, $nodesp, \@stack, \$cdecl, $last);
 
     if ($last->{token}->localname() eq 'COMMA') {
       $cdecl .= ', ';
@@ -1435,7 +1432,7 @@ sub _readFunctionArgs {
 
   ${$cdeclp} .= '(' . $cdecl . ') and returning ';
 
-  $last = $self->_getToken($stdout_buf, $tokensp);
+  $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]_readFunctionArgs', cdecl => $cdeclp, last => $last);
 
@@ -1443,27 +1440,27 @@ sub _readFunctionArgs {
 }
 
 sub _readStructDeclarationList {
-  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+  my ($self, $stdout_buf, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]_readStructDeclarationList', cdecl => $cdeclp);
 
   ${$cdeclp} .= 'structure defined as ';
 
-  my $cdecl = '';
+  my $localCdecl = '';
   my $last;
 
   do {
     my @stack = ();
 
-    $last = $self->_getToken($stdout_buf, $tokensp);
+    $last = $self->_getToken($stdout_buf, $nodesp, \$localCdecl);
     #
     # Push back the token
     #
-    unshift(@{$tokensp}, $last->{token});
+    unshift(@{$nodesp}, $last->{token});
 
     if ($last->{token}->localname() ne 'RCURLY') {
       my $i;
-      $last = $self->_readToId($stdout_buf, $tokensp, \@stack, \$cdecl);
+      $last = $self->_readToId($stdout_buf, $nodesp, \@stack, \$localCdecl);
 
       do {
 	#
@@ -1475,7 +1472,7 @@ sub _readStructDeclarationList {
           # one gets the stack for all the others
           #
           my @emptyStack = ();
-          $last = $self->_readToId($stdout_buf, $tokensp, \@emptyStack, \$cdecl);
+          $last = $self->_readToId($stdout_buf, $nodesp, \@emptyStack, \$localCdecl);
           if (@emptyStack) {
             $log->debugf('Stack not empty when parsing supplementary declarators: %s', \@emptyStack);
           }
@@ -1484,25 +1481,25 @@ sub _readStructDeclarationList {
         # We use a copy of the initial stack, because _parseDeclarator will eat the stack argument
         #
 	my @saveStack = @stack;
-	$self->_parseDeclarator($stdout_buf, $tokensp, \@saveStack, \$cdecl, $last);
+	$self->_parseDeclarator($stdout_buf, $nodesp, \@saveStack, \$localCdecl, $last);
 
 	if ($last->{token}->localname() eq 'COMMA') {
-	  $cdecl .= ', ';
+	  $localCdecl .= ', ';
 	}
 
       } while ($last->{token}->localname() eq 'COMMA');
 
       if ($last->{token}->localname() eq 'SEMICOLON') {
-	$cdecl .= '; ';
+	$localCdecl .= '; ';
       }
 
     }
 
   } while ($last->{token}->localname() eq 'SEMICOLON');
 
-  ${$cdeclp} .= '{' . $cdecl . '} ';
+  ${$cdeclp} .= '{' . $localCdecl . '}';
 
-  $last = $self->_getToken($stdout_buf, $tokensp);
+  $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]_readStructDeclarationList', cdecl => $cdeclp, last => $last);
 
@@ -1510,20 +1507,20 @@ sub _readStructDeclarationList {
 }
 
 sub _readArraySize {
-  my ($self, $stdout_buf, $tokensp, $cdeclp) = @_;
+  my ($self, $stdout_buf, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]_readArraySize', cdecl => $cdeclp);
 
   #
   # Per def next token in the list is the one just after LBRACKET
   #
-  my $last = $self->_getToken($stdout_buf, $tokensp);
+  my $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
   my $start = $last->{token}->getAttribute('start');
   my $end = 0;
 
   while ($last->{token}->localname() ne 'RBRACKET') {
     $end = $last->{token}->getAttribute('start') + $last->{token}->getAttribute('length');
-    $last = $self->_getToken($stdout_buf, $tokensp);
+    $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
   }
   my $size = '';
   if ($end > 0) {
@@ -1532,7 +1529,7 @@ sub _readArraySize {
     ${$cdeclp} .= sprintf('array[] of ');
   }
 
-  $last = $self->_getToken($stdout_buf, $tokensp);
+  $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]_readArraySize', cdecl => $cdeclp, last => $last);
 
@@ -1540,15 +1537,15 @@ sub _readArraySize {
 }
 
 sub _readToId {
-  my ($self, $stdout_buf, $tokensp, $stackp, $cdeclp) = @_;
+  my ($self, $stdout_buf, $nodesp, $stackp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]_readToId', stack => $stackp, cdecl => $cdeclp);
 
   my $last;
 
-  for ($last = $self->_getToken($stdout_buf, $tokensp);
+  for ($last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
        $last->{type} != IDENTIFIER;
-       push(@{$stackp}, $last), $last = $self->_getToken($stdout_buf, $tokensp)) {}
+       push(@{$stackp}, $last), $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp)) {}
 
   #
   # Subtility with ELLIPSIS, per def there is no declaration at all
@@ -1559,7 +1556,7 @@ sub _readToId {
     ${$cdeclp} .= sprintf('%s: ', $last->{string});
   }
 
-  $last = $self->_getToken($stdout_buf, $tokensp);
+  $last = $self->_getToken($stdout_buf, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]_readToId', stack => $stackp, cdecl => $cdeclp, last => $last);
 
@@ -1567,17 +1564,18 @@ sub _readToId {
 }
 
 sub _classifyNode {
-  my ($self, $stdout_buf, $token) = @_;
+  my ($self, $stdout_buf, $token, $nodesp, $cdeclp) = @_;
 
+  my $previous = $token->previousSibling();
   my $last = {token => $token,
 	      string => undef,
 	      type => undef};
+  my $next = $token->nextSibling();
 
-  $self->_logCdecl('[>]_classifyNode', last => $last);
+  $self->_logCdecl('[>]_classifyNode', cdecl => $cdeclp, last => $last);
 
   my $name = $token->localname();
-  my $previous = $token->previousSibling();
-  my $next = $token->nextSibling();
+  my $firstChild = $token->firstChild();
   my $isLexeme = $last->{token}->getAttribute('isLexeme') || 'false';
 
   if ($name eq 'CONST') { # We call const "read-only" to clarify
@@ -1591,11 +1589,61 @@ sub _classifyNode {
   my $parent = $last->{token}->parentNode();
   my $parentName = $parent->localname();
 
-  if ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ELLIPSIS') {
+  if ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ANON_IDENTIFIER' || $name eq 'ELLIPSIS') {
     $last->{type} = IDENTIFIER;
   }
   elsif ($parentName eq 'typeQualifier') {
     $last->{type} = QUALIFIER;
+  }
+  #
+  # Case of embedded definitions within declarations
+  #
+  elsif ($name eq 'structOrUnionSpecifier' && defined($firstChild) &&
+         #
+         # Remember that we guaranteed to have inserted a fake identifier if there is none, i.e.
+         # the rule is:
+         #
+         # structOrUnionSpecifier
+         # ::= structOrUnion ANON_IDENTIFIER LCURLY structDeclarationList RCURLY
+         # | structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY structDeclarationList RCURLY
+         # | structOrUnion IDENTIFIER_UNAMBIGUOUS
+         #
+         # The test on the two children if necessary because of recursive calls to this routine
+         #
+         defined($firstChild->nextSibling()) &&
+         defined($firstChild->nextSibling()->nextSibling())) {
+    #
+    # This is a sort of "stand-alone" declaration, but embedded
+    #
+    my $IDENTIFIER = $firstChild->nextSibling();
+    my $LCURLY = $IDENTIFIER->nextSibling();
+    my $structDeclarationList = $LCURLY->nextSibling();
+    my $RCURLY = $structDeclarationList->nextSibling();
+
+    my @localNodes = $structDeclarationList->findnodes($self->_xpath('allNodes.xpath'));
+    ${$cdeclp} .= $IDENTIFIER->getAttribute('text') . ': ';
+    #
+    # _readStructDeclarationList will use RCURLY to know when structure is over
+    #
+    push(@localNodes, $RCURLY);
+
+    my @localStack = ();
+    my $localLast = {token => $structDeclarationList,
+		     string => $structDeclarationList->getAttribute('text'),
+		     type => SKIPPED};
+    my $localCdecl = '';
+    $self->_parseDeclarator($stdout_buf, \@localNodes, \@localStack, \$localCdecl, $localLast);
+    ${$cdeclp} .= $localCdecl;
+
+    # _Eat all nodes until /this/ RCURLY
+    do {
+    } while (shift(@{$nodesp}) != $RCURLY);
+    #
+    # And remember only the identifier
+    #
+    $last->{token} = $IDENTIFIER;
+    $last->{type} = IDENTIFIER;
+    $last->{string} = $IDENTIFIER->getAttribute('text');
   }
   elsif ($parentName eq 'typeSpecifier1' ||
 	 $parentName eq 'typeSpecifier2' ||
@@ -1615,28 +1663,28 @@ sub _classifyNode {
     $last->{type} = SKIPPED;
   }
 
-  $self->_logCdecl('[<]_classifyNode', last => $last);
+  $self->_logCdecl('[<]_classifyNode', cdecl => $cdeclp, last => $last);
 
   return $last;
 }
 
 sub _getToken {
-  my ($self, $stdout_buf, $tokensp) = @_;
+  my ($self, $stdout_buf, $nodesp, $cdeclp) = @_;
 
-  $self->_logCdecl('[>]_getToken');
+  $self->_logCdecl('[>]_getToken', cdecl => $cdeclp);
 
-  my $token;
+  my $node;
   my $last;
   do {
-    $token = shift(@{$tokensp});
-    if (! defined($token)) {
-      $self->_logCdecl('[<]_getToken', last => undef);
+    $node = shift(@{$nodesp});
+    if (! defined($node)) {
+      $self->_logCdecl('[<]_getToken', cdecl => $cdeclp, last => undef);
       return undef;
     }
-    $last = $self->_classifyNode($stdout_buf, $token);
+    $last = $self->_classifyNode($stdout_buf, $node, $nodesp, $cdeclp);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[<]_getToken', last => $last);
+  $self->_logCdecl('[<]_getToken', cdecl => , $cdeclp, last => $last);
 
   return $last;
 }
