@@ -268,7 +268,7 @@ cscan - C source scsan
 
 =head1 SYNOPSIS
 
- cscan [options] file
+ cscan [options] [file]
 
  Startup Options:
    --help                Brief help message.
