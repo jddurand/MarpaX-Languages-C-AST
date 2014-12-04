@@ -86,19 +86,25 @@ DEFAULT_LOG4PERL_CONF
 Log::Log4perl::init(\$defaultLog4perlConf);
 Log::Any::Adapter->set('Log4perl');
 
+if (! @ARGV && ! $in) {
+  #
+  # Assume STDIN
+  #
+  push(@ARGV, '-');
+}
+
 my $guard = quotemeta('(if you read this message, do not worry: this is replaced by correct value at run-time)');
 my $pod = do {local $/; <DATA>};
 $pod =~ s/\$CPPRUN\b\s*$guard/$Config{cpprun}/g;
 $pod =~ s/\$CPPFLAGS\b\s*$guard/$Config{cppflags}/g;
 my $podfh = IO::String->new($pod);
 pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_SUCCESS) if ($help);
-pod2usage(-verbose => 2, -noperldoc => 1, -input => $podfh, -exitval => EXIT_FAILURE) if (! @ARGV && ! $in);
 
 #
 # If there is more than one thing in @ARGV, assume these are (@cppflags, $file)
 #
 if ($#ARGV > 0) {
-    push(@cppflags, splice(@ARGV, 0, $#ARGV));
+  push(@cppflags, splice(@ARGV, 0, $#ARGV));
 }
 
 #
@@ -681,7 +687,17 @@ are equivalent. A restriction is that the filename must be the last argument.
 
 =head1 NOTES
 
-If last argument is '-' and there is no '--in' option value, then STDIN is assumed.
+=over
+
+=item
+
+If last argument is absent or equal to '-' and if there is no '--in' option value, then STDIN is assumed.
+
+=item
+
+cdecl is an alias to cscan --get cdecl. Therefore when cdecl --help is invoked, this will mention cscan instead of cdecl.
+
+=back
 
 =head1 SEE ALSO
 
