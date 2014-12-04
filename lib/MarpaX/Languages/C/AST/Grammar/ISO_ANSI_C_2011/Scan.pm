@@ -8,6 +8,7 @@ package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan;
 use MarpaX::Languages::C::AST;
 use Config;
 use Carp qw/croak/;
+use Data::Dumper;
 use IPC::Cmd qw/run/;
 use File::Temp qw/tempfile/;
 use IO::File;
@@ -104,6 +105,14 @@ Preprocessor command, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN}, or $Confi
 
 Preprocessor flags, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS}, $Config{cppflags}. It is assume that cppflags is already correctly quoted for your system shell.
 
+=item nocpp
+
+Disable preprocessor command. It is then up to the user to make that filename, or content, are suitable for the grammar. Eventually setting other MarpaX::Languages::C::AST->new() other options, like lazy mode and/or a list of typedef. Default is a false value.
+
+=item
+
+Any other option is passed as-is to MarpaX::Languages::C::AST->new() and will have precedence.
+
 =back
 
 Please refer to the Config perl documentation for the meaning of $Config{cpprun} or $Config{cppflags}.
@@ -136,6 +145,10 @@ sub new {
     croak 'filename or content is required';
   }
 
+  my %astConfig = %opts;
+  foreach (qw/asDOM xpathDirectories xsltDirectories filename_filter enumType cpprun cppflags nocpp/) {
+    delete($astConfig{$_});
+  }
   my $self = {
               _asDOM            => exists($opts{asDOM})             ? $opts{asDOM}               : undef,
               _xpathDirectories => exists($opts{xpathDirectories})  ? $opts{xpathDirectories}    : [],
@@ -144,7 +157,10 @@ sub new {
               _enumType         => exists($opts{enumType})          ? $opts{enumType}            : 'int',
               _cpprun           => exists($opts{cpprun})            ? $opts{cpprun}              : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPRUN} || $Config{cpprun}),
               _cppflags         => exists($opts{cppflags})          ? $opts{cppflags}            : ($ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS} || $Config{cppflags}),
+              _nocpp            => exists($opts{nocpp})             ? $opts{nocpp}               : 0,
+              _astConfig        => \%astConfig,
              };
+
 
   #
   # For anonymous enums or structs, so that their names do not clash
@@ -192,6 +208,15 @@ sub new {
   $self->_init();
 
   #
+  # We always produce the ast, and do heuristic processing, to liberate the temporary files.
+  #
+  $log->debugf('Producing AST');
+  $self->_ast();
+  $log->debugf('Doing heuristic analysis');
+  $self->_analyse_with_heuristics();
+  $log->debugf('Post-processing heuristics');
+  $self->_posprocess_heuristics();
+  #
   # This will unlink temporary file
   #
   delete($self->{_tmpfh});
@@ -223,14 +248,14 @@ sub ast {
 
 =head2 astToString($self)
 
-Stringified AST of the preprocessed output. This is an XML::LibXML document passed through its toString(1) method.
+Stringified AST of the preprocessed output. This is an XML::LibXML document passed through its toString(1) in DOM mode, a Data::Dumper output if non-DOM mode.
 
 =cut
 
 sub astToString {
   my $self = shift;
 
-  return $self->ast()->toString(1);
+  return $self->{_asDOM} ? $self->ast()->toString(1) : Dumper($self->ast());
 }
 
 # ----------------------------------------------------------------------------------------
@@ -333,6 +358,10 @@ C::Scan compatible reference to a list of parsed declarations of functions.
 sub fdecls {
   my ($self) = @_;
 
+  if (! defined($self->{_fdecls})) {
+    $self->_fdecls();
+  }
+
   return $self->{_fdecls};
 }
 
@@ -346,6 +375,10 @@ C::Scan compatible reference to a list of definitions of functions.
 
 sub inlines {
   my ($self) = @_;
+
+  if (! defined($self->{_inlines})) {
+    $self->_inlines();
+  }
 
   return $self->{_inlines};
 }
@@ -361,6 +394,10 @@ C::Scan NOT-FULLY compatible reference to list of parsed declarations of functio
 sub parsed_fdecls {
   my ($self) = @_;
 
+  if (! defined($self->{_parsed_fdecls})) {
+    $self->_parsed_fdecls();
+  }
+
   return $self->{_parsed_fdecls};
 }
 
@@ -374,6 +411,10 @@ Reference to a hash which contains known typedefs as keys. Values of the hash ar
 
 sub typedef_hash {
   my ($self) = @_;
+
+  if (! defined($self->{_typedef_hash})) {
+    $self->_typedef_hash();
+  }
 
   return $self->{_typedef_hash};
 }
@@ -389,6 +430,10 @@ Returns a reference to a list which contains known expansions of typedefs. This 
 sub typedef_texts {
   my ($self) = @_;
 
+  if (! defined($self->{_typedef_texts})) {
+    $self->_typedef_texts();
+  }
+
   return $self->{_typedef_texts};
 }
 
@@ -402,6 +447,10 @@ Returns a reference to a list of typedefed names. This is just the "key" part of
 
 sub typedefs_maybe {
   my ($self) = @_;
+
+  if (! defined($self->{_typedefs_maybe})) {
+    $self->_typedefs_maybe();
+  }
 
   return $self->{_typedefs_maybe};
 }
@@ -417,6 +466,10 @@ Returns a reference to a list of extern variable declarations.
 sub vdecls {
   my ($self) = @_;
 
+  if (! defined($self->{_vdecls})) {
+    $self->_vdecls();
+  }
+
   return $self->{_vdecls};
 }
 
@@ -430,6 +483,10 @@ Reference to a hash of parsed extern variable declarations, containing the varia
 
 sub vdecl_hash {
   my ($self) = @_;
+
+  if (! defined($self->{_vdecl_hash})) {
+    $self->_vdecl_hash();
+  }
 
   return $self->{_vdecl_hash};
 }
@@ -445,6 +502,10 @@ Hopefully C::Scan compatible reference to a hash which contains known typedefs a
 sub typedef_structs {
   my ($self) = @_;
 
+  if (! defined($self->{_typedef_structs})) {
+    $self->_typedef_structs();
+  }
+
   return $self->{_typedef_structs};
 }
 
@@ -459,12 +520,31 @@ All top-level declarations. This is a XML::LibXML::Document containing a list of
 sub topDeclarations {
   my ($self) = @_;
 
-  if ($self->{_asDOM}) {
-    return $self->{_topDeclarations};
+  if ($self->{_asDOM} && ! defined($self->{_topDeclarations})) {
+    $self->_topDeclarations();
   }
-  $log->warnf('topDeclarations is available only when asDOM option is a true value');
-  return undef;
+
+  return $self->{_topDeclarations};
 }
+
+# ----------------------------------------------------------------------------------------
+
+=head2 cdecl($self)
+
+Cdecl-like string of top-level declarations. Available only when asDOM option is atrue value. Returns a reference to an array.
+
+=cut
+
+sub cdecl {
+  my ($self) = @_;
+
+  if ($self->{_asDOM} && ! defined($self->{_cdecl})) {
+    $self->_cdecl();
+  }
+
+  return $self->{_cdecl};
+}
+
 
 # ----------------------------------------------------------------------------------------
 # Brutal copy of String::ShellQuote::quote_literal
@@ -511,48 +591,45 @@ sub _is_windows {
 sub _init {
     my ($self) = @_;
 
-    #
-    # Note that, because we do not know if cpprun or cppflags contain multiple things
-    # we cannot use the array version of run(). So ye have to stringify ourself.
-    # It is assumed (and is the case with %Config value), that cpprun and cppflags
-    # will be already properly escaped.
-    # Remains the filename that we do ourself.
-    # Two big categories: Win32, others
-    #
-    my $quotedFilename;
-    my $cmd = "$self->{_cpprun} $self->{_cppflags} ";
-    if (_is_windows()) {
-      if ($HAVE_Win32__ShellQuote) {
-        $quotedFilename = quote_native($self->{_orig_filename});
+    my $stdout_buf;
+
+    if (! $self->{_nocpp}) {
+      #
+      # Note that, because we do not know if cpprun or cppflags contain multiple things
+      # we cannot use the array version of run(). So ye have to stringify ourself.
+      # It is assumed (and is the case with %Config value), that cpprun and cppflags
+      # will be already properly escaped.
+      # Remains the filename that we do ourself.
+      # Two big categories: Win32, others
+      #
+      my $quotedFilename;
+      my $cmd = "$self->{_cpprun} $self->{_cppflags} ";
+      if (_is_windows()) {
+        if ($HAVE_Win32__ShellQuote) {
+          $quotedFilename = quote_native($self->{_orig_filename});
+        } else {
+          $quotedFilename = _quote_literal($self->{_orig_filename}, 1);
+        }
       } else {
-        $quotedFilename = _quote_literal($self->{_orig_filename}, 1);
+        $quotedFilename = shell_quote_best_effort($self->{_orig_filename});
       }
+      $cmd .= $quotedFilename;
+
+      my ($success, $error_code, undef, $stdout_bufp, $stderr_bufp) = run(command => $cmd);
+
+      if (! $success) {
+        croak join('', @{$stderr_bufp});
+      }
+
+      $stdout_buf = join('',@{$stdout_bufp});
     } else {
-      $quotedFilename = shell_quote_best_effort($self->{_orig_filename});
-    }
-    $cmd .= $quotedFilename;
-
-    my ($success, $error_code, undef, $stdout_bufp, $stderr_bufp) = run(command => $cmd);
-
-    if (! $success) {
-      croak join('', @{$stderr_bufp});
+      $log->debugf('Disabling cpp step');
+      open(TMP, '<', $self->{_orig_filename}) || croak "Cannot open $self->{_orig_filename}";
+      $stdout_buf = <TMP>;
+      close(TMP) || $log->warnf('Cannot close %s, %s', $self->{_orig_filename}, $!);
     }
 
-    my $stdout_buf = join('',@{$stdout_bufp});
-
-    $self->_initInternals();
-    $self->_analyse_with_grammar($stdout_buf);
-    $self->_analyse_with_heuristics($stdout_buf);
-    $self->_posprocess_heuristics();
-    $self->_cleanInternals();
-
-}
-
-# ----------------------------------------------------------------------------------------
-
-sub _initInternals {
-    my ($self) = @_;
-
+    $self->{_stdout_buf} = $stdout_buf;
     $self->{_position2File} = {};
     $self->{_sortedPosition2File} = [];
 
@@ -560,18 +637,8 @@ sub _initInternals {
 
 # ----------------------------------------------------------------------------------------
 
-sub _cleanInternals {
-    my ($self) = @_;
-
-    delete($self->{_position2File});
-    delete($self->{_sortedPosition2File});
-
-}
-
-# ----------------------------------------------------------------------------------------
-
-sub _getAst {
-  my ($self, $stdout_buf) = @_;
+sub _ast {
+  my ($self) = @_;
 
   #
   # Temporary stuff
@@ -594,7 +661,8 @@ sub _getAst {
        ],
        actionObject => sprintf('%s::%s', __PACKAGE__, 'Actions'),
        nonTerminalSemantic => ':default ::= action => nonTerminalSemantic',
-      )->parse(\$stdout_buf)->value;
+       %{$self->{_astConfig}},
+      )->parse(\$self->{_stdout_buf})->value;
   $self->{_ast} = ${$value};
 
   #
@@ -611,6 +679,26 @@ sub _getAst {
     }
   } else {
     $self->{_includes} = [ sort keys %{$tmpHash{_includes}} ];
+  }
+
+  if ($self->{_asDOM}) {
+    #
+    # We want to systematically provide a "text" attribute on all nodes
+    #
+    foreach ($self->ast()->findnodes($self->_xpath('allNodes.xpath'))) {
+      #
+      # In order to distringuish between a lexeme or not in the future, we remember
+      # if there was originally a lexeme -;
+      #
+      my $text = $_->getAttribute('text');
+      my $isLexeme = defined($text) ? 'true' : 'false';
+      $_->setAttribute('isLexeme', $isLexeme);
+      #
+      # And file information, which is acting as a filter
+      #
+      $self->_pushNodeFile(undef, $_, 1);
+      $self->_pushNodeString(undef, $_, 1);
+    }
   }
 }
 
@@ -633,67 +721,6 @@ sub _position2File {
   }
 
   return $file;
-}
-
-# ----------------------------------------------------------------------------------------
-
-sub _analyse_with_grammar {
-  my ($self, $stdout_buf) = @_;
-
-  #
-  # We get the AST and call other methods
-  #
-  $self->_getAst($stdout_buf);
-
-  #
-  # We want to systematically provide a "text" attribute on all nodes
-  #
-  foreach ($self->ast()->findnodes($self->_xpath('allNodes.xpath'))) {
-    #
-    # In order to distringuish between a lexeme or not in the future, we remember
-    # if there was originally a lexeme -;
-    #
-    my $text = $_->getAttribute('text');
-    my $isLexeme = defined($text) ? 'true' : 'false';
-    $_->setAttribute('isLexeme', $isLexeme);
-    #
-    # And file information, which is acting as a filter
-    #
-    $self->_pushNodeFile($stdout_buf, undef, $_, 1);
-    $self->_pushNodeString($stdout_buf, undef, $_, 1);
-  }
-
-
-  # -------------------------------------------------------------------------------------------
-  # Producing a C::Scan equivalent is just a matter of revisiting the XML, i.e. the AST's value
-  #
-  # C::Scan outputs can be:
-  #
-  # includes                   Handled as a callback during lexing
-  # defines_args               Handled in _posprocess_heuristics()
-  # defines_no_args            Handled in _posprocess_heuristics()
-  # fdecls                     functions declarations. Handled here.
-  # inlines                    functions definitions. Handled here.
-  # parsed_fdecls              parsed functions declarations. Handled here.
-  # typedef_hash               typedefs. Handled here.
-  # typedef_texts              typedefs expansions. Handled here.
-  # typedefs_maybe             Empty here.
-  # vdecls                     List of extern variables declarations. Handled here.
-  # vdecl_hash                 Parsed extern variables declarations. Handled here.
-  # typedef_structs            Parsed struct declarations. Handled here.
-  # -------------------------------------------------------------------------------------------
-
-  $self->_ast2fdecls($stdout_buf);
-  $self->_ast2inlines($stdout_buf);
-  $self->_ast2parsed_fdecls($stdout_buf);
-  $self->_ast2typedef_hash($stdout_buf);
-  $self->_ast2typedef_texts($stdout_buf);
-  $self->_ast2typedefs_maybe($stdout_buf);
-  $self->_ast2vdecls($stdout_buf);
-  $self->_ast2vdecl_hash($stdout_buf);
-  $self->_ast2typedef_structs($stdout_buf);
-  $self->_ast2topDeclarations($stdout_buf);
-  $self->_ast2cdecl($stdout_buf);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -799,7 +826,7 @@ sub _xslt {
 # ----------------------------------------------------------------------------------------
 
 sub _pushNodeString {
-  my ($self, $stdout_buf, $outputp, $node, $setAttributes) = @_;
+  my ($self, $outputp, $node, $setAttributes) = @_;
 
   $setAttributes //= 0;
 
@@ -836,7 +863,7 @@ sub _pushNodeString {
       my $startPosition = $firstLexeme->[0]->findvalue('./@start');
       my $endPosition = $lastLexeme->[0]->findvalue('./@start') + $lastLexeme->[0]->findvalue('./@length');
       my $length = $endPosition - $startPosition;
-      my $text = substr($stdout_buf, $startPosition, $length);
+      my $text = substr($self->{_stdout_buf}, $startPosition, $length);
       if (defined($outputp)) {
 	if (ref($outputp) eq 'ARRAY') {
 	  push(@{$outputp}, $text);
@@ -895,7 +922,7 @@ sub _fileOk {
 # ----------------------------------------------------------------------------------------
 
 sub _pushNodeFile {
-  my ($self, $stdout_buf, $outputp, $node, $setAttribute) = @_;
+  my ($self, $outputp, $node, $setAttribute) = @_;
 
   $setAttribute //= 0;
 
@@ -938,14 +965,14 @@ sub _pushNodeFile {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2fdecls {
-  my ($self, $stdout_buf) = @_;
+sub _fdecls {
+  my ($self) = @_;
 
   if (! defined($self->{_fdecls})) {
     #
     # We rely on parsed_fdecls
     #
-    $self->_ast2parsed_fdecls($stdout_buf);
+    $self->parsed_fdecls();
   }
 
   return $self->{_fdecls};
@@ -953,14 +980,14 @@ sub _ast2fdecls {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2typedef_texts {
-  my ($self, $stdout_buf) = @_;
+sub _typedef_texts {
+  my ($self) = @_;
 
   if (! defined($self->{_typedef_texts})) {
     #
     # We rely on typedef_hash
     #
-    $self->_ast2typedef_hash($stdout_buf);
+    $self->typedef_hash();
   }
 
   return $self->{_typedef_texts};
@@ -968,14 +995,14 @@ sub _ast2typedef_texts {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2typedefs_maybe {
-  my ($self, $stdout_buf) = @_;
+sub _typedefs_maybe {
+  my ($self) = @_;
 
   if (! defined($self->{_typedefs_maybe})) {
     #
     # We rely on typedef_hash
     #
-    $self->_ast2typedef_hash($stdout_buf);
+    $self->typedef_hash();
   }
 
   return $self->{_typedefs_maybe};
@@ -983,14 +1010,14 @@ sub _ast2typedefs_maybe {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2typedef_structs {
-  my ($self, $stdout_buf) = @_;
+sub _typedef_structs {
+  my ($self) = @_;
 
   if (! defined($self->{_typedef_structs})) {
     #
     # We rely on typedef_hash
     #
-    $self->_ast2typedef_hash($stdout_buf);
+    $self->typedef_hash();
   }
 
   return $self->{_typedef_structs};
@@ -998,14 +1025,14 @@ sub _ast2typedef_structs {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2vdecls {
-  my ($self, $stdout_buf) = @_;
+sub _vdecls {
+  my ($self) = @_;
 
   if (! defined($self->{_vdecls})) {
     #
     # We rely on vdecl_hash
     #
-    $self->_ast2vdecl_hash($stdout_buf);
+    $self->vdecl_hash();
   }
 
   return $self->{_vdecls};
@@ -1024,8 +1051,8 @@ sub _removeWord {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2vdecl_hash {
-  my ($self, $stdout_buf) = @_;
+sub _vdecl_hash {
+  my ($self) = @_;
 
   if (! defined($self->{_vdecl_hash})) {
     $self->{_vdecl_hash} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
@@ -1035,7 +1062,7 @@ sub _ast2vdecl_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('vdecl.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_pushNodeFile(\$file, $declaration)) {
         next;
       }
       #
@@ -1049,12 +1076,12 @@ sub _ast2vdecl_hash {
 	next;
       }
       my $vdecl = '';
-      $self->_pushNodeString($stdout_buf, \$vdecl, $declaration);
+      $self->_pushNodeString(\$vdecl, $declaration);
       #
       # vdecl_hash does not have the extern keyword.
       #
       my $textForHash;
-      $self->_pushNodeString($stdout_buf, \$textForHash, $declarationSpecifiers[0]);
+      $self->_pushNodeString(\$textForHash, $declarationSpecifiers[0]);
       $self->_removeWord(\$textForHash, 'extern');
 
       if ($self->{_asDOM}) {
@@ -1074,11 +1101,11 @@ sub _ast2vdecl_hash {
       my @after = ();
       foreach (@declarator) {
 	my $declarator;
-	$self->_pushNodeString($stdout_buf, \$declarator, $_);
+	$self->_pushNodeString(\$declarator, $_);
 
 	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
 	if (@IDENTIFIER) {
-	  $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	  $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
 	} else {
 	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
 	  push(@keys, $anon);
@@ -1114,8 +1141,8 @@ sub _ast2vdecl_hash {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2topDeclarations {
-  my ($self, $stdout_buf) = @_;
+sub _topDeclarations {
+  my ($self) = @_;
 
   if ($self->{_asDOM} && ! defined($self->{_topDeclarations})) {
     $self->{_topDeclarations} = XML::LibXML::Document->new();
@@ -1125,33 +1152,13 @@ sub _ast2topDeclarations {
     foreach ($self->ast()->findnodes($self->_xpath('topDeclarations.xpath'))) {
       my $declaration = $_;
       my $file;
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_pushNodeFile(\$file, $_)) {
 	next;
       }
       $declarationList->addChild($declaration->cloneNode(1));
     }
   }
 }
-
-# ----------------------------------------------------------------------------------------
-
-=head2 cdecl($self)
-
-Cdecl-like string of top-level declarations. Available only when asDOM option is atrue value. Returns a reference to an array.
-
-=cut
-
-sub cdecl {
-  my ($self) = @_;
-
-  if ($self->{_asDOM}) {
-    return $self->{_cdecl};
-  } else {
-    $log->warnf('cdecl is available only when asDOM option is a true value');
-    return undef;
-  }
-}
-
 
 # ----------------------------------------------------------------------------------------
 
@@ -1270,8 +1277,8 @@ sub _simplifyInitDeclarators {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2cdecl {
-  my ($self, $stdout_buf) = @_;
+sub _cdecl {
+  my ($self) = @_;
 
   if ($self->{_asDOM} && ! defined($self->{_cdecl})) {
     $self->{_cdeclAnonNb} = 0;
@@ -1309,7 +1316,7 @@ sub _ast2cdecl {
       # Parse the declaration
       #
       my $callLevel = -1;
-      push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($callLevel, $declaration, $stdout_buf));
+      push(@{$self->{_cdecl}}, $self->_topDeclaration2Cdecl($callLevel, $declaration));
     }
     delete($self->{_cdeclAnonNb});
   }
@@ -1318,7 +1325,7 @@ sub _ast2cdecl {
 # ----------------------------------------------------------------------------------------
 
 sub _topDeclaration2Cdecl {
-  my ($self, $callLevel, $declaration, $stdout_buf) = @_;
+  my ($self, $callLevel, $declaration) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_topDeclaration2Cdecl');
 
@@ -1335,16 +1342,16 @@ sub _topDeclaration2Cdecl {
   my @declSpecStack = ();
 
   my $i = 0;
-  my $last = $self->_readToId($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl, \@declSpecStack);
+  my $last = $self->_readToId($callLevel, \@nodes, \@stack, \$localCdecl, \@declSpecStack);
   do {
     #
     # Every declarator will share the stack up to first (eventually faked) identifier
     #
     if ($i++ > 0) {
       @stack = @declSpecStack;
-      $last = $self->_readToId($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl);
+      $last = $self->_readToId($callLevel, \@nodes, \@stack, \$localCdecl);
     }
-    $last = $self->_parseDeclarator($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl, $last);
+    $last = $self->_parseDeclarator($callLevel, \@nodes, \@stack, \$localCdecl, $last);
     push(@cdecl, $localCdecl);
     $localCdecl = '';
 
@@ -1407,22 +1414,22 @@ sub _checkPtr {
 }
 
 sub _parseDeclarator {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $stackp, $cdeclp, $last) = @_;
+  my ($self, $callLevel, $nodesp, $stackp, $cdeclp, $last) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_parseDeclarator', stack => $stackp, cdecl => $cdeclp, last => $last);
 
   if ($last->{node}->localname() eq 'LBRACKET') {
     while ($last->{node}->localname() eq 'LBRACKET') {
-      $last = $self->_readArraySize($callLevel, $stdout_buf, $nodesp, $cdeclp);
+      $last = $self->_readArraySize($callLevel, $nodesp, $cdeclp);
     }
   } elsif ($last->{node}->localname() eq 'LPAREN_SCOPE') {
-    $last = $self->_readFunctionArgs($callLevel, $stdout_buf, $nodesp, $cdeclp);
+    $last = $self->_readFunctionArgs($callLevel, $nodesp, $cdeclp);
   } elsif ($last->{node}->localname() eq 'LCURLY') {
     if ($last->{node}->parentNode()->localname() eq 'structOrUnionSpecifier') {
-      $last = $self->_readStructDeclarationList($callLevel, $stdout_buf, $nodesp, $cdeclp);
+      $last = $self->_readStructDeclarationList($callLevel, $nodesp, $cdeclp);
     }
     elsif ($last->{node}->parentNode()->localname() eq 'enumSpecifier') {
-      $last = $self->_readEnumeratorList($callLevel, $stdout_buf, $nodesp, $cdeclp);
+      $last = $self->_readEnumeratorList($callLevel, $nodesp, $cdeclp);
     } else {
       croak 'Unsupported parent for LCURLY node: ' . $last->{node}->parentNode()->localname();
     }
@@ -1432,8 +1439,8 @@ sub _parseDeclarator {
   while (@{$stackp}) {
     my $t = pop(@{$stackp});
     if ($t->{node}->localname() eq 'LPAREN') {
-      $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
-      $last = $self->_parseDeclarator($callLevel + 1, $stdout_buf, $nodesp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
+      $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
+      $last = $self->_parseDeclarator($callLevel + 1, $nodesp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
     } else {
       if ($t->{node}->localname() eq 'TYPEDEF') {
         ${$cdeclp}  = "Type definition of ${$cdeclp}";
@@ -1449,15 +1456,15 @@ sub _parseDeclarator {
 }
 
 sub _readFunctionArgs {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readFunctionArgs', cdecl => $cdeclp);
 
-  my $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  my $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
   if ($last->{node}->localname() eq 'RPAREN_SCOPE') {
     ${$cdeclp} .= 'function returning ';
-    $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+    $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
     $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readFunctionArgs', cdecl => $cdeclp, last => $last);
     return $last;
   }
@@ -1475,8 +1482,8 @@ sub _readFunctionArgs {
     #
     # Every argument has its own independant stack.
     #
-    $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl);
-    $last = $self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl, $last);
+    $last = $self->_readToId($callLevel, $nodesp, \@stack, \$cdecl);
+    $last = $self->_parseDeclarator($callLevel, $nodesp, \@stack, \$cdecl, $last);
 
     if ($last->{node}->localname() eq 'COMMA') {
       $cdecl .= ', ';
@@ -1485,14 +1492,14 @@ sub _readFunctionArgs {
 
   ${$cdeclp} .= '(' . $cdecl . ') and returning ';
 
-  $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
   $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readFunctionArgs', cdecl => $cdeclp, last => $last);
 
   return $last;
 }
 
 sub _readStructDeclarationList {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readStructDeclarationList', cdecl => $cdeclp);
 
@@ -1505,7 +1512,7 @@ sub _readStructDeclarationList {
     my @stack = ();
     my @declSpecStack = ();
 
-    $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, \$localCdecl);
+    $last = $self->_getNode($callLevel, $nodesp, \$localCdecl);
     #
     # Push back the node
     #
@@ -1513,7 +1520,7 @@ sub _readStructDeclarationList {
 
     if ($last->{node}->localname() ne 'RCURLY') {
       my $i;
-      $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl, \@declSpecStack);
+      $last = $self->_readToId($callLevel, $nodesp, \@stack, \$localCdecl, \@declSpecStack);
 
       do {
 	#
@@ -1525,9 +1532,9 @@ sub _readStructDeclarationList {
           # one gets the stack for all the others
           #
           @stack = @declSpecStack;
-          $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl);
+          $last = $self->_readToId($callLevel, $nodesp, \@stack, \$localCdecl);
         }
-	$last = $self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl, $last);
+	$last = $self->_parseDeclarator($callLevel, $nodesp, \@stack, \$localCdecl, $last);
 
 	if ($last->{node}->localname() eq 'COMMA') {
 	  $localCdecl .= ', ';
@@ -1545,7 +1552,7 @@ sub _readStructDeclarationList {
 
   ${$cdeclp} .= '{' . $localCdecl . '}';
 
-  $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readStructDeclarationList', cdecl => $cdeclp, last => $last);
 
@@ -1553,7 +1560,7 @@ sub _readStructDeclarationList {
 }
 
 sub _readEnumeratorList {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $nodesp, $cdeclp) = @_;
   #
   # This is very similar to _readFunctionArgs()
   #
@@ -1570,7 +1577,7 @@ sub _readEnumeratorList {
     #
     # Every argument has its own stack (which contains only the identifier -;)
     #
-    $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl);
+    $last = $self->_readToId($callLevel, $nodesp, \@stack, \$cdecl);
     #
     # There is no declarator, really - we fake one.
     #
@@ -1590,29 +1597,29 @@ sub _readEnumeratorList {
 }
 
 sub _readArraySize {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $nodesp, $cdeclp) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readArraySize', cdecl => $cdeclp);
 
   #
   # Per def next node in the list is the one just after LBRACKET
   #
-  my $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  my $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
   my $start = $last->{node}->getAttribute('start');
   my $end = 0;
 
   while ($last->{node}->localname() ne 'RBRACKET') {
     $end = $last->{node}->getAttribute('start') + $last->{node}->getAttribute('length');
-    $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+    $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
   }
   my $size = '';
   if ($end > 0) {
-    ${$cdeclp} .= sprintf('array[%s] of ', substr($stdout_buf, $start, $end - $start));
+    ${$cdeclp} .= sprintf('array[%s] of ', substr($self->{_stdout_buf}, $start, $end - $start));
   } else {
     ${$cdeclp} .= sprintf('array[] of ');
   }
 
-  $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readArraySize', cdecl => $cdeclp, last => $last);
 
@@ -1620,7 +1627,7 @@ sub _readArraySize {
 }
 
 sub _readToId {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $stackp, $cdeclp, $declSpecStackp) = @_;
+  my ($self, $callLevel, $nodesp, $stackp, $cdeclp, $declSpecStackp) = @_;
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readToId', stack => $stackp, cdecl => $cdeclp, declSpecStack => $declSpecStackp);
 
@@ -1641,7 +1648,7 @@ sub _readToId {
   # enum {A, B}
   #
   if (defined($declSpecStackp)) {
-    for ($last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp, 1);
+    for ($last = $self->_getNode($callLevel, $nodesp, $cdeclp, 1);
 
 	 $last->{type} != IDENTIFIER && $last->{type} != DECLARATOR;
 
@@ -1651,18 +1658,18 @@ sub _readToId {
 	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp);
 	     push(@{$declSpecStackp}, $last);
 	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to declaration specifiers stack', declSpecStack => $declSpecStackp);
-	     $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp, 1);
+	     $last = $self->_getNode($callLevel, $nodesp, $cdeclp, 1);
 	   }
 	 }) {}
   }
   if (! defined($declSpecStackp) || $last->{type} == DECLARATOR) {
-    for ($last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+    for ($last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
 	 $last->{type} != IDENTIFIER;
 
 	 push(@{$stackp}, $last),
 	 $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp),
-	 $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp)) {}
+	 $last = $self->_getNode($callLevel, $nodesp, $cdeclp)) {}
   }
 
   #
@@ -1674,7 +1681,7 @@ sub _readToId {
     ${$cdeclp} .= sprintf('%s: ', $last->{string});
   }
 
-  $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  $last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
   $self->_logCdecl('[<]' . (' ' x $callLevel--) .'_readToId', stack => $stackp, declSpecStack => $declSpecStackp, cdecl => $cdeclp, last => $last);
 
@@ -1682,7 +1689,7 @@ sub _readToId {
 }
 
 sub _classifyNode {
-  my ($self, $callLevel, $stdout_buf, $node, $nodesp, $cdeclp, $detectDeclarator) = @_;
+  my ($self, $callLevel, $node, $nodesp, $cdeclp, $detectDeclarator) = @_;
 
   $detectDeclarator //= 0;
 
@@ -1745,7 +1752,7 @@ sub _classifyNode {
       # Even if _topDeclaration can return more than one value, per def for a
       # structOrUnionSpecifier it will return a single element.
       #
-      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf))[0];
+      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1)))[0];
       $node->setAttribute('text', $last->{string});
       #
       # Eat all nodes until /this/ RCURLY
@@ -1796,7 +1803,7 @@ sub _classifyNode {
       # Even if _topDeclaration can return more than one value, per def for an
       # enumSpecifier it will return a single element.
       #
-      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf))[0];
+      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1)))[0];
       $node->setAttribute('text', $last->{string});
       #
       # Eat all nodes until /this/ RCURLY
@@ -1847,7 +1854,7 @@ sub _classifyNode {
 }
 
 sub _getNode {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp, $detectDeclarator) = @_;
+  my ($self, $callLevel, $nodesp, $cdeclp, $detectDeclarator) = @_;
 
   $detectDeclarator //= 0;
 
@@ -1861,7 +1868,7 @@ sub _getNode {
       $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => $cdeclp, detectDeclarator => $detectDeclarator, last => undef);
       return undef;
     }
-    $last = $self->_classifyNode($callLevel, $stdout_buf, $node, $nodesp, $cdeclp, $detectDeclarator);
+    $last = $self->_classifyNode($callLevel, $node, $nodesp, $cdeclp, $detectDeclarator);
   } while ($last->{type} == SKIPPED);
 
   $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => , $cdeclp, detectDeclarator => $detectDeclarator, last => $last, string => $last->{string});
@@ -1871,8 +1878,8 @@ sub _getNode {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2typedef_hash {
-  my ($self, $stdout_buf) = @_;
+sub _typedef_hash {
+  my ($self) = @_;
 
   if (! defined($self->{_typedef_hash})) {
     $self->{_typedef_hash} = $self->{_asDOM} ? XML::LibXML::Document->new() : {};
@@ -1884,7 +1891,7 @@ sub _ast2typedef_hash {
     #
     foreach my $declaration ($self->ast()->findnodes($self->_xpath('typedef.xpath'))) {
       my $file;
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $declaration)) {
+      if (! $self->_pushNodeFile(\$file, $declaration)) {
         next;
       }
 
@@ -1897,8 +1904,8 @@ sub _ast2typedef_hash {
       }
       my $text;
       my $declarationSpecifiers;
-      $self->_pushNodeString($stdout_buf, \$text, $declaration);
-      $self->_pushNodeString($stdout_buf, \$declarationSpecifiers, $declarationSpecifiers[0]);
+      $self->_pushNodeString(\$text, $declaration);
+      $self->_pushNodeString(\$declarationSpecifiers, $declarationSpecifiers[0]);
       #
       # typedef_texts does not have the typedef keyword, neither what will contain typedef_hash
       #
@@ -1921,10 +1928,10 @@ sub _ast2typedef_hash {
       my @after = ();
       foreach (@declarator) {
 	my $declarator;
-	$self->_pushNodeString($stdout_buf, \$declarator, $_);
+	$self->_pushNodeString(\$declarator, $_);
 
 	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
-	$self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	$self->_pushNodeString(\@keys, $IDENTIFIER[0]);
 	$declarator =~ /(.*)$keys[-1](.*)/;
         my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
         my $after = defined($-[2]) ? substr($declarator, $-[2], $+[2]-$-[2]) : '';
@@ -1978,7 +1985,7 @@ sub _ast2typedef_hash {
 	    next;
 	  }
           my $specifierQualifierList;
-          $self->_pushNodeString($stdout_buf, \$specifierQualifierList, $specifierQualifierList[0]);
+          $self->_pushNodeString(\$specifierQualifierList, $specifierQualifierList[0]);
 
           my @structDeclarator = $_->findnodes($self->_xpath('structDeclaration2structDeclarator.xpath'));
           my @keys = ();
@@ -1986,11 +1993,11 @@ sub _ast2typedef_hash {
           my @after = ();
           foreach (@structDeclarator) {
             my $structDeclarator;
-            $self->_pushNodeString($stdout_buf, \$structDeclarator, $_);
+            $self->_pushNodeString(\$structDeclarator, $_);
 
             my @IDENTIFIER = $_->findnodes($self->_xpath('structDeclarator2IDENTIFIER.xpath'));
 	    if (@IDENTIFIER) {
-	      $self->_pushNodeString($stdout_buf, \@keys, $IDENTIFIER[0]);
+	      $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
 	    } else {
 	      # COLON constantExpression
 	      push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
@@ -2069,8 +2076,8 @@ sub _ast2typedef_hash {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2parsed_fdecls {
-  my ($self, $stdout_buf) = @_;
+sub _parsed_fdecls {
+  my ($self) = @_;
 
   if (! defined($self->{_parsed_fdecls})) {
     $self->{_parsed_fdecls} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
@@ -2078,7 +2085,7 @@ sub _ast2parsed_fdecls {
 
     foreach my $node ($self->ast()->findnodes($self->_xpath('fdecls.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $node)) {
+      if (! $self->_pushNodeFile(\$file, $node)) {
         next;
       }
 
@@ -2093,7 +2100,7 @@ sub _ast2parsed_fdecls {
 	#
 	next;
       }
-      $self->_pushNodeString($stdout_buf, $fdecl, $declarationSpecifiers[0]);
+      $self->_pushNodeString($fdecl, $declarationSpecifiers[0]);
       #
       # Remove eventual typedef
       #
@@ -2112,7 +2119,7 @@ sub _ast2parsed_fdecls {
 	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
 	  push(@{$fdecl}, $anon);
 	} else {
-	  $self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
+	  $self->_pushNodeString($fdecl, $IDENTIFIER[0]);
 	}
       }
       #
@@ -2129,14 +2136,14 @@ sub _ast2parsed_fdecls {
 	# arg.rt
 	#
 	my @declarationSpecifiers = $_->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
-	$self->_pushNodeString($stdout_buf, $arg, $declarationSpecifiers[0]);
+	$self->_pushNodeString($arg, $declarationSpecifiers[0]);
 	#
 	# arg.nm or ANON
 	#
         my $anon = undef;
 	my @nm = $_->findnodes($self->_xpath('arg2nm.xpath'));
 	if (@nm) {
-	  $self->_pushNodeString($stdout_buf, $arg, $nm[0]);
+	  $self->_pushNodeString($arg, $nm[0]);
 	} else {
           my $anon = sprintf('ANON%d', $self->{_anonCount}++);
 	  push(@{$arg}, $anon);
@@ -2148,7 +2155,7 @@ sub _ast2parsed_fdecls {
 	#
 	# arg.ft
 	#
-	$self->_pushNodeString($stdout_buf, $arg, $_);
+	$self->_pushNodeString($arg, $_);
         if ($anon) {
           #
           # We faked an anonymous identifier
@@ -2173,7 +2180,7 @@ sub _ast2parsed_fdecls {
 	  my $newnode = $mod[0]->cloneNode(1);
 	  my $childnode = $newnode->firstChild;
 	  $newnode->removeChild($childnode );
-          $self->_pushNodeString($stdout_buf, $arg, $newnode);
+          $self->_pushNodeString($arg, $newnode);
         } else {
           push(@{$arg}, '');
         }
@@ -2196,7 +2203,7 @@ sub _ast2parsed_fdecls {
       #
       # ft, without remaining semicolon
       #
-      $self->_pushNodeString($stdout_buf, $fdecl, $node);
+      $self->_pushNodeString($fdecl, $node);
       $fdecl->[-1] =~ s/\s*;$//;
       #
       # mod is always undef
@@ -2236,8 +2243,8 @@ sub _ast2parsed_fdecls {
 
 # ----------------------------------------------------------------------------------------
 
-sub _ast2inlines {
-  my ($self, $stdout_buf) = @_;
+sub _inlines {
+  my ($self) = @_;
 
   if (! defined($self->{_inlines})) {
     $self->{_inlines} = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
@@ -2246,11 +2253,11 @@ sub _ast2inlines {
     #
     foreach ($self->ast()->findnodes($self->_xpath('inlines.xpath'))) {
       my $file = '';
-      if (! $self->_pushNodeFile($stdout_buf, \$file, $_)) {
+      if (! $self->_pushNodeFile(\$file, $_)) {
         next;
       }
       my $text = '';
-      $self->_pushNodeString($stdout_buf, \$text, $_);
+      $self->_pushNodeString(\$text, $_);
       if ($self->{_asDOM}) {
         my $child = XML::LibXML::Element->new('inline');
         $child->setAttribute('text', $text);
@@ -2323,7 +2330,7 @@ sub _lexemeCallback {
 # ----------------------------------------------------------------------------------------
 
 sub _analyse_with_heuristics {
-  my ($self, $stdout_buf) = @_;
+  my ($self) = @_;
 
   if (! defined($self->{_content})) {
       #
