@@ -1457,8 +1457,9 @@ sub _readFunctionArgs {
 
   if ($last->{node}->localname() eq 'RPAREN_SCOPE') {
     ${$cdeclp} .= 'function returning ';
-    $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readFunctionArgs', cdecl => $cdeclp);
-    return;
+    $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+    $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_readFunctionArgs', cdecl => $cdeclp, last => $last);
+    return $last;
   }
 
   #
