@@ -258,7 +258,7 @@ Rhs ids of this rule as an array reference
 
 Rhs names of this rule as an array reference
 
-=depth
+=item depth
 
 Rule depth
 
