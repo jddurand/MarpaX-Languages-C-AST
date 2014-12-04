@@ -698,7 +698,8 @@ statement
 
 labeledStatement
 	::= IDENTIFIER COLON statement
-	| CASE constantExpression COLON statement
+	| CASE constantExpression           COLON statement
+	| CASE constantExpression (WS_MANY) COLON statement
 	| CASE constantExpression (WS_MANY) ELLIPSIS (WS_MANY) constantExpression COLON statement
 	| DEFAULT COLON statement
 
