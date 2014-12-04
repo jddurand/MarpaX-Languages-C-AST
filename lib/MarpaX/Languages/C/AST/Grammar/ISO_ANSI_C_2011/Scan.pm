@@ -625,7 +625,7 @@ sub _init {
     } else {
       $log->debugf('Disabling cpp step');
       open(TMP, '<', $self->{_orig_filename}) || croak "Cannot open $self->{_orig_filename}";
-      $stdout_buf = <TMP>;
+      $stdout_buf = do {local $/; <TMP>;};
       close(TMP) || $log->warnf('Cannot close %s, %s', $self->{_orig_filename}, $!);
     }
 
