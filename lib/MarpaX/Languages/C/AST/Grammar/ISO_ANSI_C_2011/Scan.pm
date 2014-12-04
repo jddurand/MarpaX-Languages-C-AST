@@ -28,8 +28,8 @@ use File::Basename qw/basename/;
 use Unicode::CaseFold;
 use XML::LibXML;
 use XML::LibXSLT;
-use constant { TYPE => 0, QUALIFIER => 1, IDENTIFIER => 2, OTHER => 3, SKIPPED => 4 };
-our @type2String = qw/TYPE QUALIFIER IDENTIFIER OTHER SKIPPED/;
+use constant { TYPE => 0, QUALIFIER => 1, IDENTIFIER => 2, OTHER => 3, SKIPPED => 4, DECLARATOR => 5 };
+our @type2String = qw/TYPE QUALIFIER IDENTIFIER OTHER SKIPPED DECLARATOR/;
 
 our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
 our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
@@ -1252,6 +1252,24 @@ sub _simplifyEnumerators {
 
 # ----------------------------------------------------------------------------------------
 
+sub _simplifyInitDeclarators {
+  my ($self, $declaration) = @_;
+
+  foreach ($declaration->findnodes($self->_xpath('initDeclarators.xpath'))) {
+    my $i = 0;
+    my $firstChild = $_->firstChild();
+    my $EQUAL = $firstChild->nextSibling();
+    if (defined($EQUAL)) {
+      my $initializer = $EQUAL->nextSibling();
+      $log->debugf('_simplifyInitDeclarators: %s: removing initializer expression "%s %s"', $_->getAttribute('text'), $EQUAL->getAttribute('text'), $initializer->getAttribute('text'));
+      $_->removeChild($EQUAL);
+      $_->removeChild($initializer);
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------------------
+
 sub _ast2cdecl {
   my ($self, $stdout_buf) = @_;
 
@@ -1280,6 +1298,10 @@ sub _ast2cdecl {
       #
       $self->_simplifyEnumerators($declaration);
       #
+      # Ditto for the declarator initializers.
+      #
+      $self->_simplifyInitDeclarators($declaration);
+      #
       # We rely on presence of identifiers : insert fake ones wherever needed
       #
       $self->_addMissingIdentifiers($declaration);
@@ -1306,24 +1328,44 @@ sub _topDeclaration2Cdecl {
   #
   my $allNodesXpath = $self->_xpath('allNodes.xpath');
   my @nodes = $declaration->findnodes($allNodesXpath);
-  my $cdecl = '';
+
+  my $localCdecl = '';
+  my @cdecl = ();
   my @stack = ();
-  my $last = $self->_readToId($callLevel, $stdout_buf, \@nodes, \@stack, \$cdecl);
-  $self->_parseDeclarator($callLevel, $stdout_buf, \@nodes, \@stack, \$cdecl, $last);
+  my @declSpecStack = ();
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_topDeclaration2Cdecl', cdecl => $cdecl);
+  my $i = 0;
+  my $last = $self->_readToId($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl, \@declSpecStack);
+  do {
+    #
+    # Every declarator will share the stack up to first (eventually faked) identifier
+    #
+    if ($i++ > 0) {
+      @stack = @declSpecStack;
+      $last = $self->_readToId($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl);
+    }
+    $last = $self->_parseDeclarator($callLevel, $stdout_buf, \@nodes, \@stack, \$localCdecl, $last);
+    push(@cdecl, $localCdecl);
+    $localCdecl = '';
 
-  return $cdecl;
+  } while ($last->{node}->localname() eq 'COMMA');
+
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_topDeclaration2Cdecl', cdecl => \@cdecl);
+
+  return @cdecl;
 }
 
 sub _logCdecl {
   my ($self, $function, %h) = @_;
 
   #
-  # Rework case of stack
+  # Rework case of stack and declSpecStack
   #
-  if (exists($h{stack})) {
+  if (exists($h{stack}) && defined($h{stack})) {
     $h{stack} = [ map { $_->{string} } @{$h{stack}} ];
+  }
+  if (exists($h{declSpecStack}) && defined($h{declSpecStack})) {
+    $h{declSpecStack} = [ map { $_->{string} } @{$h{declSpecStack}} ];
   }
   #
   # Rework case of last, next, or previous
@@ -1352,13 +1394,13 @@ sub _checkPtr {
 
   my $t;
   for ($t = pop(@{$stackp});
-
-       $t->{node}->localname() eq 'STAR';
-
+       defined($t) && $t->{node}->localname() eq 'STAR';
        $t = pop(@{$stackp})) {
     ${$cdeclp} .= 'pointer to ';
   }
-  push(@{$stackp}, $t);
+  if (defined($t)) {
+    push(@{$stackp}, $t);
+  }
 
   $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_checkPtr', stack => $stackp, cdecl => $cdeclp);
 
@@ -1391,13 +1433,19 @@ sub _parseDeclarator {
     my $t = pop(@{$stackp});
     if ($t->{node}->localname() eq 'LPAREN') {
       $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
-      $self->_parseDeclarator($callLevel + 1, $stdout_buf, $nodesp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
+      $last = $self->_parseDeclarator($callLevel + 1, $stdout_buf, $nodesp, $stackp, $cdeclp, $last); # Recursively parse this ( dcl )
     } else {
-      ${$cdeclp} .= sprintf('%s ', $t->{string});
+      if ($t->{node}->localname() eq 'TYPEDEF') {
+        ${$cdeclp}  = "Type definition of ${$cdeclp}";
+      } else {
+        ${$cdeclp} .= sprintf('%s ', $t->{string});
+      }
     }
   }
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_parseDeclarator', stack => $stackp, cdecl => $cdeclp);
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_parseDeclarator', stack => $stackp, cdecl => $cdeclp, last => $last);
+
+  return $last;
 }
 
 sub _readFunctionArgs {
@@ -1424,10 +1472,10 @@ sub _readFunctionArgs {
   my $cdecl = '';
   do {
     #
-    # Every argument has its own stack. No need to save it.
+    # Every argument has its own independant stack.
     #
     $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl);
-    $self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl, $last);
+    $last = $self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl, $last);
 
     if ($last->{node}->localname() eq 'COMMA') {
       $cdecl .= ', ';
@@ -1454,6 +1502,7 @@ sub _readStructDeclarationList {
 
   do {
     my @stack = ();
+    my @declSpecStack = ();
 
     $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, \$localCdecl);
     #
@@ -1463,7 +1512,7 @@ sub _readStructDeclarationList {
 
     if ($last->{node}->localname() ne 'RCURLY') {
       my $i;
-      $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl);
+      $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl, \@declSpecStack);
 
       do {
 	#
@@ -1474,17 +1523,10 @@ sub _readStructDeclarationList {
           # declarators piling up. Per def they share the same stack, and only the first
           # one gets the stack for all the others
           #
-          my @emptyStack = ();
-          $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@emptyStack, \$localCdecl);
-          if (@emptyStack) {
-            $log->debugf('Stack not empty when parsing supplementary declarators: %s', \@emptyStack);
-          }
+          @stack = @declSpecStack;
+          $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl);
         }
-        #
-        # We use a copy of the initial stack, because _parseDeclarator will eat the stack argument
-        #
-	my @saveStack = @stack;
-	$self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@saveStack, \$localCdecl, $last);
+	$last = $self->_parseDeclarator($callLevel, $stdout_buf, $nodesp, \@stack, \$localCdecl, $last);
 
 	if ($last->{node}->localname() eq 'COMMA') {
 	  $localCdecl .= ', ';
@@ -1525,7 +1567,7 @@ sub _readEnumeratorList {
   my $last;
   do {
     #
-    # Every argument has its own stack, that will be empty.
+    # Every argument has its own stack (which contains only the identifier -;)
     #
     $last = $self->_readToId($callLevel, $stdout_buf, $nodesp, \@stack, \$cdecl);
     #
@@ -1577,19 +1619,50 @@ sub _readArraySize {
 }
 
 sub _readToId {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $stackp, $cdeclp) = @_;
+  my ($self, $callLevel, $stdout_buf, $nodesp, $stackp, $cdeclp, $declSpecStackp) = @_;
 
-  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readToId', stack => $stackp, cdecl => $cdeclp);
+  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_readToId', stack => $stackp, cdecl => $cdeclp, declSpecStack => $declSpecStackp);
 
   my $last;
 
-  for ($last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+  #
+  # _readToId() has a special mode when we want to distinguish the presence of declarator
+  # inside the stack. This is needed in cases of:
+  # * top level declarations
+  # * structure declaration lists
+  # because, in this case, multiple declarators can share the same declaration specifiers, e.g.:
+  # float x,y
+  #
+  # This is not needed in case of enumeration lists, not function arguments, because in these later
+  # cases, no identifier is sharing a declaration specifier stack, e.g.:
+  # f(float x, float y)
+  # f(float, float)
+  # enum {A, B}
+  #
+  if (defined($declSpecStackp)) {
+    for ($last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp, 1);
 
-       $last->{type} != IDENTIFIER;
+	 $last->{type} != IDENTIFIER && $last->{type} != DECLARATOR;
 
-       push(@{$stackp}, $last),
-       $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp),
-       $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp)) {}
+	 do {
+	   if ($last->{type} != DECLARATOR) {
+	     push(@{$stackp}, $last);
+	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp);
+	     push(@{$declSpecStackp}, $last);
+	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to declaration specifiers stack', declSpecStack => $declSpecStackp);
+	     $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp, 1);
+	   }
+	 }) {}
+  }
+  if (! defined($declSpecStackp) || $last->{type} == DECLARATOR) {
+    for ($last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
+
+	 $last->{type} != IDENTIFIER;
+
+	 push(@{$stackp}, $last),
+	 $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp),
+	 $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp)) {}
+  }
 
   #
   # Subtility with ELLIPSIS, per def there is no declaration at all
@@ -1602,13 +1675,15 @@ sub _readToId {
 
   $last = $self->_getNode($callLevel, $stdout_buf, $nodesp, $cdeclp);
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) .'_readToId', stack => $stackp, cdecl => $cdeclp, last => $last);
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) .'_readToId', stack => $stackp, declSpecStack => $declSpecStackp, cdecl => $cdeclp, last => $last);
 
   return $last;
 }
 
 sub _classifyNode {
-  my ($self, $callLevel, $stdout_buf, $node, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $stdout_buf, $node, $nodesp, $cdeclp, $detectDeclarator) = @_;
+
+  $detectDeclarator //= 0;
 
   my $previous = $node->previousSibling();
   my $last = {node => $node,
@@ -1616,7 +1691,7 @@ sub _classifyNode {
 	      type => undef};
   my $next = $node->nextSibling();
 
-  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_classifyNode', cdecl => $cdeclp, last => $last);
+  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_classifyNode', cdecl => $cdeclp, last => $last, detectDeclarator => $detectDeclarator);
 
   my $name = $node->localname();
   my $firstChild = $node->firstChild();
@@ -1633,7 +1708,10 @@ sub _classifyNode {
   my $parent = $last->{node}->parentNode();
   my $parentName = $parent->localname();
 
-  if ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ANON_IDENTIFIER' || $name eq 'ELLIPSIS') {
+  if ($name eq 'declarator' && $detectDeclarator) {
+    $last->{type} = DECLARATOR;
+  }
+  elsif ($name eq 'IDENTIFIER' || $name eq 'IDENTIFIER_UNAMBIGUOUS' || $name eq 'ANON_IDENTIFIER' || $name eq 'ELLIPSIS') {
     $last->{type} = IDENTIFIER;
   }
   elsif ($parentName eq 'typeQualifier') {
@@ -1662,9 +1740,11 @@ sub _classifyNode {
       my $structDeclarationList = $LCURLY->nextSibling();
       my $RCURLY = $structDeclarationList->nextSibling();
       #
-      # Get a verbose string for this structure definition
+      # Get a verbose string for this structure definition.
+      # Even if _topDeclaration can return more than one value, per def for a
+      # structOrUnionSpecifier it will return a single element.
       #
-      $last->{string} = $self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf);
+      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf))[0];
       $node->setAttribute('text', $last->{string});
       #
       # Eat all nodes until /this/ RCURLY
@@ -1712,8 +1792,10 @@ sub _classifyNode {
       my $RCURLY = $enumeratorList->nextSibling();
       #
       # Get a verbose string for this enum definition
+      # Even if _topDeclaration can return more than one value, per def for an
+      # enumSpecifier it will return a single element.
       #
-      $last->{string} = $self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf);
+      $last->{string} = ($self->_topDeclaration2Cdecl($callLevel, $node->cloneNode(1), $stdout_buf))[0];
       $node->setAttribute('text', $last->{string});
       #
       # Eat all nodes until /this/ RCURLY
@@ -1758,28 +1840,30 @@ sub _classifyNode {
     $last->{type} = SKIPPED;
   }
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_classifyNode', cdecl => $cdeclp, last => $last);
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_classifyNode', cdecl => $cdeclp, detectDeclarator => $detectDeclarator, last => $last);
 
   return $last;
 }
 
 sub _getNode {
-  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp) = @_;
+  my ($self, $callLevel, $stdout_buf, $nodesp, $cdeclp, $detectDeclarator) = @_;
 
-  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_getNode', cdecl => $cdeclp);
+  $detectDeclarator //= 0;
+
+  $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_getNode', cdecl => $cdeclp, detectDeclarator => $detectDeclarator);
 
   my $node;
   my $last;
   do {
     $node = shift(@{$nodesp});
     if (! defined($node)) {
-      $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => $cdeclp, last => undef);
+      $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => $cdeclp, detectDeclarator => $detectDeclarator, last => undef);
       return undef;
     }
-    $last = $self->_classifyNode($callLevel, $stdout_buf, $node, $nodesp, $cdeclp);
+    $last = $self->_classifyNode($callLevel, $stdout_buf, $node, $nodesp, $cdeclp, $detectDeclarator);
   } while ($last->{type} == SKIPPED);
 
-  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => , $cdeclp, last => $last, string => $last->{string});
+  $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => , $cdeclp, detectDeclarator => $detectDeclarator, last => $last, string => $last->{string});
 
   return $last;
 }
@@ -2018,13 +2102,17 @@ sub _ast2parsed_fdecls {
       # in the declaration
       #
       my @declarator = $node->findnodes($self->_xpath('declaration2Declarator.xpath'));
-
-      my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
-      if (@IDENTIFIER) {
-	$self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
-      } else {
+      if (! @declarator) {
 	my $anon = sprintf('ANON%d', $self->{_anonCount}++);
 	push(@{$fdecl}, $anon);
+      } else {
+	my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
+	if (! @IDENTIFIER) {
+	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+	  push(@{$fdecl}, $anon);
+	} else {
+	  $self->_pushNodeString($stdout_buf, $fdecl, $IDENTIFIER[0]);
+	}
       }
       #
       # args

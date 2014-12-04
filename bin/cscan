@@ -109,18 +109,13 @@ if (defined($filter)) {
         $filter = eval "qr$filter"; ## no critic (ProhibitStringyEval)
         die $@ if ($@);
     }
-} else {
-    my $basename = basename($ARGV[-1]);
-    my $quotedBasename = quotemeta($basename);
-    $filter = eval "qr/$quotedBasename/"; ## no critic (ProhibitStringyEval)
-    die $@ if ($@);
 }
 
 my %config = ();
-$config{cpprun} = $cpprun if ($cpprun);
+$config{cpprun} = $cpprun if (defined($cpprun));
 $config{cppflags} = join(' ', @cppflags) if (@cppflags);
-$config{filename_filter} = $filter if ($filter);
-$config{enumType} = $enumType if ($enumType);
+$config{filename_filter} = $filter if (defined($filter));
+$config{enumType} = $enumType if (defined($enumType));
 $config{asDOM} = 1;
 
 # --------------------------
@@ -129,13 +124,22 @@ $config{asDOM} = 1;
 my $c = undef;
 if (! $in) {
   my $filename = shift;
+  my $tmp = undef;
   if (! defined($filename) || $filename eq '-') {
-    my $tmp = File::Temp->new( UNLINK => 1, SUFFIX => '.c' ) || die "Cannot get a temporary file, $!";
+    $tmp = File::Temp->new( UNLINK => 1, SUFFIX => '.c' ) || die "Cannot get a temporary file, $!";
     print $tmp <STDIN> || $log->warnf('Cannot print to %s, %s', $tmp->filename, $!);
+    $filename = $tmp->filename;
+  }
+  if (! defined($filter)) {
+    my $basename = basename($filename);
+    my $quotedBasename = quotemeta($basename);
+    $filter = eval "qr/$quotedBasename/"; ## no critic (ProhibitStringyEval)
+    die $@ if ($@);
+    $config{filename_filter} = $filter;
+  }
+  $c = MarpaX::Languages::C::Scan->new(filename => $filename, %config);
+  if (defined($tmp)) {
     close($tmp) || $log->warnf('Cannot close %s, %s', $tmp->filename, $!);
-    $c = MarpaX::Languages::C::Scan->new(filename => $tmp->filename, %config);
-  } else {
-    $c = MarpaX::Languages::C::Scan->new(filename => $filename, %config);
   }
 }
 
