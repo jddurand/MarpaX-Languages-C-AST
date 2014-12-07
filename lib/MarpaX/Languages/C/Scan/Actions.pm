@@ -62,7 +62,7 @@ sub nonTerminalSemantic {
   }
 
   if ($lhs eq 'translationUnit') {
-    $self->{dom}->addChild($node);
+    $self->{dom}->setDocumentElement($node);
     return $self->{dom};
   } else {
     return $node;
