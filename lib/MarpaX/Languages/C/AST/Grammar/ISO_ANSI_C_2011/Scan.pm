@@ -2,6 +2,7 @@ use strict;
 use warnings FATAL => 'all';
 
 package MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan;
+use parent qw/MarpaX::Languages::C::Scan/;
 
 # ABSTRACT: Scan C source
 
