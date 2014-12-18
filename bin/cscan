@@ -162,8 +162,16 @@ if (! $in) {
     if (defined($c)) {
         foreach (split(/,/, $get)) {
             next if (! $_ || ! "$_");
-            eval { print STDOUT ($_ eq 'astToString') ? $c->$_ : Dumper($c->$_) };
-            print STDERR "$@" if ($@);
+            my $rc = eval { $c->$_; };
+	    if ($@) {
+	      print STDERR "$@" if ($@);
+	    } else {
+	      if (ref($rc) =~ '^XML::') {
+		print $rc->toString(1);
+	      } else {
+		print Dumper($rc);
+	      }
+	    }
         }
     }
     if ($xpath || $xml) {
@@ -184,12 +192,12 @@ if (! $in) {
             my $dom = XML::LibXML::Document->new();
             my $root = XML::LibXML::Element->new('cscan');
 
-            foreach (qw/includes defines_args defines_no_args strings macros fdecls inlines parsed_fdecls typedef_hash typedef_texts typedefs_maybe typedef_structs vdecls vdecl_hash/) {
+            foreach (qw/includes defines_args defines_no_args strings macros fdecls inlines parsed_fdecls typedef_hash typedef_texts typedefs_maybe typedef_structs vdecls vdecl_hash ast/) {
                 my $what = $_;
                 my $child = XML::LibXML::Element->new($what);
                 eval {map {$child->addChild($_)} $c->$what->childNodes()};
                 if ($@) {
-                    print STDERR "Oups on $what\n";
+                    print STDERR "Oups on $what: $@\n";
                 }
                 $root->addChild($child);
             }
@@ -335,7 +343,7 @@ Dump the result of getting <argument> using perl module Data::Dumper, except for
 
 =over
 
-=item astToString
+=item ast
 
 The AST (Abstract Syntax Tree) in stringified XML format.
 
@@ -402,6 +410,10 @@ List of extern variable declarations.
 =item topDeclarations
 
 List of all top-level declarations.
+
+=item cdecl
+
+List of all top-level declarations in human-readable format, i.e. a-la cdecl.
 
 =back
 
