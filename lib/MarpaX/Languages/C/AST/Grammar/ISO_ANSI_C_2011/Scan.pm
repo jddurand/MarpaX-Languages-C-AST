@@ -1758,10 +1758,13 @@ sub _classifyNode {
       #
       # Eat all nodes until /this/ RCURLY
       #
+	  my $startRcurly=$RCURLY->getAttribute('start');
+	  my $nextStart;
       do {
-        my $nextNode = @{$nodesp} ? $nodesp->[0] : undef;
+        my $nextNode = shift(@{$nodesp});
         $self->_logCdecl('[-]' . (' ' x $callLevel) . '_classifyNode: pass-through', node => {node => $nextNode});
-      } while (shift(@{$nodesp}) != $RCURLY);
+		$nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
+      } while ($nextStart != $startRcurly);
       #
       # We remove also children from LCURLY up to RCURLY
       #
@@ -1809,10 +1812,13 @@ sub _classifyNode {
       #
       # Eat all nodes until /this/ RCURLY
       #
+ 	  my $startRcurly=$RCURLY->getAttribute('start');
+	  my $nextStart;
       do {
-        my $nextNode = @{$nodesp} ? $nodesp->[0] : undef;
+        my $nextNode = shift(@{$nodesp});
         $self->_logCdecl('[-]' . (' ' x $callLevel) . '_classifyNode: pass-through', node => {node => $nextNode});
-      } while (shift(@{$nodesp}) != $RCURLY);
+		$nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
+      } while ($nextStart != $startRcurly);
       #
       # We remove also children from LCURLY up to RCURLY
       #
