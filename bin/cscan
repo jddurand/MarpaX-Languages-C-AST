@@ -34,7 +34,7 @@ my $out = '';
 my $err = '';
 my $loglevel = 'WARN';
 my $logstderr = 0;
-my $enumType = '';
+my $enumType = 'int';
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
