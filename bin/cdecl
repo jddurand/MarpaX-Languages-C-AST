@@ -28,14 +28,10 @@ push(@PERL5LIB, $INC);
 my @cmd = ($^X, $cscan, '--get', 'cdecl', @ARGV);
 my ($success, $error_code, undef, $stdout_bufp, $stderr_bufp) = run(command => \@cmd);
 
-if (! $success) {
-	exit(EXIT_FAILURE);
-}
-
 print STDOUT join('',@{$stdout_bufp});
 print STDERR join('',@{$stderr_bufp});
 
-exit(EXIT_SUCCESS);
+exit($success ? EXIT_SUCCESS : EXIT_FAILURE);
 
 __DATA__
 
