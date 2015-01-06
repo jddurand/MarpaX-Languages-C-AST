@@ -34,7 +34,7 @@ sub TIEHANDLE {
 
   my $self = {
               level => exists($options{level}) ? ($options{level} || 'trace') : 'trace',
-              category => exists($options{category}) ? ($options{category} || '') : '',
+              category => $options{category}, # possible undef is OK
              };
 
   $self->{logger} = Log::Any->get_logger(category => $self->{category});
