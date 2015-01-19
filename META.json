@@ -4,7 +4,7 @@
       "Jean-Damien Durand <jeandamiendurand@free.fr>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Dist::Zilla version 5.028, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Dist::Zilla version 5.031, CPAN::Meta::Converter version 2.142060",
    "license" : [
       "perl_5"
    ],
@@ -108,74 +108,74 @@
    "provides" : {
       "MarpaX::Languages::C::AST" : {
          "file" : "lib/MarpaX/Languages/C/AST.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Callback" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Callback::Events" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Events.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Callback::Method" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Method.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Callback::Option" : {
          "file" : "lib/MarpaX/Languages/C/AST/Callback/Option.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Grammar" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Actions" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Actions.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Scan.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions" : {
          "file" : "lib/MarpaX/Languages/C/AST/Grammar/ISO_ANSI_C_2011/Scan/Actions.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Impl" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Impl::Logger" : {
          "file" : "lib/MarpaX/Languages/C/AST/Impl/Logger.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Scope" : {
          "file" : "lib/MarpaX/Languages/C/AST/Scope.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Util" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::AST::Util::Data::Find" : {
          "file" : "lib/MarpaX/Languages/C/AST/Util/Data/Find.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::Scan" : {
          "file" : "lib/MarpaX/Languages/C/Scan.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       },
       "MarpaX::Languages::C::Scan::Actions" : {
          "file" : "lib/MarpaX/Languages/C/Scan/Actions.pm",
-         "version" : "0.42"
+         "version" : "0.43"
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "bugtracker" : {
          "mailto" : "bug-MarpaX-Languages-C-AST@rt.cpan.org",
@@ -188,7 +188,7 @@
          "web" : "https://github.com/jddurand/marpax-languages-c-ast"
       }
    },
-   "version" : "0.42",
+   "version" : "0.43",
    "x_contributors" : [
       "Ben Bullock <benkasminbullock@gmail.com>",
       "Ivan Baidakou <basiliscos@openmailbox.com>",
