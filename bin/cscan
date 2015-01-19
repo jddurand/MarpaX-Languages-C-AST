@@ -35,11 +35,17 @@ my $err = '';
 my $loglevel = 'WARN';
 my $logstderr = 0;
 my $enumType = 'int';
+my $lazy = 0;
+my @typedef = ();
+my @enum = ();
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
+            'lazy!' => \$lazy,
+            'typedef=s' => \@typedef,
+            'enum=s' => \@enum,
             'filter=s' => \$filter,
             'xml!' => \$xml,
             'in=s' => \$in,
@@ -56,6 +62,9 @@ GetOptions ('help!' => \$help,
             'out=s' => \$out,
             'err=s' => \$err,
             'get=s' => \$get);
+
+@typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
+@enum = grep {$_ && "$_"} split(/,/, join(',', @enum));
 
 #
 # Do redirection asap, i.e. now, err first, unless help is requested
@@ -123,6 +132,9 @@ $config{cppflags} = join(' ', @cppflags) if (@cppflags);
 $config{filename_filter} = $filter if (defined($filter));
 $config{enumType} = $enumType if (defined($enumType));
 $config{asDOM} = 1;
+$config{lazy} = $lazy if ($lazy);
+$config{typedef} = \@typedef if (@typedef);
+$config{enum} = \@enum if (@enum);
 
 # --------------------------
 # Parse C, unless $in option
@@ -300,6 +312,11 @@ cscan - C source scsan
    --error              Alias to --loglevel ERROR
    --fatal              Alias to --loglevel FATAL
    --trace              Alias to --loglevel TRACE
+
+ Advanced options:
+   --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
+   --typedef <typedef>  Comma separated list of known typedefs
+   --enum <enums>       Comma separated list of known enums
 
 =head1 OPTIONS
 
@@ -593,6 +610,18 @@ Log to stderr or not. Default is a false value.
 =item B<--enumType>
 
 Type for enumerators. Default is 'int'.
+
+=item B<--lazy>
+
+Instruct the parser to try all alternatives on typedef/enum/identifier. Default is a false value.
+
+=item B<--typedef typedefs>
+
+Comma separated list of known typedefs. Default is an empty list.
+
+=item B<--enum enums>
+
+Comma separated list of known enums. Default is an empty list.
 
 =back
 
