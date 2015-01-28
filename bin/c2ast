@@ -616,7 +616,7 @@ But doing a wrong hint, saying size_t is an enum will imply a parse failure, bec
  int func1(size_t size) {
  ----------^
 
-In conclusion, the options --nocpp and --lazy, even with --typedef or --enum hints, should be rarelly be used, unless your engine is prepared to hand over failure. The L<cpretty> program, for instance, is doing so.
+In conclusion, the options --nocpp and --lazy, even with --typedef or --enum hints, should be rarelly be used, unless your engine is prepared to hand over failure.
 
 =back
 
