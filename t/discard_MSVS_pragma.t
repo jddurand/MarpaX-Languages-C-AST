@@ -284,7 +284,7 @@ __pragma(endregion(ThisRegion))
 // --------------
 __pragma(runtime_checks( "sc", restore ))
 __pragma(runtime_checks( "", off ))
-__pragma(runtime_checks( "", restore )) 
+__pragma(runtime_checks( "", restore ))
 
 // -------
 // section

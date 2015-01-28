@@ -18,8 +18,8 @@ This modules give the actions associated to ISO_ANSI_C grammar in Scan mode.
 sub new {
     my $class = shift;
     my $self = {
-		dom => XML::LibXML::Document->new(),
-	       };
+                dom => XML::LibXML::Document->new(),
+               };
     bless($self, $class);
     return $self;
 }
@@ -40,16 +40,16 @@ sub nonTerminalSemantic {
       #
       my $name;
       if ($_ > $maxRhs) {
-	if ($maxRhs == 0) {
-	  #
-	  # Ok only if $maxRhs is 0 : this is (probably) a sequence
-	  #
-	  $name = $rhs[0];
-	} else {
-	  croak "Too many arguments on the stack. Rule was: $lhs ::= @rhs\n";
-	}
+        if ($maxRhs == 0) {
+          #
+          # Ok only if $maxRhs is 0 : this is (probably) a sequence
+          #
+          $name = $rhs[0];
+        } else {
+          croak "Too many arguments on the stack. Rule was: $lhs ::= @rhs\n";
+        }
       } else {
-	$name = $rhs[$_];
+        $name = $rhs[$_];
       }
       $child = XML::LibXML::Element->new($name);
       $child->setAttribute('start', $_[$_]->[0]);

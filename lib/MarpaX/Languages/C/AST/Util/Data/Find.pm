@@ -51,7 +51,7 @@ End of element callback (CODE ref).
 
 =item endOfElementArgs
 
-End-Of-Element callback arguments (ARRAY ref). The endOfElement callback is called like: &$endOfElement(@{$endOfElementArgs}, $object) where $object is a reference to the object that finishes. If wanted callback is setted, only wanted objects are concerned.
+End-Of-Element callback arguments (ARRAY ref). The endOfElement callback is called like: &$endOfElement(@{$endOfElementArgs}, $object) where $object is a reference to the object that finishes. If wanted callback is set, only wanted objects are concerned.
 
 End of element callback (CODE ref).
 
@@ -79,15 +79,15 @@ sub new {
   my ($class, %options) = @_;
 
   my $self  = {
-    _endOfElement     => $options{endOfElement}     || sub {},
-    _endOfElementArgs => $options{endOfElementArgs} || [],
+               _endOfElement     => $options{endOfElement}     || sub {},
+               _endOfElementArgs => $options{endOfElementArgs} || [],
 
-    _wanted           => $options{wanted}           || sub {return 1;},
-    _wantedArgs       => $options{wantedArgs}       || [],
+               _wanted           => $options{wanted}           || sub {return 1;},
+               _wantedArgs       => $options{wantedArgs}       || [],
 
-    _callback         => $options{callback}         || sub {},
-    _callbackArgs     => $options{callbackArgs}     || []
-  };
+               _callback         => $options{callback}         || sub {},
+               _callbackArgs     => $options{callbackArgs}     || []
+              };
 
   bless $self, $class;
 
@@ -101,29 +101,29 @@ Process search on the object $value. Returns a true value is something wanted wa
 =cut
 
 sub process {
-    my ($self, $value) = @_;
+  my ($self, $value) = @_;
 
-    my @worklist = ($value);
-    my $rc = 0;
-    do {
-	my $obj = shift @worklist;
+  my @worklist = ($value);
+  my $rc = 0;
+  do {
+    my $obj = shift @worklist;
 
-	my $ref = ref($obj);
-	if ($ref eq 'SCALAR' && $obj == \$_endOfElement) {
-	  $obj = shift @worklist;
-	  $self->{_endOfElement}(@{$self->{_endOfElementArgs}}, $obj);
-	  $rc = 1;
-	} else {
-	  if ($self->{_wanted}(@{$self->{_wantedArgs}}, $obj)) {
-	    $rc = 1;
-	    $self->{_callback}(@{$self->{_callbackArgs}}, $obj);
-	  }
-	  if (blessed($obj) || $ref eq 'ARRAY') {
-	    unshift(@worklist, @{$obj}, \$_endOfElement, $obj);
-	  } else {
-	    croak "Unsupported object type $ref\n" if $ref;
-	  }
-	}
+    my $ref = ref($obj);
+    if ($ref eq 'SCALAR' && $obj == \$_endOfElement) {
+      $obj = shift @worklist;
+      $self->{_endOfElement}(@{$self->{_endOfElementArgs}}, $obj);
+      $rc = 1;
+    } else {
+      if ($self->{_wanted}(@{$self->{_wantedArgs}}, $obj)) {
+        $rc = 1;
+        $self->{_callback}(@{$self->{_callbackArgs}}, $obj);
+      }
+      if (blessed($obj) || $ref eq 'ARRAY') {
+        unshift(@worklist, @{$obj}, \$_endOfElement, $obj);
+      } else {
+        croak "Unsupported object type $ref\n" if $ref;
+      }
+    }
   } while (@worklist);
 
   return $rc;

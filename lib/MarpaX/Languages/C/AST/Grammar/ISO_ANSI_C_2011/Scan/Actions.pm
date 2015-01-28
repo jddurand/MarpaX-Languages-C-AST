@@ -35,8 +35,8 @@ sub getRuleDescription {
   # Remove known hiden terms that rule_expand do not remove
   #
   my @okRhs = grep {$_ ne 'structContextStart' &&
-		    $_ ne 'structContextEnd' &&
-		    $_ ne 'WS_MANY'} @rhs;
+                    $_ ne 'structContextEnd' &&
+                    $_ ne 'WS_MANY'} @rhs;
 
   return ($lhs, @okRhs);
 }

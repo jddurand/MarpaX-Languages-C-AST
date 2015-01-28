@@ -33,8 +33,8 @@ __declspec(noalias) void multiply(float * a, float * b, float * c)
     for (j=0; j<P; j++)
         for (i=0; i<M; i++)
             for (k=0; k<N; k++)
-                c[i * P + j] = 
-                          a[i * N + k] * 
+                c[i * P + j] =
+                          a[i * N + k] *
                           b[k * P + j];
 }
 __declspec(noinline) int mbrfunc() {}

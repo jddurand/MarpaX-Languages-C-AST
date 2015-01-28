@@ -110,11 +110,9 @@ Preprocessor flags, default is $ENV{MARPAX_LANGUAGES_C_SCAN_CPPFLAGS}, $Config{c
 
 Disable preprocessor command. It is then up to the user to make that filename, or content, are suitable for the grammar. Eventually setting other MarpaX::Languages::C::AST->new() other options, like lazy mode and/or a list of typedef. Default is a false value.
 
-=item
+=back
 
 Any other option is passed as-is to MarpaX::Languages::C::AST->new() and will have precedence.
-
-=back
 
 Please refer to the Config perl documentation for the meaning of $Config{cpprun} or $Config{cppflags}.
 
@@ -127,8 +125,6 @@ The $filename_filter value limits the output to file names equal to $filename_fi
 The methods defines_args() and defines_no_args() are not subject to the filename_filter parameter: they always apply on the content or filename given /before/ the preprocessing. They are based on heuristic parsing, so their result should not be blindly trusted. A typical example of false positive is a macro inside string or a comment.
 
 This module will croak on any error.
-
-=back
 
 =head1 METHODS
 
@@ -193,14 +189,14 @@ sub new {
   if (defined($self->{_filename_filter})) {
       my $ref = reftype($self->{_filename_filter}) || '';
       if ($ref) {
-	  if ($ref ne 'REGEXP') {
-	      croak 'filename_filter must be a scalar or a regular expression';
-	  } else {
-	      #
-	      # For efficiency, instead of doing ref() or reftype() all the time, we will do exists()
-	      #
-	      $self->{_filename_filter_re} = $self->{_filename_filter};
-	  }
+          if ($ref ne 'REGEXP') {
+              croak 'filename_filter must be a scalar or a regular expression';
+          } else {
+              #
+              # For efficiency, instead of doing ref() or reftype() all the time, we will do exists()
+              #
+              $self->{_filename_filter_re} = $self->{_filename_filter};
+          }
       }
   }
 
@@ -625,9 +621,10 @@ sub _init {
       $stdout_buf = join('',@{$stdout_bufp});
     } else {
       $log->debugf('Disabling cpp step');
-      open(TMP, '<', $self->{_orig_filename}) || croak "Cannot open $self->{_orig_filename}";
-      $stdout_buf = do {local $/; <TMP>;};
-      close(TMP) || $log->warnf('Cannot close %s, %s', $self->{_orig_filename}, $!);
+      my $fh;
+      open($fh, '<', $self->{_orig_filename}) || croak "Cannot open $self->{_orig_filename}";
+      $stdout_buf = do {local $/; <$fh>;};
+      close($fh) || $log->warnf('Cannot close %s, %s', $self->{_orig_filename}, $!);
     }
 
     $self->{_stdout_buf} = $stdout_buf;
@@ -656,9 +653,9 @@ sub _ast {
   my $value = MarpaX::Languages::C::AST->new
       (
        lexemeCallback => [ \&_lexemeCallback,
-			   {self => $self,
-			    tmpHashp => \%tmpHash,
-			   }
+                           {self => $self,
+                            tmpHashp => \%tmpHash,
+                           }
        ],
        actionObject => sprintf('%s::%s', __PACKAGE__, 'Actions'),
        nonTerminalSemantic => ':default ::= action => nonTerminalSemantic',
@@ -741,14 +738,15 @@ sub _xpath {
       {
         use filetest 'access';
         if (-r $filename) {
-          if (! open(XPATH, '<', $filename)) {
+          my $fh;
+          if (! open($fh, '<', $filename)) {
             #
             # This should not happen
             #
             $log->warnf('Cannot open %s, %s', $filename, $!);
           } else {
-            my $xpath = do {local $/; <XPATH>};
-            if (! close(XPATH)) {
+            my $xpath = do {local $/; <$fh>};
+            if (! close($fh)) {
               $log->warnf('Cannot close %s, %s', $filename, $!);
             }
             #
@@ -768,7 +766,7 @@ sub _xpath {
               # Done
               #
               $log->infof('%s evaluated using %s', $wantedFilename, $filename);
-	      $found = 1;
+              $found = 1;
               last;
             }
           }
@@ -842,11 +840,11 @@ sub _pushNodeString {
     #
     if (defined($outputp)) {
       if (ref($outputp) eq 'ARRAY') {
-	push(@{$outputp}, $text);
+        push(@{$outputp}, $text);
       } elsif (ref($outputp) eq 'SCALAR') {
-	${$outputp} = $text;
+        ${$outputp} = $text;
       } else {
-	croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+        croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
       }
     }
     return $text;
@@ -866,13 +864,13 @@ sub _pushNodeString {
       my $length = $endPosition - $startPosition;
       my $text = substr($self->{_stdout_buf}, $startPosition, $length);
       if (defined($outputp)) {
-	if (ref($outputp) eq 'ARRAY') {
-	  push(@{$outputp}, $text);
-	} elsif (ref($outputp) eq 'SCALAR') {
-	  ${$outputp} = $text;
-	} else {
-	  croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
-	}
+        if (ref($outputp) eq 'ARRAY') {
+          push(@{$outputp}, $text);
+        } elsif (ref($outputp) eq 'SCALAR') {
+          ${$outputp} = $text;
+        } else {
+          croak "Expecting a reference to an array or a scalar, not a reference to " . (ref($outputp) || 'nothing');
+        }
       }
       if ($setAttributes) {
         $node->setAttribute('start', $startPosition);
@@ -881,7 +879,7 @@ sub _pushNodeString {
       }
       return $text;
     } else {
-      return undef;
+      return;
     }
   }
 }
@@ -1071,10 +1069,10 @@ sub _vdecl_hash {
       #
       my @declarationSpecifiers = $declaration->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
-	#
-	# Could be a static assert declaration
-	#
-	next;
+        #
+        # Could be a static assert declaration
+        #
+        next;
       }
       my $vdecl = '';
       $self->_pushNodeString(\$vdecl, $declaration);
@@ -1086,9 +1084,9 @@ sub _vdecl_hash {
       $self->_removeWord(\$textForHash, 'extern');
 
       if ($self->{_asDOM}) {
-	my $child = XML::LibXML::Element->new('vdecl');
-	$child->setAttribute('text', $vdecl);
-	$child->setAttribute('file', $file);
+        my $child = XML::LibXML::Element->new('vdecl');
+        $child->setAttribute('text', $vdecl);
+        $child->setAttribute('file', $file);
         $self->{_vdecls}->addChild($child);
       } else {
         push(@{$self->{_vdecls}}, $vdecl);
@@ -1101,26 +1099,26 @@ sub _vdecl_hash {
       my @before = ();
       my @after = ();
       foreach (@declarator) {
-	my $declarator;
-	$self->_pushNodeString(\$declarator, $_);
+        my $declarator;
+        $self->_pushNodeString(\$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
-	if (@IDENTIFIER) {
-	  $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
-	} else {
-	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
-	  push(@keys, $anon);
-	}
-	$declarator =~ /(.*)$keys[-1](.*)/;
+        my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
+        if (@IDENTIFIER) {
+          $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
+        } else {
+          my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+          push(@keys, $anon);
+        }
+        $declarator =~ /(.*)$keys[-1](.*)/;
         my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
         my $after = defined($-[2]) ? substr($declarator, $-[2], $+[2]-$-[2]) : '';
-	push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
-	push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
+        push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
+        push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
       }
       if (! @keys) {
-	push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
-	push(@before, '');
-	push(@after, '');
+        push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
+        push(@before, '');
+        push(@after, '');
       }
       foreach (0..$#keys) {
         if ($self->{_asDOM}) {
@@ -1154,7 +1152,7 @@ sub _topDeclarations {
       my $declaration = $_;
       my $file;
       if (! $self->_pushNodeFile(\$file, $_)) {
-	next;
+        next;
       }
       $declarationList->addChild($declaration->cloneNode(1));
     }
@@ -1381,9 +1379,9 @@ sub _logCdecl {
   foreach (qw/previous last next node/) {
     if (exists($h{$_})) {
       if (exists($h{$_}->{node}) && defined($h{$_}->{node})) {
-	$h{$_} = {name => $h{$_}->{node}->localname(), isLexeme => $h{$_}->{node}->getAttribute('isLexeme'), text => $h{$_}->{node}->getAttribute('text'), text => $h{$_}->{node}->getAttribute('text'), type => defined($h{$_}->{type}) ? ($type2String[$h{$_}->{type}] || 'UNKNOWN') : undef};
+        $h{$_} = {name => $h{$_}->{node}->localname(), isLexeme => $h{$_}->{node}->getAttribute('isLexeme'), text => $h{$_}->{node}->getAttribute('text'), text => $h{$_}->{node}->getAttribute('text'), type => defined($h{$_}->{type}) ? ($type2String[$h{$_}->{type}] || 'UNKNOWN') : undef};
       } else {
-	$h{$_} = undef;
+        $h{$_} = undef;
       }
     }
   }
@@ -1524,9 +1522,9 @@ sub _readStructDeclarationList {
       $last = $self->_readToId($callLevel, $nodesp, \@stack, \$localCdecl, \@declSpecStack);
 
       do {
-	#
-	# Every declarator will share the stack up to first (eventually faked) identifier
-	#
+        #
+        # Every declarator will share the stack up to first (eventually faked) identifier
+        #
         if ($i++ > 0) {
           #
           # declarators piling up. Per def they share the same stack, and only the first
@@ -1535,16 +1533,16 @@ sub _readStructDeclarationList {
           @stack = @declSpecStack;
           $last = $self->_readToId($callLevel, $nodesp, \@stack, \$localCdecl);
         }
-	$last = $self->_parseDeclarator($callLevel, $nodesp, \@stack, \$localCdecl, $last);
+        $last = $self->_parseDeclarator($callLevel, $nodesp, \@stack, \$localCdecl, $last);
 
-	if ($last->{node}->localname() eq 'COMMA') {
-	  $localCdecl .= ', ';
-	}
+        if ($last->{node}->localname() eq 'COMMA') {
+          $localCdecl .= ', ';
+        }
 
       } while ($last->{node}->localname() eq 'COMMA');
 
       if ($last->{node}->localname() eq 'SEMICOLON') {
-	$localCdecl .= '; ';
+        $localCdecl .= '; ';
       }
 
     }
@@ -1651,26 +1649,26 @@ sub _readToId {
   if (defined($declSpecStackp)) {
     for ($last = $self->_getNode($callLevel, $nodesp, $cdeclp, 1);
 
-	 $last->{type} != IDENTIFIER && $last->{type} != DECLARATOR;
+         $last->{type} != IDENTIFIER && $last->{type} != DECLARATOR;
 
-	 do {
-	   if ($last->{type} != DECLARATOR) {
-	     push(@{$stackp}, $last);
-	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp);
-	     push(@{$declSpecStackp}, $last);
-	     $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to declaration specifiers stack', declSpecStack => $declSpecStackp);
-	     $last = $self->_getNode($callLevel, $nodesp, $cdeclp, 1);
-	   }
-	 }) {}
+         do {
+           if ($last->{type} != DECLARATOR) {
+             push(@{$stackp}, $last);
+             $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp);
+             push(@{$declSpecStackp}, $last);
+             $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to declaration specifiers stack', declSpecStack => $declSpecStackp);
+             $last = $self->_getNode($callLevel, $nodesp, $cdeclp, 1);
+           }
+         }) {}
   }
   if (! defined($declSpecStackp) || $last->{type} == DECLARATOR) {
     for ($last = $self->_getNode($callLevel, $nodesp, $cdeclp);
 
-	 $last->{type} != IDENTIFIER;
+         $last->{type} != IDENTIFIER;
 
-	 push(@{$stackp}, $last),
-	 $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp),
-	 $last = $self->_getNode($callLevel, $nodesp, $cdeclp)) {}
+         push(@{$stackp}, $last),
+         $self->_logCdecl('[-]' . (' ' x $callLevel) . '_readToId: pushed to stack', stack => $stackp),
+         $last = $self->_getNode($callLevel, $nodesp, $cdeclp)) {}
   }
 
   #
@@ -1696,8 +1694,8 @@ sub _classifyNode {
 
   my $previous = $node->previousSibling();
   my $last = {node => $node,
-	      string => undef,
-	      type => undef};
+              string => undef,
+              type => undef};
   my $next = $node->nextSibling();
 
   $self->_logCdecl('[>]' . (' ' x ++$callLevel) . '_classifyNode', cdecl => $cdeclp, last => $last, detectDeclarator => $detectDeclarator);
@@ -1758,12 +1756,12 @@ sub _classifyNode {
       #
       # Eat all nodes until /this/ RCURLY
       #
-	  my $startRcurly=$RCURLY->getAttribute('start');
-	  my $nextStart;
+          my $startRcurly=$RCURLY->getAttribute('start');
+          my $nextStart;
       do {
         my $nextNode = shift(@{$nodesp});
         $self->_logCdecl('[-]' . (' ' x $callLevel) . '_classifyNode: pass-through', node => {node => $nextNode});
-		$nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
+                $nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
       } while ($nextStart != $startRcurly);
       #
       # We remove also children from LCURLY up to RCURLY
@@ -1812,12 +1810,12 @@ sub _classifyNode {
       #
       # Eat all nodes until /this/ RCURLY
       #
- 	  my $startRcurly=$RCURLY->getAttribute('start');
-	  my $nextStart;
+          my $startRcurly=$RCURLY->getAttribute('start');
+          my $nextStart;
       do {
         my $nextNode = shift(@{$nodesp});
         $self->_logCdecl('[-]' . (' ' x $callLevel) . '_classifyNode: pass-through', node => {node => $nextNode});
-		$nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
+                $nextStart = defined($nextNode) ? ($nextNode->getAttribute('start') || -1) : -1;
       } while ($nextStart != $startRcurly);
       #
       # We remove also children from LCURLY up to RCURLY
@@ -1838,11 +1836,11 @@ sub _classifyNode {
     $last->{type} = SKIPPED;
   }
   elsif ($parentName eq 'typeSpecifier1' ||
-	 $parentName eq 'typeSpecifier2' ||
-	 $parentName eq 'atomicTypeSpecifier' ||
-	 $parentName eq 'msvsBuiltinType' ||
-	 $parentName eq 'gccBuiltinType' ||
-	 $parentName eq 'gccTypeof') {
+         $parentName eq 'typeSpecifier2' ||
+         $parentName eq 'atomicTypeSpecifier' ||
+         $parentName eq 'msvsBuiltinType' ||
+         $parentName eq 'gccBuiltinType' ||
+         $parentName eq 'gccTypeof') {
     $last->{type} = TYPE;
   }
   elsif ($isLexeme eq 'true') {
@@ -1873,7 +1871,7 @@ sub _getNode {
     $node = shift(@{$nodesp});
     if (! defined($node)) {
       $self->_logCdecl('[<]' . (' ' x $callLevel--) . '_getNode', cdecl => $cdeclp, detectDeclarator => $detectDeclarator, last => undef);
-      return undef;
+      return;
     }
     $last = $self->_classifyNode($callLevel, $node, $nodesp, $cdeclp, $detectDeclarator);
   } while ($last->{type} == SKIPPED);
@@ -1904,10 +1902,10 @@ sub _typedef_hash {
 
       my @declarationSpecifiers = $declaration->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
-	#
-	# Could be a static assert declaration
-	#
-	next;
+        #
+        # Could be a static assert declaration
+        #
+        next;
       }
       my $text;
       my $declarationSpecifiers;
@@ -1919,12 +1917,12 @@ sub _typedef_hash {
       $self->_removeWord(\$text, 'typedef');
       $self->_removeWord(\$declarationSpecifiers, 'typedef');
       if ($self->{_asDOM}) {
-	my $child = XML::LibXML::Element->new('typedef');
-	$child->setAttribute('text', $text);
-	$child->setAttribute('file', $file);
+        my $child = XML::LibXML::Element->new('typedef');
+        $child->setAttribute('text', $text);
+        $child->setAttribute('file', $file);
         $self->{_typedef_texts}->addChild($child);
       } else {
-	push(@{$self->{_typedef_texts}}, $text);
+        push(@{$self->{_typedef_texts}}, $text);
       }
       #
       # typedef name
@@ -1934,36 +1932,36 @@ sub _typedef_hash {
       my @before = ();
       my @after = ();
       foreach (@declarator) {
-	my $declarator;
-	$self->_pushNodeString(\$declarator, $_);
+        my $declarator;
+        $self->_pushNodeString(\$declarator, $_);
 
-	my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
-	$self->_pushNodeString(\@keys, $IDENTIFIER[0]);
-	$declarator =~ /(.*)$keys[-1](.*)/;
+        my @IDENTIFIER = $_->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
+        $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
+        $declarator =~ /(.*)$keys[-1](.*)/;
         my $before = defined($-[1]) ? substr($declarator, $-[1], $+[1]-$-[1]) : '';
         my $after = defined($-[2]) ? substr($declarator, $-[2], $+[2]-$-[2]) : '';
-	push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
-	push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
+        push(@before, ($before =~ /[^\s]/) ? ' ' . $before : '');
+        push(@after, ($after =~ /[^\s]/) ? ' ' . $after : '');
       }
       if (! @keys) {
-	push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
-	push(@before, '');
-	push(@after, '');
+        push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
+        push(@before, '');
+        push(@after, '');
       }
       if ($self->{_asDOM}) {
-	foreach (@keys) {
-	  my $child = XML::LibXML::Element->new('typedef');
-	  $child->setAttribute('id', $_);
-	  $child->setAttribute('file', $file);
-	  $self->{_typedefs_maybe}->addChild($child);
-	}
+        foreach (@keys) {
+          my $child = XML::LibXML::Element->new('typedef');
+          $child->setAttribute('id', $_);
+          $child->setAttribute('file', $file);
+          $self->{_typedefs_maybe}->addChild($child);
+        }
       } else {
-	push(@{$self->{_typedefs_maybe}}, @keys);
+        push(@{$self->{_typedefs_maybe}}, @keys);
       }
       foreach (0..$#keys) {
-	#
-	# typedef before/after
-	#
+        #
+        # typedef before/after
+        #
         if ($self->{_asDOM}) {
           my $child = XML::LibXML::Element->new('typedef');
           $child->setAttribute('id', $keys[$_]);
@@ -1972,25 +1970,25 @@ sub _typedef_hash {
           $child->setAttribute('file', $file);
           $self->{_typedef_hash}->addChild($child);
         } else {
-	  $self->{_typedef_hash}->{$keys[$_]} = [ $declarationSpecifiers . $before[$_], $after[$_] ];
-	}
+          $self->{_typedef_hash}->{$keys[$_]} = [ $declarationSpecifiers . $before[$_], $after[$_] ];
+        }
       }
       #
       # Is a struct or union declaration ?
       #
       my @structOrUnionSpecifier = $declarationSpecifiers[0]->findnodes($self->_xpath('declarationSpecifiers2structOrUnionSpecifier.xpath'));
       if (@structOrUnionSpecifier) {
-	my $struct = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
-	my $declsDOM = undef;
+        my $struct = $self->{_asDOM} ? XML::LibXML::Document->new() : [];
+        my $declsDOM = undef;
 
         my @structDeclaration = $structOrUnionSpecifier[0]->findnodes($self->_xpath('structOrUnionSpecifier2structDeclaration.xpath'));
         foreach (@structDeclaration) {
 
           my @specifierQualifierList = $_->findnodes($self->_xpath('structDeclaration2specifierQualifierList.xpath'));
-	  if (! @specifierQualifierList) {
-	    # Gcc extension
-	    next;
-	  }
+          if (! @specifierQualifierList) {
+            # Gcc extension
+            next;
+          }
           my $specifierQualifierList;
           $self->_pushNodeString(\$specifierQualifierList, $specifierQualifierList[0]);
 
@@ -2003,12 +2001,12 @@ sub _typedef_hash {
             $self->_pushNodeString(\$structDeclarator, $_);
 
             my @IDENTIFIER = $_->findnodes($self->_xpath('structDeclarator2IDENTIFIER.xpath'));
-	    if (@IDENTIFIER) {
-	      $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
-	    } else {
-	      # COLON constantExpression
-	      push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
-	    }
+            if (@IDENTIFIER) {
+              $self->_pushNodeString(\@keys, $IDENTIFIER[0]);
+            } else {
+              # COLON constantExpression
+              push(@keys, sprintf('ANON%d', $self->{_anonCount}++));
+            }
             $structDeclarator =~ /(.*)$keys[-1](.*)/;
 
             my $before = defined($-[1]) ? substr($structDeclarator, $-[1], $+[1]-$-[1]) : '';
@@ -2025,20 +2023,20 @@ sub _typedef_hash {
             #
             # structDeclarator before/after
             #
-	    if ($self->{_asDOM}) {
+            if ($self->{_asDOM}) {
               my $child = XML::LibXML::Element->new('decl');
               $child->setAttribute('id', $keys[$_]);
               $child->setAttribute('before', $before[$_]);
               $child->setAttribute('after', $after[$_]);
               $child->setAttribute('file', $file);
-	      if (! defined($declsDOM)) {
-		$declsDOM = XML::LibXML::Element->new('decls');
-		$struct->addChild($declsDOM);
-	      }
+              if (! defined($declsDOM)) {
+                $declsDOM = XML::LibXML::Element->new('decls');
+                $struct->addChild($declsDOM);
+              }
               $declsDOM->addChild($child);
-	    } else {
-	      push(@{$struct}, [ $before[$_], $after[$_], $keys[$_] ]);
-	    }
+            } else {
+              push(@{$struct}, [ $before[$_], $after[$_], $keys[$_] ]);
+            }
           }
         }
         foreach (0..$#keys) {
@@ -2046,10 +2044,10 @@ sub _typedef_hash {
           # typedef before/after
           #
           if ($self->{_asDOM}) {
-	    my $child = XML::LibXML::Element->new('struct');
-	    $child->setAttribute('id', $keys[$_]);
-	    $child->setAttribute('file', $file);
-	    $child->setAttribute('structOrUnion', 'true');
+            my $child = XML::LibXML::Element->new('struct');
+            $child->setAttribute('id', $keys[$_]);
+            $child->setAttribute('file', $file);
+            $child->setAttribute('structOrUnion', 'true');
             $self->{_typedef_structs}->addChild($child);
             foreach ($struct->childNodes()) {
               my $newnode = $_->cloneNode(1);
@@ -2067,8 +2065,8 @@ sub _typedef_hash {
           if ($self->{_asDOM}) {
             my $child = XML::LibXML::Element->new('struct');
             $child->setAttribute('id', $keys[$_]);
-	    $child->setAttribute('file', $file);
-	    $child->setAttribute('structOrUnion', 'false');
+            $child->setAttribute('file', $file);
+            $child->setAttribute('structOrUnion', 'false');
             $self->{_typedef_structs}->addChild($child);
           } else {
             $self->{_typedef_structs}->{$keys[$_]} = undef;
@@ -2102,10 +2100,10 @@ sub _parsed_fdecls {
       #
       my @declarationSpecifiers = $node->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
       if (! @declarationSpecifiers) {
-	#
-	# Could be a static assert declaration
-	#
-	next;
+        #
+        # Could be a static assert declaration
+        #
+        next;
       }
       $self->_pushNodeString($fdecl, $declarationSpecifiers[0]);
       #
@@ -2118,16 +2116,16 @@ sub _parsed_fdecls {
       #
       my @declarator = $node->findnodes($self->_xpath('declaration2Declarator.xpath'));
       if (! @declarator) {
-	my $anon = sprintf('ANON%d', $self->{_anonCount}++);
-	push(@{$fdecl}, $anon);
+        my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+        push(@{$fdecl}, $anon);
       } else {
-	my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
-	if (! @IDENTIFIER) {
-	  my $anon = sprintf('ANON%d', $self->{_anonCount}++);
-	  push(@{$fdecl}, $anon);
-	} else {
-	  $self->_pushNodeString($fdecl, $IDENTIFIER[0]);
-	}
+        my @IDENTIFIER = $declarator[0]->findnodes($self->_xpath('declarator2IDENTIFIER.xpath'));
+        if (! @IDENTIFIER) {
+          my $anon = sprintf('ANON%d', $self->{_anonCount}++);
+          push(@{$fdecl}, $anon);
+        } else {
+          $self->_pushNodeString($fdecl, $IDENTIFIER[0]);
+        }
       }
       #
       # args
@@ -2135,63 +2133,63 @@ sub _parsed_fdecls {
       my $args = $self->{_asDOM} ? XML::LibXML::Element->new('args') : [];
       my @args = $node->findnodes($self->_xpath('fdecl2args.xpath'));
       foreach (@args) {
-	#
-	# arg is a parameterDeclaration
-	#
-	my $arg = [];
-	#
-	# arg.rt
-	#
-	my @declarationSpecifiers = $_->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
-	$self->_pushNodeString($arg, $declarationSpecifiers[0]);
-	#
-	# arg.nm or ANON
-	#
+        #
+        # arg is a parameterDeclaration
+        #
+        my $arg = [];
+        #
+        # arg.rt
+        #
+        my @declarationSpecifiers = $_->findnodes($self->_xpath('firstDeclarationSpecifiers.xpath'));
+        $self->_pushNodeString($arg, $declarationSpecifiers[0]);
+        #
+        # arg.nm or ANON
+        #
         my $anon = undef;
-	my @nm = $_->findnodes($self->_xpath('arg2nm.xpath'));
-	if (@nm) {
-	  $self->_pushNodeString($arg, $nm[0]);
-	} else {
+        my @nm = $_->findnodes($self->_xpath('arg2nm.xpath'));
+        if (@nm) {
+          $self->_pushNodeString($arg, $nm[0]);
+        } else {
           my $anon = sprintf('ANON%d', $self->{_anonCount}++);
-	  push(@{$arg}, $anon);
-	}
-	#
-	# arg.arg is always undef
-	#
-	push(@{$arg}, undef);
-	#
-	# arg.ft
-	#
-	$self->_pushNodeString($arg, $_);
+          push(@{$arg}, $anon);
+        }
+        #
+        # arg.arg is always undef
+        #
+        push(@{$arg}, undef);
+        #
+        # arg.ft
+        #
+        $self->_pushNodeString($arg, $_);
         if ($anon) {
           #
           # We faked an anonymous identifier
           #
           $arg->[-1] .= ' ' . $anon;
         }
-	#
-	# arg.mod
-	#
+        #
+        # arg.mod
+        #
         my @mod = $_->findnodes($self->_xpath('arg2mod.xpath'));
         if (@mod) {
-	  #
-	  # Per def $mod[0] is a directDeclarator that can be:
-	  #
-	  # directDeclarator LBRACKET RBRACKET
-	  # directDeclarator LBRACKET STAR RBRACKET
-	  # directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
-	  # etc...
-	  #
-	  # We clone the node, remove the first child. What remains will be the array modifiers.
-	  #
-	  my $newnode = $mod[0]->cloneNode(1);
-	  my $childnode = $newnode->firstChild;
-	  $newnode->removeChild($childnode );
+          #
+          # Per def $mod[0] is a directDeclarator that can be:
+          #
+          # directDeclarator LBRACKET RBRACKET
+          # directDeclarator LBRACKET STAR RBRACKET
+          # directDeclarator LBRACKET STATIC gccArrayTypeModifierList assignmentExpression RBRACKET
+          # etc...
+          #
+          # We clone the node, remove the first child. What remains will be the array modifiers.
+          #
+          my $newnode = $mod[0]->cloneNode(1);
+          my $childnode = $newnode->firstChild;
+          $newnode->removeChild($childnode );
           $self->_pushNodeString($arg, $newnode);
         } else {
           push(@{$arg}, '');
         }
-	if ($self->{_asDOM}) {
+        if ($self->{_asDOM}) {
           my $child = XML::LibXML::Element->new('arg');
           $child->setAttribute('type', $arg->[0]);
           $child->setAttribute('id', $arg->[1]);
@@ -2202,9 +2200,9 @@ sub _parsed_fdecls {
           $child->setAttribute('text', $arg->[3]);
           $child->setAttribute('mod', $arg->[4]);
           $args->addChild($child);
-	} else {
-	  push(@{$args}, $arg);
-	}
+        } else {
+          push(@{$args}, $arg);
+        }
       }
       push(@{$fdecl}, $args);
       #
@@ -2230,7 +2228,7 @@ sub _parsed_fdecls {
         # $child->setAttribute('mod', $fdecl->[4]);
         $self->{_parsed_fdecls}->addChild($child);
       } else {
-	push(@{$self->{_parsed_fdecls}}, $fdecl);
+        push(@{$self->{_parsed_fdecls}}, $fdecl);
       }
 
       if ($self->{_asDOM}) {
@@ -2240,7 +2238,7 @@ sub _parsed_fdecls {
         $child->setAttribute('file', $file);
         $self->{_fdecls}->addChild($child);
       } else {
-	push(@{$self->{_fdecls}}, $fdecl->[3]);
+        push(@{$self->{_fdecls}}, $fdecl->[3]);
       }
     }
   }
@@ -2292,7 +2290,7 @@ sub _lexemeCallback {
   #
   if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
     if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
-	my $currentFile = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
+        my $currentFile = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
         if (! defined($self->{_filename})) {
           #
           # The very first filename is always the original source.
@@ -2300,10 +2298,10 @@ sub _lexemeCallback {
           $self->{_filename} = $currentFile;
         }
 
-	$tmpHashp->{_currentFile} = $currentFile;
-	$tmpHashp->{_includes}->{$currentFile} = 1;
+        $tmpHashp->{_currentFile} = $currentFile;
+        $tmpHashp->{_includes}->{$currentFile} = 1;
 
-	$self->{_position2File}->{$lexemeHashp->{start}} = $currentFile;
+        $self->{_position2File}->{$lexemeHashp->{start}} = $currentFile;
 
     }
     #
@@ -2386,33 +2384,33 @@ sub _posprocess_heuristics {
       substr($args, -1, 1, '');  # ')'
       my @args = map {my $element = $_; $element =~ s/\s//g; $element;} split(/,/, $args);
       if ($self->{_asDOM}) {
-	my $child = XML::LibXML::Element->new('define');
-	$child->setAttribute('text', $text);
-	$child->setAttribute('id', $id);
-	$child->setAttribute('file', $file);
-	$child->setAttribute('value', $value);
+        my $child = XML::LibXML::Element->new('define');
+        $child->setAttribute('text', $text);
+        $child->setAttribute('id', $id);
+        $child->setAttribute('file', $file);
+        $child->setAttribute('value', $value);
 
-	my $subchild = XML::LibXML::Element->new('args');
-	foreach (@args) {
-	  $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('id', $_);
-	}
-	$child->addChild($subchild);
+        my $subchild = XML::LibXML::Element->new('args');
+        foreach (@args) {
+          $subchild->addChild(XML::LibXML::Element->new('arg'))->setAttribute('id', $_);
+        }
+        $child->addChild($subchild);
 
-	$self->{_defines_args}->addChild($child);
+        $self->{_defines_args}->addChild($child);
       } else {
-	$self->{_defines_args}->{$id} = [ $text, [ @args ], $value, $file ];
+        $self->{_defines_args}->{$id} = [ $text, [ @args ], $value, $file ];
       }
     } elsif ($text =~ /(\w+)\s*(.*)/s) {
       my $value = substr($text, $-[2], $+[2] - $-[2]);
       if ($self->{_asDOM}) {
-	my $child = XML::LibXML::Element->new('define');
-	$child->setAttribute('text', $text);
-	$child->setAttribute('id', $id);
-	$child->setAttribute('file', $file);
-	$child->setAttribute('value', $value);
-	$self->{_defines_no_args}->addChild($child);
+        my $child = XML::LibXML::Element->new('define');
+        $child->setAttribute('text', $text);
+        $child->setAttribute('id', $id);
+        $child->setAttribute('file', $file);
+        $child->setAttribute('value', $value);
+        $self->{_defines_no_args}->addChild($child);
       } else {
-	$self->{_defines_no_args}->{$id} = [ $text, $value, $file ];
+        $self->{_defines_no_args}->{$id} = [ $text, $value, $file ];
       }
     }
   }

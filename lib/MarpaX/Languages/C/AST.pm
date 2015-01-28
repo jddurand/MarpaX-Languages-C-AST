@@ -164,13 +164,13 @@ sub new {
   my @lexemeCallbackArgs = ();
   if ($opts{lexemeCallback}) {
       if (ref($opts{lexemeCallback}) ne 'ARRAY') {
-	  croak 'lexemeCallback option must be an ARRAY reference';
+          croak 'lexemeCallback option must be an ARRAY reference';
       }
       if (! @{$opts{lexemeCallback}}) {
-	  croak 'lexemeCallback is a reference to an empty array';
+          croak 'lexemeCallback is a reference to an empty array';
       }
       if (ref($opts{lexemeCallback}->[0]) ne 'CODE') {
-	  croak 'lexemeCallback must start with a CODE reference';
+          croak 'lexemeCallback must start with a CODE reference';
       }
       @lexemeCallbackArgs = @{$opts{lexemeCallback}};
       $lexemeCallback = shift(@lexemeCallbackArgs);
@@ -193,13 +193,13 @@ sub new {
                _grammar            => $grammar,
                _impl               => MarpaX::Languages::C::AST::Impl->new($grammar_option, $recce_option),
                _sourcep            => undef,
-	       _lexemeCallback     => $lexemeCallback,
-	       _lexemeCallbackArgs => \@lexemeCallbackArgs,
-	       _logInfo            => \%logInfo,
-	       _typedef            => $typedef,
-	       _enum               => $enum,
-	       _lazy               => $lazy,
-	       _start              => $opts{start}
+               _lexemeCallback     => $lexemeCallback,
+               _lexemeCallbackArgs => \@lexemeCallbackArgs,
+               _logInfo            => \%logInfo,
+               _typedef            => $typedef,
+               _enum               => $enum,
+               _lazy               => $lazy,
+               _start              => $opts{start}
               };
 
   bless($self, $class);
@@ -218,10 +218,10 @@ sub _init {
     # Insert known typedef and enum at the top-level scope
     #
     foreach (@{$self->{_typedef}}) {
-	$self->scope->parseEnterTypedef($_, [0, length($_)]);
+        $self->scope->parseEnterTypedef($_, [0, length($_)]);
     }
     foreach (@{$self->{_enum}}) {
-	$self->scope->parseEnterEnum($_, [0, length($_)]);
+        $self->scope->parseEnterEnum($_, [0, length($_)]);
     }
 
     return;
@@ -232,8 +232,8 @@ sub _context {
     my $self = shift;
 
     my $context = $log->is_debug() ?
-	sprintf("\n\nContext:\n\n%s", $self->{_impl}->show_progress()) :
-	'';
+        sprintf("\n\nContext:\n\n%s", $self->{_impl}->show_progress()) :
+        '';
 
     return $context;
 }
@@ -306,8 +306,8 @@ sub parse {
     $self->_doPreprocessing($pos);
     eval {$pos = $self->{_impl}->resume()};
     if ($@) {
-	my $line_columnp = lineAndCol($self->{_impl});
-	logCroak("%s\nLast position:\n\n%s%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), , $self->_context());
+        my $line_columnp = lineAndCol($self->{_impl});
+        logCroak("%s\nLast position:\n\n%s%s", "$@", showLineAndCol(@{$line_columnp}, $self->{_sourcep}), , $self->_context());
     }
   } while ($pos < $max);
 
@@ -361,17 +361,17 @@ sub value {
   do {
       $valuep = $self->{_impl}->value();
       if (defined($valuep)) {
-	  if (! $arrayOfValuesb) {
-	      if ($self->{_lazy}) {
-		  $log->infof('There is more than just one parse tree value, but lazy mode allow this.');
-		  $valuep = undef;
-	      } else {
-		  logCroak('There is more than just one parse tree value.');
-	      }
-	  }
-	  if (defined($valuep)) {
-	      push(@rc, $valuep);
-	  }
+          if (! $arrayOfValuesb) {
+              if ($self->{_lazy}) {
+                  $log->infof('There is more than just one parse tree value, but lazy mode allow this.');
+                  $valuep = undef;
+              } else {
+                  logCroak('There is more than just one parse tree value.');
+              }
+          }
+          if (defined($valuep)) {
+              push(@rc, $valuep);
+          }
       }
   } while (defined($valuep));
   if ($arrayOfValuesb) {
@@ -393,7 +393,7 @@ sub _doEvents {
   if (%events) {
     my @events = keys %events;
     if ($log->is_debug) {
-	$log->debugf('[%s] Events: %s', whoami(__PACKAGE__), \@events);
+        $log->debugf('[%s] Events: %s', whoami(__PACKAGE__), \@events);
     }
     $self->{_callbackEvents}->exec(@events);
   }
@@ -423,7 +423,7 @@ sub _doLogInfo {
 
   if (exists($lexemeHashp->{name}) && (exists($self->{_logInfo}->{$lexemeHashp->{name}}) || exists($self->{_logInfo}->{__ALL__}))) {
       if ($log->is_info) {
-	  $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
+          $log->infof("[%8d:%3d] %-30s %s", $lexemeHashp->{line}, $lexemeHashp->{column}, $lexemeHashp->{name}, $lexemeHashp->{value});
       }
   }
 
@@ -465,50 +465,50 @@ sub _doPreprocessing {
 
     pos(${$self->{_sourcep}}) = $pos;
     while (${$self->{_sourcep}} =~ m{\G(\s*^)(\#\s*(\S+)(?:\\.|[^\n])*)(\n|\Z)}smg) {
-	my $start = $-[0];
-	my $length = $+[0] - $-[0];
-	my $match = substr(${$self->{_sourcep}}, $start, $length);
+        my $start = $-[0];
+        my $length = $+[0] - $-[0];
+        my $match = substr(${$self->{_sourcep}}, $start, $length);
         my $pre = substr(${$self->{_sourcep}}, $-[1], $+[1] - $-[1]);
-	my $preprocessorDirective = substr(${$self->{_sourcep}}, $-[2], $+[2] - $-[2]);
-	my $directive = substr(${$self->{_sourcep}}, $-[3], $+[3] - $-[3]);
-	my $lastChar = substr(${$self->{_sourcep}}, $-[4], $+[4] - $-[4]);
-	if ($log->is_debug) {
-	    $log->debugf('Preprocessor: %s', $preprocessorDirective);
-	}
-	#
-	# Last char is newline ?
-	#
-	if (length($lastChar) > 0) {
-	    #
-	    # We unshift so that next match will see this newline.
-	    # This is needed because a preprocessor directive must
+        my $preprocessorDirective = substr(${$self->{_sourcep}}, $-[2], $+[2] - $-[2]);
+        my $directive = substr(${$self->{_sourcep}}, $-[3], $+[3] - $-[3]);
+        my $lastChar = substr(${$self->{_sourcep}}, $-[4], $+[4] - $-[4]);
+        if ($log->is_debug) {
+            $log->debugf('Preprocessor: %s', $preprocessorDirective);
+        }
+        #
+        # Last char is newline ?
+        #
+        if (length($lastChar) > 0) {
+            #
+            # We unshift so that next match will see this newline.
+            # This is needed because a preprocessor directive must
           # start on a fresh new line up to EOF or another newline.
           # And we used the regexp upper to eat last newline.
-	    my $newPos = pos(${$self->{_sourcep}});
-	    $newPos--;
-	    pos(${$self->{_sourcep}}) = $newPos;
-	    $length--;
-	    substr($match, -1, 1, '');
-	}
+            my $newPos = pos(${$self->{_sourcep}});
+            $newPos--;
+            pos(${$self->{_sourcep}}) = $newPos;
+            $length--;
+            substr($match, -1, 1, '');
+        }
         #
         # Count the number of newlines we eated in $pre
         #
         $line += ($pre =~ tr/\n//);
-	#
-	# If this is a #line, fake a callback event PREPROCESSOR_LINE_DIRECTIVE
-	#
-	if ($directive eq 'line' || $directive =~ /^\d+$/) {
-	    my %lexeme = ();
-	    $lexeme{name} = 'PREPROCESSOR_LINE_DIRECTIVE';
-	    $lexeme{start} = $pos + $delta;
-	    $lexeme{length} = $length;
-	    $lexeme{line} = $line;
-	    $lexeme{column} = -1;       # we do not compute column, but send -1 instead of undef just in case
-	    $lexeme{value} = $match;
-	    $self->_doLexemeCallback(\%lexeme);
-	}
+        #
+        # If this is a #line, fake a callback event PREPROCESSOR_LINE_DIRECTIVE
+        #
+        if ($directive eq 'line' || $directive =~ /^\d+$/) {
+            my %lexeme = ();
+            $lexeme{name} = 'PREPROCESSOR_LINE_DIRECTIVE';
+            $lexeme{start} = $pos + $delta;
+            $lexeme{length} = $length;
+            $lexeme{line} = $line;
+            $lexeme{column} = -1;       # we do not compute column, but send -1 instead of undef just in case
+            $lexeme{value} = $match;
+            $self->_doLexemeCallback(\%lexeme);
+        }
 
-	$delta += $length;
+        $delta += $length;
     }
     pos(${$self->{_sourcep}}) = $previous;
 
@@ -532,9 +532,9 @@ sub _doScope {
         #
         # This will be for next round.
         #
-	  if ($is_debug) {
-	      $log->debugf('[%s] fileScopeDeclarator: flagging lookup required at next round.', whoami(__PACKAGE__));
-	  }
+          if ($is_debug) {
+              $log->debugf('[%s] fileScopeDeclarator: flagging lookup required at next round.', whoami(__PACKAGE__));
+          }
         $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 1;
 
       } elsif ($self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] == 1) {
@@ -544,57 +544,57 @@ sub _doScope {
         if ($lexemeHashp->{name} ne 'COMMA' &&
             $lexemeHashp->{name} ne 'SEMICOLON' &&
             $lexemeHashp->{name} ne 'EQUAL') {
-	    if ($is_debug) {
-		$log->debugf('[%s] fileScopeDeclarator: next lexeme is %s, flagging reenterScope.', whoami(__PACKAGE__), $lexemeHashp->{name});
-	    }
+            if ($is_debug) {
+                $log->debugf('[%s] fileScopeDeclarator: next lexeme is %s, flagging reenterScope.', whoami(__PACKAGE__), $lexemeHashp->{name});
+            }
           $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 1;
         }
         #
         # Flag lookup done
         #
-	if ($is_debug) {
-	    $log->debugf('[%s] fileScopeDeclarator: flagging lookup done.', whoami(__PACKAGE__));
-	}
+        if ($is_debug) {
+            $log->debugf('[%s] fileScopeDeclarator: flagging lookup done.', whoami(__PACKAGE__));
+        }
         $self->{_callbackEvents}->topic_fired_data('fileScopeDeclarator')->[0] = 0;
       }
     }
 
     if ($lexemeHashp->{name} eq 'LCURLY_SCOPE' || $lexemeHashp->{name} eq 'LPAREN_SCOPE') {
-	if ($is_debug) {
-	    $log->debugf("[%s] $lexemeFormatString: entering scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
-	}
+        if ($is_debug) {
+            $log->debugf("[%s] $lexemeFormatString: entering scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+        }
       $self->{_scope}->parseEnterScope();
     } elsif ($lexemeHashp->{name} eq 'RCURLY_SCOPE' || $lexemeHashp->{name} eq 'RPAREN_SCOPE') {
       if ($self->{_scope}->parseScopeLevel == 1) {
-	  if ($is_debug) {
-	      $log->debugf("[%s] $lexemeFormatString: delay leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
-	  }
+          if ($is_debug) {
+              $log->debugf("[%s] $lexemeFormatString: delay leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+          }
         $self->{_scope}->parseExitScope(0);
       } else {
-	  if ($is_debug) {
-	      $log->debugf("[%s] $lexemeFormatString: immediate leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
-	  }
+          if ($is_debug) {
+              $log->debugf("[%s] $lexemeFormatString: immediate leaving scope.", whoami(__PACKAGE__), @lexemeCommonInfo);
+          }
         $self->{_scope}->parseExitScope(1);
       }
     } else {
-	if ($is_debug) {
-	    $log->debugf("[%s] $lexemeFormatString.", whoami(__PACKAGE__), @lexemeCommonInfo);
-	}
+        if ($is_debug) {
+            $log->debugf("[%s] $lexemeFormatString.", whoami(__PACKAGE__), @lexemeCommonInfo);
+        }
       if ($self->{_scope}->parseScopeLevel == 1 && $self->{_scope}->parseDelay) {
         if (defined($self->{_callbackEvents}->topic_fired_data('reenterScope')) &&
             $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0]) {
-	    if ($is_debug) {
-		$log->debugf('[%s] reenterScope flag is on at scope 1.', whoami(__PACKAGE__));
-	    }
+            if ($is_debug) {
+                $log->debugf('[%s] reenterScope flag is on at scope 1.', whoami(__PACKAGE__));
+            }
           $self->{_scope}->parseReenterScope();
-	    if ($is_debug) {
-		$log->debugf('[%s] Unflagging reenterScope.', whoami(__PACKAGE__));
-	    }
+            if ($is_debug) {
+                $log->debugf('[%s] Unflagging reenterScope.', whoami(__PACKAGE__));
+            }
           $self->{_callbackEvents}->topic_fired_data('reenterScope')->[0] = 0;
         } else {
-	    if ($is_debug) {
-		$log->debugf('[%s] reenterScope flag is off at scope 1.', whoami(__PACKAGE__));
-	    }
+            if ($is_debug) {
+                $log->debugf('[%s] reenterScope flag is off at scope 1.', whoami(__PACKAGE__));
+            }
           $self->{_scope}->doExitScope();
         }
       }
@@ -673,8 +673,8 @@ sub _doAsmOpaque {
               $found .= $comment;
               $tmpPos = $posAfterComment;
             } else {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Failed to find MSASM's COMMENT end delimiter %s.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $delimiter, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Failed to find MSASM's COMMENT end delimiter %s.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $delimiter, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
             }
           } elsif (${$self->{_sourcep}} =~ /\G['"]/) {
             #
@@ -691,8 +691,8 @@ sub _doAsmOpaque {
               $found .= $string;
               $tmpPos = $posAfterString;
             } else {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Failed to find MSASM's string delimiter %s.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $delimiter, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Failed to find MSASM's string delimiter %s.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $delimiter, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
             }
           } else {
             my $c = substr(${$self->{_sourcep}}, $tmpPos, 1);
@@ -712,18 +712,18 @@ sub _doAsmOpaque {
           $log->warnf("[%s] $lexemeFormatString: could not determine opaque asm statement", whoami(__PACKAGE__), @lexemeCommonInfo);
         } else {
           my $newlexeme = 'ASM_OPAQUE';
-	  if ($log->is_debug) {
-	      $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $found);
-	  }
-	  if (! defined($self->{_impl}->lexeme_read($newlexeme, $pos, length($found), $found))) {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $found, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
-	  }
-	  #
-	  # A lexeme_read() can generate an event
-	  #
+          if ($log->is_debug) {
+              $log->debugf('[%s] Pushing lexeme %s "%s"', whoami(__PACKAGE__), $newlexeme, $found);
+          }
+          if (! defined($self->{_impl}->lexeme_read($newlexeme, $pos, length($found), $found))) {
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Lexeme value \"%s\" cannot be associated to lexeme name %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $found, $newlexeme, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+          }
+          #
+          # A lexeme_read() can generate an event
+          #
           $self->_getLexeme($lexemeHashp);
-	  $self->_doEvents();
+          $self->_doEvents();
         }
       } elsif (${$self->{_sourcep}} =~ /\G[^\n]*/) {
         #
@@ -768,71 +768,71 @@ sub _doPauseBeforeLexeme {
       if ($lexemeHashp->{name} eq 'TYPEDEF_NAME' ||
           $lexemeHashp->{name} eq 'ENUMERATION_CONSTANT' ||
           $lexemeHashp->{name} eq 'IDENTIFIER') {
-	  my @alternatives = ();
-	  #
-	  # Determine the correct lexeme
-	  #
-	  if ($self->{_lazy}) {
-	      if ($self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
-		  @alternatives = qw/TYPEDEF_NAME IDENTIFIER/;
-	      } elsif ($self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
-		  @alternatives = qw/ENUMERATION_CONSTANT IDENTIFIER/;
-	      } else {
-		  @alternatives = qw/TYPEDEF_NAME ENUMERATION_CONSTANT IDENTIFIER/;
-	      }
-	  } else {
-	      my %terminals_expected = map {$_ => 1} @{$self->{_impl}->terminals_expected()};
-	      if (exists($terminals_expected{TYPEDEF_NAME}) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
-		  push(@alternatives, 'TYPEDEF_NAME');
-	      } elsif (exists($terminals_expected{ENUMERATION_CONSTANT}) && $self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
-		  push(@alternatives, 'ENUMERATION_CONSTANT');
-	      } elsif (exists($terminals_expected{IDENTIFIER})) {
-		  push(@alternatives, 'IDENTIFIER');
-		  #
-		  # Hack for the Callback framework: store in advance the IDENTIFIER, preventing
-		  # a call to lastCompleted
-		  #
-		  $self->{_lastIdentifier} = $lexemeHashp->{value};
-	      }
-	  }
-	  if (! @alternatives) {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
-	  }
-	  #
-	  # Push the alternatives, more than one possible only if lazy mode is turned on
-	  #
-	  my @alternativesOk = ();
-	  my $is_debug = $log->is_debug;
-	  foreach (@alternatives) {
-	      if (defined($self->{_impl}->lexeme_alternative($_, $lexemeHashp->{value}))) {
-		  push(@alternativesOk, $_);
-		  if ($is_debug) {
-		      $log->debugf('[%s] Pushed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
-		  }
-		  if ($_ eq 'IDENTIFIER') {
-		      $self->{_lastIdentifier} = $lexemeHashp->{value};
-		  }
-	      } else {
-		  if ($is_debug) {
-		      $log->debugf('[%s] Failed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
-		  }
-	      }
-	  }
-	  if (! @alternativesOk) {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be associated to %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, \@alternatives, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
-	  }
-	  if (! defined($self->{_impl}->lexeme_complete($lexemeHashp->{start}, $lexemeHashp->{length}))) {
-	      my $line_columnp = lineAndCol($self->{_impl});
-	      logCroak("[%s] Lexeme value \"%s\" cannot be completed at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
-	  }
+          my @alternatives = ();
+          #
+          # Determine the correct lexeme
+          #
+          if ($self->{_lazy}) {
+              if ($self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
+                  @alternatives = qw/TYPEDEF_NAME IDENTIFIER/;
+              } elsif ($self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
+                  @alternatives = qw/ENUMERATION_CONSTANT IDENTIFIER/;
+              } else {
+                  @alternatives = qw/TYPEDEF_NAME ENUMERATION_CONSTANT IDENTIFIER/;
+              }
+          } else {
+              my %terminals_expected = map {$_ => 1} @{$self->{_impl}->terminals_expected()};
+              if (exists($terminals_expected{TYPEDEF_NAME}) && $self->{_scope}->parseIsTypedef($lexemeHashp->{value})) {
+                  push(@alternatives, 'TYPEDEF_NAME');
+              } elsif (exists($terminals_expected{ENUMERATION_CONSTANT}) && $self->{_scope}->parseIsEnum($lexemeHashp->{value})) {
+                  push(@alternatives, 'ENUMERATION_CONSTANT');
+              } elsif (exists($terminals_expected{IDENTIFIER})) {
+                  push(@alternatives, 'IDENTIFIER');
+                  #
+                  # Hack for the Callback framework: store in advance the IDENTIFIER, preventing
+                  # a call to lastCompleted
+                  #
+                  $self->{_lastIdentifier} = $lexemeHashp->{value};
+              }
+          }
+          if (! @alternatives) {
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Lexeme value \"%s\" cannot be associated to TYPEDEF_NAME, ENUMERATION_CONSTANT nor IDENTIFIER at line %d, column %d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol($lexemeHashp->{line}, $lexemeHashp->{column}, $self->{_sourcep}), $self->_context());
+          }
+          #
+          # Push the alternatives, more than one possible only if lazy mode is turned on
+          #
+          my @alternativesOk = ();
+          my $is_debug = $log->is_debug;
+          foreach (@alternatives) {
+              if (defined($self->{_impl}->lexeme_alternative($_, $lexemeHashp->{value}))) {
+                  push(@alternativesOk, $_);
+                  if ($is_debug) {
+                      $log->debugf('[%s] Pushed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
+                  }
+                  if ($_ eq 'IDENTIFIER') {
+                      $self->{_lastIdentifier} = $lexemeHashp->{value};
+                  }
+              } else {
+                  if ($is_debug) {
+                      $log->debugf('[%s] Failed alternative %s "%s"', whoami(__PACKAGE__), $_, $lexemeHashp->{value});
+                  }
+              }
+          }
+          if (! @alternativesOk) {
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Lexeme value \"%s\" cannot be associated to %s at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, \@alternatives, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+          }
+          if (! defined($self->{_impl}->lexeme_complete($lexemeHashp->{start}, $lexemeHashp->{length}))) {
+              my $line_columnp = lineAndCol($self->{_impl});
+              logCroak("[%s] Lexeme value \"%s\" cannot be completed at position %d:%d.\n\nLast position:\n\n%s%s", whoami(__PACKAGE__), $lexemeHashp->{value}, $lexemeHashp->{line}, $lexemeHashp->{column}, showLineAndCol(@{$line_columnp}, $self->{_sourcep}), $self->_context());
+          }
           $lexemeHashp->{name} = $alternativesOk[0];
           $delta = $lexemeHashp->{length};
-	  #
-	  # A lexeme_read() can generate an event
-	  #
-	  $self->_doEvents();
+          #
+          # A lexeme_read() can generate an event
+          #
+          $self->_doEvents();
         }
     }
 
@@ -845,7 +845,7 @@ Since version 0.30, the c2ast.pl script is named c2ast (i.e. without extension).
 
 =head1 NOTES
 
-C code can have inline ASM code. The GCC Inline Assembly is fully supported, any other is falling into a heuristic that should catch everything needed. CL inline assemblies have been targetted in particular.
+C code can have inline ASM code. The GCC Inline Assembly is fully supported, any other is falling into a heuristic that should catch everything needed. CL inline assemblies have been targeted in particular.
 
 =head1 SEE ALSO
 

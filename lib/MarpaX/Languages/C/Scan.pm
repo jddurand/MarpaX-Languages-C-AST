@@ -73,11 +73,11 @@ sub new {
 
 =head2 replace($self, $from, $to, $declaration, %options)
 
-In the asDOM mode only, this function is replacing $from by $to in any structure that matche $declaration. For example: with a $declaration value "f(int *x)", if $from is "x" and $to is "x[3]", it is as if the declaration would become "f(int *x[3])".
+In the asDOM mode only, this function is replacing $from by $to in any structure that matches $declaration. For example: with a $declaration value "f(int *x)", if $from is "x" and $to is "x[3]", it is as if the declaration would become "f(int *x[3])".
 
 Only the global structure in terms of children has to be matched. This mean that the example above would have worked as well with a $declaration value of "f(int z, float *x)". Embedded declarations obey the same rule, for instance to match a structure member you only have to write its parents e.g.: "struct y {int x;}", even if in reality "struct y" contains something before "x".
 
-Internall, this method will call again MarpaX::Languages::C::Scan->new(%options) on $declaration, please refer to the new() method for %options description.
+Internally, this method will call again MarpaX::Languages::C::Scan->new(%options) on $declaration, please refer to the new() method for %options description.
 
 =cut
 

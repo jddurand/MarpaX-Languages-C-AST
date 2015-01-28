@@ -67,7 +67,7 @@ Returns the name of the calling routine. Optional $base prefix is removed. Typic
 sub _cutbase {
     my ($rc, $base) = @_;
     if (defined($base) && "$base" && index($rc, "${base}::") == $[) {
-	substr($rc, $[, length($base) + 2, '');
+      substr($rc, $[, length($base) + 2, '');
     }
     return $rc;
 }
@@ -102,14 +102,14 @@ sub traceAndUnpack {
     my $min = ($min1 < $min2) ? $min1 : $min2;
     my $rc = {};
     foreach (0..--$min) {
-	my ($key, $value) = ($nameOfArgumentsp->[$_], $_[$_]);
-	my $string = Data::Dumper->new([$value], [$key])->Indent(0)->Sortkeys(1)->Quotekeys(0)->Terse(0)->Dump();
-	$rc->{$key} = $value;
-	#
-	# Remove the ';'
-	#
-	substr($string, -1, 1, '');
-	push(@string, $string);
+      my ($key, $value) = ($nameOfArgumentsp->[$_], $_[$_]);
+      my $string = Data::Dumper->new([$value], [$key])->Indent(0)->Sortkeys(1)->Quotekeys(0)->Terse(0)->Dump();
+      $rc->{$key} = $value;
+      #
+      # Remove the ';'
+      #
+      substr($string, -1, 1, '');
+      push(@string, $string);
     }
     #
     # Skip MarpaX::Languages::C::AST::if any
@@ -289,38 +289,38 @@ sub rulesByDepth {
     my @queue = ();
     my %depth = ();
     foreach (keys %ruleIds) {
-	my $ruleId = $_;
-	if ($ruleIds{$ruleId}->[0] == $startSymbolId) {
-	    push(@queue, $ruleId);
-	    $depth{$ruleId} = 0;
-	}
+      my $ruleId = $_;
+      if ($ruleIds{$ruleId}->[0] == $startSymbolId) {
+        push(@queue, $ruleId);
+        $depth{$ruleId} = 0;
+      }
     }
 
     while (@queue) {
-	my $ruleId = shift(@queue);
-	my $newDepth = $depth{$ruleId} + 1;
-	#
-	# Get the RHS ids of this ruleId and select only those that are also LHS
-	#
-	my (undef, @rhsIds) = @{$ruleIds{$ruleId}};
-	foreach (@rhsIds) {
-	    my $lhsId = $_;
-	    foreach (keys %ruleIds) {
-		my $ruleId = $_;
-		if (! exists($depth{$ruleId})) {
-		    #
-		    # Rule not already inserted
-		    #
-		    if ($ruleIds{$ruleId}->[0] == $lhsId) {
-			#
-			# And having an LHS id equal to one of the RHS ids we dequeued
-			#
-			push(@queue, $ruleId);
-			$depth{$ruleId} = $newDepth;
-		    }
-		}
-	    }
-	}
+      my $ruleId = shift(@queue);
+      my $newDepth = $depth{$ruleId} + 1;
+      #
+      # Get the RHS ids of this ruleId and select only those that are also LHS
+      #
+      my (undef, @rhsIds) = @{$ruleIds{$ruleId}};
+      foreach (@rhsIds) {
+        my $lhsId = $_;
+        foreach (keys %ruleIds) {
+          my $ruleId = $_;
+          if (! exists($depth{$ruleId})) {
+            #
+            # Rule not already inserted
+            #
+            if ($ruleIds{$ruleId}->[0] == $lhsId) {
+              #
+              # And having an LHS id equal to one of the RHS ids we dequeued
+              #
+              push(@queue, $ruleId);
+              $depth{$ruleId} = $newDepth;
+            }
+          }
+        }
+      }
     }
 
     my @rc = ();
@@ -328,7 +328,7 @@ sub rulesByDepth {
       my $ruleId = $_;
       my ($lhsId, @rhsIds) = @{$ruleIds{$ruleId}};
       push(@rc, {ruleId   => $ruleId,
-		 ruleName => $impl->rule_name($ruleId),
+                 ruleName => $impl->rule_name($ruleId),
                  lhsId    => $lhsId,
                  lhsName  => $impl->symbol_name($lhsId),
                  rhsIds   => [ @rhsIds ],

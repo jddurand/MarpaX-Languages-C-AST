@@ -15,70 +15,70 @@ my $filename = File::Spec->catfile('inc', 'scan.c');
 my $c = MarpaX::Languages::C::Scan->new(filename => $filename);
 
 my_eq_or_diff($c->defines_no_args,
-          {
-              'MACRO_NO_ARGS_01' => [ 'MACRO_NO_ARGS_01', '', '' ],
-              'MACRO_NO_ARGS_02' => [ 'MACRO_NO_ARGS_02 something', 'something', '' ]
-          },
-          'defines_no_args');
+              {
+               'MACRO_NO_ARGS_01' => [ 'MACRO_NO_ARGS_01', '', '' ],
+               'MACRO_NO_ARGS_02' => [ 'MACRO_NO_ARGS_02 something', 'something', '' ]
+              },
+              'defines_no_args');
 my_eq_or_diff($c->defines_args,
-          {
-              'MACRO_NO_ARGS_04' =>
-                  [
-		   "MACRO_NO_ARGS_04 (b,    c) something(b) + else(c) \\\ncontinued",
-                   [
-                    'b',
-                    'c'
-                   ],
-                   "something(b) + else(c) \\\ncontinued",
-                   ''
-                  ],
-                   'MACRO_NO_ARGS_03' =>
-                   [
-		    'MACRO_NO_ARGS_03(a)',
-                    [
-                     'a'
-                    ],
-                    '',
-                    ''
-                   ]
-          },
-          'defines_args');
+              {
+               'MACRO_NO_ARGS_04' =>
+               [
+                "MACRO_NO_ARGS_04 (b,    c) something(b) + else(c) \\\ncontinued",
+                [
+                 'b',
+                 'c'
+                ],
+                "something(b) + else(c) \\\ncontinued",
+                ''
+               ],
+               'MACRO_NO_ARGS_03' =>
+               [
+                'MACRO_NO_ARGS_03(a)',
+                [
+                 'a'
+                ],
+                '',
+                ''
+               ]
+              },
+              'defines_args');
 ok(defined($c->includes), 'includes');
 my_eq_or_diff($c->parsed_fdecls,
-          [
-           [
-            'int',
-            'func1',
-            [
-             [
-              'int',
-              'x1',
-              undef,
-              'int x1',
-              ''
-             ],
-             [
-              'double',
-              'x2',
-              undef,
-              'double *x2',
-              ''
-             ],
-             [
-              'float',
-              'f1',
-              undef,
-              'float *( f1)(int x11, double x12)',
-              '',
-             ]
-            ],
-            'int func1(int x1, double *x2,           float *( f1)(int x11, double x12))',
-            undef
-           ],
-           [
-            'int',
-            'func2',
-            [
+              [
+               [
+                'int',
+                'func1',
+                [
+                 [
+                  'int',
+                  'x1',
+                  undef,
+                  'int x1',
+                  ''
+                 ],
+                 [
+                  'double',
+                  'x2',
+                  undef,
+                  'double *x2',
+                  ''
+                 ],
+                 [
+                  'float',
+                  'f1',
+                  undef,
+                  'float *( f1)(int x11, double x12)',
+                  '',
+                 ]
+                ],
+                'int func1(int x1, double *x2,           float *( f1)(int x11, double x12))',
+                undef
+               ],
+               [
+                'int',
+                'func2',
+                [
              [
               'int',
               'x1',
@@ -214,17 +214,17 @@ my_eq_or_diff($c->vdecl_hash,
 my_eq_or_diff($c->typedef_structs,
 {
  'myStructType2_t' => [
-		       [ 'int', '', 'x' ]
-		      ],
+                       [ 'int', '', 'x' ]
+                      ],
  'myStructType1_t' => [
-		       [ 'int', '', 'x' ]
-		      ],
+                       [ 'int', '', 'x' ]
+                      ],
  'myStructType1p_t' => [
-			[ 'int', '', 'x' ]
-		       ],
+                        [ 'int', '', 'x' ]
+                       ],
  'myStructType2p_t' => [
-			[ 'int', '', 'x' ]
-		       ],
+                        [ 'int', '', 'x' ]
+                       ],
  'myEnumType1_t' => undef,
  'myEnumType1p_t' => undef,
  'myInt_type' => undef,

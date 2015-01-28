@@ -31,7 +31,7 @@ int foo() {
                    : /* no outputs */
                    : "g" (from), "g" (to), "g" (count)
                    : "r0", "r1", "r2", "r3", "r4", "r5");
- 
+
  return 0;
 }
 
@@ -54,7 +54,7 @@ void doit(void)
 	    ".popsection"
 	    : : : "r1" : label1, label2, label3, label4);
   __builtin_unreachable ();
-     
+
  label1:
   f1();
   return;
@@ -85,7 +85,7 @@ static inline char * strcpy(char * dest,const char *src)
 			 "testb %%al,%%al\n\t"
 			 "jne 1b"
 			 : "=&S" (d0), "=&D" (d1), "=&a" (d2)
-			 : "0" (src),"1" (dest) 
+			 : "0" (src),"1" (dest)
 			 : "memory");
   return dest;
 }

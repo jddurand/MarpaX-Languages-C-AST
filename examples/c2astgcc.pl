@@ -25,7 +25,7 @@ This script will call c2ast before calling the real compiler, and is targetted f
 =cut
 
 # ----
-# Init 
+# Init
 # ----
 my $loglevel = 'INFO';
 my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;

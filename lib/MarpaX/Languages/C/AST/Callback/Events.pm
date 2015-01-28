@@ -171,15 +171,15 @@ sub new {
     # enumerationConstantIdentifier ::= IDENTIFIER
     # ################################################################################################
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => 'enumerationConstantIdentifier$',
-		     method =>  [ \&_enumerationConstantIdentifier_optimized, $outerSelf->{_impl}, $outerSelf->{_scope} ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [ 'auto' ] ],
-		     )
-		    )
-	);
+                    (
+                     description => 'enumerationConstantIdentifier$',
+                     method =>  [ \&_enumerationConstantIdentifier_optimized, $outerSelf->{_impl}, $outerSelf->{_scope} ],
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      condition => [ [ 'auto' ] ],
+                     )
+                    )
+        );
 
     # #############################################################################################
     # Register scope callbacks
@@ -190,13 +190,13 @@ sub new {
     # and the detection of filescope declarator
     #
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
-		    (
-		     description => 'fileScopeDeclarator$',
-		     method => [ \&_set_helper_optimized, 'fileScopeDeclarator', 1, 'reenterScope', 0 ],
+                    (
+                     description => 'fileScopeDeclarator$',
+                     method => [ \&_set_helper_optimized, 'fileScopeDeclarator', 1, 'reenterScope', 0 ],
                      method_void => 1,
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      condition => [
                                     [ 'auto' ],
                                     [ sub { my ($method, $callback, $eventsp, $scope) = @_;
                                             return ($scope->parseScopeLevel == 0);
@@ -204,37 +204,37 @@ sub new {
                                       $self->hscratchpad('_scope')
                                     ]
                                    ],
-		      topic => {'fileScopeDeclarator' => 1,
+                      topic => {'fileScopeDeclarator' => 1,
                                 'reenterScope' => 1},
-		      topic_persistence => 'any',
-		     )
-		    )
-	);
+                      topic_persistence => 'any',
+                     )
+                    )
+        );
     #
     # ^externalDeclaration will always close any remaining scope and reset all data
     #
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                     (
-		     description => '^externalDeclaration',
-		     method => [ \&_closeAnyScope, $self->hscratchpad('_scope') ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [ 'auto' ] ],
+                     description => '^externalDeclaration',
+                     method => [ \&_closeAnyScope, $self->hscratchpad('_scope') ],
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      condition => [ [ 'auto' ] ],
                       priority => CLOSEANYSCOPE_PRIORITY
-		     )
-		    )
-	);
+                     )
+                    )
+        );
     $self->register(MarpaX::Languages::C::AST::Callback::Method->new
                     (
-		     description => '^externalDeclaration',
-		     method => [ \&_resetAnyData, @callbacks ],
-		     option => MarpaX::Languages::C::AST::Callback::Option->new
-		     (
-		      condition => [ [ 'auto' ] ],
+                     description => '^externalDeclaration',
+                     method => [ \&_resetAnyData, @callbacks ],
+                     option => MarpaX::Languages::C::AST::Callback::Option->new
+                     (
+                      condition => [ [ 'auto' ] ],
                       priority => RESETANYDATA_PRIORITY
-		     )
-		    )
-	);
+                     )
+                    )
+        );
 
     #
     # We are not going to register/unregister/unsubscribe/change topics etc... we can say to Callback that it can
@@ -290,8 +290,8 @@ sub _parameterDeclarationCheck {
     #
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
-	my ($start_lengthp, $line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        my ($start_lengthp, $line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
+        logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
     #
     # By definition parameterDeclarationCheckDeclarator contains only directDeclaratorIdentifier
@@ -318,14 +318,14 @@ sub _functionDefinitionCheck1 {
     #
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
-	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
+        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
-	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
+        logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
 sub _functionDefinitionCheck2 {
@@ -340,8 +340,8 @@ sub _functionDefinitionCheck2 {
     #
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
-	my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
-	logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
+        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -361,11 +361,11 @@ sub _declarationCheck {
 
     my $nbTypedef = $#{$declarationCheckdeclarationSpecifiers};
     if ($nbTypedef > 0) {
-	#
-	# Take the second typedef
-	#
-	my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-	logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        #
+        # Take the second typedef
+        #
+        my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
+        logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
     }
 
     _enterOrObscureTypedef($callback, $nbTypedef, $declarationCheckinitDeclaratorList);
@@ -390,12 +390,12 @@ sub _enterOrObscureTypedef {
 # ----------------------------------------------------------------------------------------
 sub _enterScopeCallback {
     foreach (@_) {
-	$_->pushTopicLevel();
+        $_->pushTopicLevel();
     }
 }
 sub _exitScopeCallback {
     foreach (@_) {
-	$_->popTopicLevel();
+        $_->popTopicLevel();
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -417,7 +417,7 @@ sub _storage_helper {
     my $g1 = $impl->current_g1_location();
     my ($start, $length) = $impl->g1_location_to_span($g1);
     if (substr($event, 0, 1) eq '^') {
-	$rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ];
+        $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
           $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), &$callbackValue(), %counters ];
@@ -448,7 +448,7 @@ sub _storage_helper_optimized {
     my ($start, $length) = $_[7]->g1_location_to_span($g1);
 
     if (substr($event, 0, 1) eq '^') {
-	$rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), %counters ];
+        $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), %counters ];
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
           $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), &$callbackValue(), %counters ];
@@ -505,9 +505,9 @@ sub _collect_and_reset_helper {
 
     my @rc = ();
     foreach (@topics) {
-	my $topic = $_;
-	push(@rc, @{$callback->topic_fired_data($topic)});
-	$callback->topic_fired_data($topic, []);
+        my $topic = $_;
+        push(@rc, @{$callback->topic_fired_data($topic)});
+        $callback->topic_fired_data($topic, []);
     }
 
     return @rc;
@@ -519,9 +519,9 @@ sub _collect_and_reset_helper_optimized {
     # my ($method, $callback, $eventsp, @topics) = @_;
 
     map {
-	my $this = $_[1]->topic_fired_data($_);
-	$_[1]->topic_fired_data($_, []);
-	@{$this};
+        my $this = $_[1]->topic_fired_data($_);
+        $_[1]->topic_fired_data($_, []);
+        @{$this};
     } @_[3..$#_];
 
 }
@@ -657,20 +657,20 @@ sub _register_rule_callbacks {
         } else {
           $fixedValue = $genomeEventValues{$_};
         }
-	$callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-			    (
-			     description => $_,
+        $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
+                            (
+                             description => $_,
                              extra_description => "$_ [storage] ",
-			     method =>  [ \&_storage_helper_optimized, $_, $countersHashp, $fixedValue, $callbackValue, $self->hscratchpad('_impl') ],
-			     option => MarpaX::Languages::C::AST::Callback::Option->new
-			     (
-			      topic => {$_ => 1},
-			      topic_persistence => 'level',
-			      condition => [ [ 'auto' ] ],  # == match on description
-			      priority => 999,
-			     )
-			    )
-	    );
+                             method =>  [ \&_storage_helper_optimized, $_, $countersHashp, $fixedValue, $callbackValue, $self->hscratchpad('_impl') ],
+                             option => MarpaX::Languages::C::AST::Callback::Option->new
+                             (
+                              topic => {$_ => 1},
+                              topic_persistence => 'level',
+                              condition => [ [ 'auto' ] ],  # == match on description
+                              priority => 999,
+                             )
+                            )
+            );
   }
 
   my $i = 0;
@@ -704,21 +704,21 @@ sub _register_rule_callbacks {
     my $event = $rhs . '$';
     ++$rshProcessEvents{$event};
     $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
-			(
-			 description => $event,
+                        (
+                         description => $event,
                          extra_description => "$event [process] ",
-			 method =>  [ \&_collect_and_reset_helper_optimized, keys %genomeTopicsNotToUpdate ],
-			 method_mode => 'push',
-			 option => MarpaX::Languages::C::AST::Callback::Option->new
-			 (
-			  condition => [ [ 'auto' ] ],  # == match on description
-			  topic => {$rhsTopic => 1,
+                         method =>  [ \&_collect_and_reset_helper_optimized, keys %genomeTopicsNotToUpdate ],
+                         method_mode => 'push',
+                         option => MarpaX::Languages::C::AST::Callback::Option->new
+                         (
+                          condition => [ [ 'auto' ] ],  # == match on description
+                          topic => {$rhsTopic => 1,
                                    %genomeTopicsNotToUpdate},
-			  topic_persistence => 'level',
-			  priority => 1,
-			 )
-			)
-	);
+                          topic_persistence => 'level',
+                          priority => 1,
+                         )
+                        )
+        );
   }
 
   #
@@ -734,7 +734,7 @@ sub _register_rule_callbacks {
                    method => [ $hashp->{method} ],
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
-		    condition => [ [ 'auto' ] ],  # == match on description
+                    condition => [ [ 'auto' ] ],  # == match on description
                     topic => \%rhsTopicsNotToUpdate,
                     topic_persistence => 'level',
                     priority => 1,
@@ -751,7 +751,7 @@ sub _register_rule_callbacks {
                    method_mode => 'replace',
                    option => MarpaX::Languages::C::AST::Callback::Option->new
                    (
-		    condition => [ [ 'auto' ] ],  # == match on description
+                    condition => [ [ 'auto' ] ],  # == match on description
                     topic => \%rhsTopicsToUpdate,
                     topic_persistence => 'level',
                     priority => 0,

@@ -72,7 +72,7 @@ sub new {
   my %pause = ();
   if (defined($pausep)) {
       if (ref($pausep) ne 'HASH') {
-	  croak 'pausep must be a reference to HASH';
+        croak 'pausep must be a reference to HASH';
       }
       map {$pause{$_} = 'after'} keys %{$pausep};
   }
@@ -93,21 +93,21 @@ sub new {
   while (defined($_ = <$data>)) {
       my $line = $_;
       if ($line =~ /^\s*:lexeme\s*~\s*<(\w+)>/) {
-	  my $lexeme = substr($line, $-[1], $+[1] - $-[1]);
-          #
-          # Doing this test first will make sure DEFAULT_PAUSE lexemes
-          # will always get the correct 'pause' value (i.e. after or before)
-          #
-	  if (exists($pause{$lexeme})) {
-            if (! ($line =~ /\bpause\b/)) {
-	      substr($line, -1, 1) = " pause => $pause{$lexeme}\n";
-            }
-	  } elsif ($allb) {
+        my $lexeme = substr($line, $-[1], $+[1] - $-[1]);
+        #
+        # Doing this test first will make sure DEFAULT_PAUSE lexemes
+        # will always get the correct 'pause' value (i.e. after or before)
+        #
+        if (exists($pause{$lexeme})) {
+          if (! ($line =~ /\bpause\b/)) {
+            substr($line, -1, 1) = " pause => $pause{$lexeme}\n";
+          }
+        } elsif ($allb) {
             if (! ($line =~ /\bpause\b/)) {
               #
               # Hardcoded to 'after'
               #
-	      substr($line, -1, 1) = " pause => after\n";
+              substr($line, -1, 1) = " pause => after\n";
             }
           }
       }
@@ -181,135 +181,135 @@ $TERMINALSEMANTIC
 :start ::= $START
 
 primaryExpression
-	::= IDENTIFIER
-	| constant
-	| string
-	| LPAREN expression RPAREN
-	| genericSelection
+        ::= IDENTIFIER
+        | constant
+        | string
+        | LPAREN expression RPAREN
+        | genericSelection
         | gccStatementExpression
 
 
 constant
-	::= I_CONSTANT         # includes character_constant
-	| F_CONSTANT
-	| ENUMERATION_CONSTANT # after it has been defined as such
+        ::= I_CONSTANT         # includes character_constant
+        | F_CONSTANT
+        | ENUMERATION_CONSTANT # after it has been defined as such
 
 event 'enumerationConstantIdentifier$' = completed <enumerationConstantIdentifier>
 enumerationConstantIdentifier  # before it has been defined as such
-	::= IDENTIFIER_UNAMBIGUOUS
+        ::= IDENTIFIER_UNAMBIGUOUS
 
 enumerationConstant            # before it has been defined as such
-	::= enumerationConstantIdentifier
+        ::= enumerationConstantIdentifier
 
 stringLiteral ::= STRING_LITERAL_UNIT+
 
 string
-	::= stringLiteral
-	| FUNC_NAME
+        ::= stringLiteral
+        | FUNC_NAME
 
 genericSelection
-	::= GENERIC LPAREN assignmentExpression COMMA genericAssocList RPAREN
+        ::= GENERIC LPAREN assignmentExpression COMMA genericAssocList RPAREN
 
 genericAssocList ::= genericAssociation+ separator => COMMA proper => 1
 
 genericAssociation
-	::= typeName COLON assignmentExpression
-	| DEFAULT COLON assignmentExpression
+        ::= typeName COLON assignmentExpression
+        | DEFAULT COLON assignmentExpression
 
 postfixExpression
-	::= primaryExpression
-	| postfixExpression LBRACKET expression RBRACKET
-	| postfixExpression LPAREN RPAREN
-	| postfixExpression LPAREN argumentExpressionList RPAREN
+        ::= primaryExpression
+        | postfixExpression LBRACKET expression RBRACKET
+        | postfixExpression LPAREN RPAREN
+        | postfixExpression LPAREN argumentExpressionList RPAREN
         | gccBuiltinVaStart
         | gccBuiltinVaEnd
         | gccBuiltinVaArg
         | gccBuiltinOffsetof
-	| postfixExpression DOT IDENTIFIER_UNAMBIGUOUS
-	| postfixExpression PTR_OP IDENTIFIER_UNAMBIGUOUS
-	| postfixExpression INC_OP
-	| postfixExpression DEC_OP
-	| LPAREN typeName RPAREN LCURLY initializerList RCURLY
-	| LPAREN typeName RPAREN LCURLY initializerList COMMA RCURLY
+        | postfixExpression DOT IDENTIFIER_UNAMBIGUOUS
+        | postfixExpression PTR_OP IDENTIFIER_UNAMBIGUOUS
+        | postfixExpression INC_OP
+        | postfixExpression DEC_OP
+        | LPAREN typeName RPAREN LCURLY initializerList RCURLY
+        | LPAREN typeName RPAREN LCURLY initializerList COMMA RCURLY
 
 argumentExpressionList
-	::= assignmentExpression
-	| argumentExpressionList COMMA assignmentExpression
-	| argumentExpressionList COMMA
+        ::= assignmentExpression
+        | argumentExpressionList COMMA assignmentExpression
+        | argumentExpressionList COMMA
 
 gccAlignofExpression ::= GCC_ALIGNOF unaryExpression
                        | GCC_ALIGNOF LPAREN typeName RPAREN
 
 unaryExpression
-	::= postfixExpression
-	| gccExtension postfixExpression
-	| INC_OP unaryExpression
-	| DEC_OP unaryExpression
-	| unaryOperator castExpression
-	| SIZEOF unaryExpression
-	| SIZEOF LPAREN typeName RPAREN
-	| ALIGNOF LPAREN typeName RPAREN
+        ::= postfixExpression
+        | gccExtension postfixExpression
+        | INC_OP unaryExpression
+        | DEC_OP unaryExpression
+        | unaryOperator castExpression
+        | SIZEOF unaryExpression
+        | SIZEOF LPAREN typeName RPAREN
+        | ALIGNOF LPAREN typeName RPAREN
         | gccAlignofExpression
 
 unaryOperator
-	::= AMPERSAND
-	| STAR
-	| PLUS
-	| HYPHEN
-	| TILDE
-	| EXCLAMATION
+        ::= AMPERSAND
+        | STAR
+        | PLUS
+        | HYPHEN
+        | TILDE
+        | EXCLAMATION
 
 castExpression
-	::= unaryExpression
-	| LPAREN typeName RPAREN castExpression
+        ::= unaryExpression
+        | LPAREN typeName RPAREN castExpression
 
 multiplicativeExpression
-	::= castExpression
-	| multiplicativeExpression STAR castExpression
-	| multiplicativeExpression SLASH castExpression
-	| multiplicativeExpression PERCENT castExpression
+        ::= castExpression
+        | multiplicativeExpression STAR castExpression
+        | multiplicativeExpression SLASH castExpression
+        | multiplicativeExpression PERCENT castExpression
 
 additiveExpression
-	::= multiplicativeExpression
-	| additiveExpression PLUS multiplicativeExpression
-	| additiveExpression HYPHEN multiplicativeExpression
+        ::= multiplicativeExpression
+        | additiveExpression PLUS multiplicativeExpression
+        | additiveExpression HYPHEN multiplicativeExpression
 
 shiftExpression
-	::= additiveExpression
-	| shiftExpression LEFT_OP additiveExpression
-	| shiftExpression RIGHT_OP additiveExpression
+        ::= additiveExpression
+        | shiftExpression LEFT_OP additiveExpression
+        | shiftExpression RIGHT_OP additiveExpression
 
 relationalExpression
-	::= shiftExpression
-	| relationalExpression LESS_THAN shiftExpression
-	| relationalExpression GREATER_THAN shiftExpression
-	| relationalExpression LE_OP shiftExpression
-	| relationalExpression GE_OP shiftExpression
+        ::= shiftExpression
+        | relationalExpression LESS_THAN shiftExpression
+        | relationalExpression GREATER_THAN shiftExpression
+        | relationalExpression LE_OP shiftExpression
+        | relationalExpression GE_OP shiftExpression
 
 equalityExpression
-	::= relationalExpression
-	| equalityExpression EQ_OP relationalExpression
-	| equalityExpression NE_OP relationalExpression
+        ::= relationalExpression
+        | equalityExpression EQ_OP relationalExpression
+        | equalityExpression NE_OP relationalExpression
 
 andExpression
-	::= equalityExpression
-	| andExpression AMPERSAND equalityExpression
+        ::= equalityExpression
+        | andExpression AMPERSAND equalityExpression
 
 exclusiveOrExpression
-	::= andExpression
-	| exclusiveOrExpression CARET andExpression
+        ::= andExpression
+        | exclusiveOrExpression CARET andExpression
 
 inclusiveOrExpression
-	::= exclusiveOrExpression
-	| inclusiveOrExpression VERTICAL_BAR exclusiveOrExpression
+        ::= exclusiveOrExpression
+        | inclusiveOrExpression VERTICAL_BAR exclusiveOrExpression
 
 logicalAndExpression
-	::= inclusiveOrExpression
-	| logicalAndExpression AND_OP inclusiveOrExpression
+        ::= inclusiveOrExpression
+        | logicalAndExpression AND_OP inclusiveOrExpression
 
 logicalOrExpression
-	::= logicalAndExpression
-	| logicalOrExpression OR_OP logicalAndExpression
+        ::= logicalAndExpression
+        | logicalOrExpression OR_OP logicalAndExpression
 
 #
 # Following yafce: in C grammar they put conditionalExpression, but in fact it must be
@@ -317,9 +317,9 @@ logicalOrExpression
 # C.f. http://padator.org/software/project-yacfe/
 #
 conditionalExpression
-	::= logicalOrExpression
-	| logicalOrExpression QUESTION_MARK expression COLON assignmentExpression
-	| logicalOrExpression QUESTION_MARK COLON assignmentExpression          # GCC Extension
+        ::= logicalOrExpression
+        | logicalOrExpression QUESTION_MARK expression COLON assignmentExpression
+        | logicalOrExpression QUESTION_MARK COLON assignmentExpression          # GCC Extension
 
 #
 # Following yafce: in C grammar they put unaryExpression, but in fact it must be
@@ -327,28 +327,28 @@ conditionalExpression
 # C.f. http://padator.org/software/project-yacfe/
 #
 assignmentExpression
-	::= conditionalExpression
-	| castExpression assignmentOperator assignmentExpression
+        ::= conditionalExpression
+        | castExpression assignmentOperator assignmentExpression
 
 assignmentOperator
-	::= EQUAL
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+        ::= EQUAL
+        | MUL_ASSIGN
+        | DIV_ASSIGN
+        | MOD_ASSIGN
+        | ADD_ASSIGN
+        | SUB_ASSIGN
+        | LEFT_ASSIGN
+        | RIGHT_ASSIGN
+        | AND_ASSIGN
+        | XOR_ASSIGN
+        | OR_ASSIGN
 
 expression
-	::= assignmentExpression
-	| expression COMMA assignmentExpression
+        ::= assignmentExpression
+        | expression COMMA assignmentExpression
 
 constantExpression
-	::= conditionalExpression # with constraints
+        ::= conditionalExpression # with constraints
 
 # ###############################################################################################
 # A directDeclarator introduces a typedefName only when it eventually participates in the grammar
@@ -365,9 +365,9 @@ event 'declarationCheck$' = completed <declarationCheck>
 declarationCheck ::= declarationCheckdeclarationSpecifiers declarationCheckinitDeclaratorList SEMICOLON
 
 declaration
-	::= declarationSpecifiers SEMICOLON
-	| declarationCheck
-	| staticAssertDeclaration
+        ::= declarationSpecifiers SEMICOLON
+        | declarationCheck
+        | staticAssertDeclaration
 
 gccExtension ::= GCC_EXTENSION
 
@@ -418,20 +418,20 @@ declarationSpecifiers2 ::=       # List with one or more typeSpecifier2
 initDeclaratorList ::= initDeclarator+ separator => COMMA proper => 1
 
 initDeclarator
-	::= declarator EQUAL initializer
-	| declarator
+        ::= declarator EQUAL initializer
+        | declarator
 
 event 'storageClassSpecifierTypedef$' = completed <storageClassSpecifierTypedef>
 storageClassSpecifierTypedef
-	::= TYPEDEF
+        ::= TYPEDEF
 
 storageClassSpecifier
-	::= storageClassSpecifierTypedef # identifiers must be flagged as TYPEDEF_NAME
-	| EXTERN
-	| STATIC
-	| THREAD_LOCAL
-	| AUTO
-	| REGISTER
+        ::= storageClassSpecifierTypedef # identifiers must be flagged as TYPEDEF_NAME
+        | EXTERN
+        | STATIC
+        | THREAD_LOCAL
+        | AUTO
+        | REGISTER
 
 #
 # Following advice at http://eli-project.sourceforge.net/c_html/c.html, typeSpecifier is
@@ -439,25 +439,25 @@ storageClassSpecifier
 # be used to form lists of one or more elements
 #
 typeSpecifier1
-	::= VOID
-	| FLOAT
-	| structOrUnionSpecifier
-	| enumSpecifier
-	| TYPEDEF_NAME		# after it has been defined as such
+        ::= VOID
+        | FLOAT
+        | structOrUnionSpecifier
+        | enumSpecifier
+        | TYPEDEF_NAME          # after it has been defined as such
 
 typeSpecifier2
-	::= CHAR
-	| SHORT
-	| INT
-	| LONG
-	| DOUBLE
-	| SIGNED
-	| UNSIGNED
-	| BOOL
-	| LABEL
-	| COMPLEX
-	| IMAGINARY	  	# non-mandated extension
-	| atomicTypeSpecifier
+        ::= CHAR
+        | SHORT
+        | INT
+        | LONG
+        | DOUBLE
+        | SIGNED
+        | UNSIGNED
+        | BOOL
+        | LABEL
+        | COMPLEX
+        | IMAGINARY             # non-mandated extension
+        | atomicTypeSpecifier
         | msvsBuiltinType
         | gccBuiltinType
 
@@ -468,20 +468,20 @@ event 'structContextEnd[]' = nulled <structContextEnd>
 structContextEnd ::=
 
 structOrUnionSpecifier
-	::= structOrUnion LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
-	| structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
-	| structOrUnion IDENTIFIER_UNAMBIGUOUS
+        ::= structOrUnion LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
+        | structOrUnion IDENTIFIER_UNAMBIGUOUS LCURLY (<structContextStart>) structDeclarationList RCURLY (<structContextEnd>)
+        | structOrUnion IDENTIFIER_UNAMBIGUOUS
 
 structOrUnion
-	::= STRUCT
-	| UNION
+        ::= STRUCT
+        | UNION
 
 structDeclarationList ::= structDeclaration+
 
 structDeclaration
-	::= specifierQualifierList SEMICOLON	# for anonymous struct/union
-	| specifierQualifierList structDeclaratorList SEMICOLON
-	| SEMICOLON                             # GCC extension
+        ::= specifierQualifierList SEMICOLON    # for anonymous struct/union
+        | specifierQualifierList structDeclaratorList SEMICOLON
+        | SEMICOLON                             # GCC extension
 
 #specifierQualifierListUnit ::= typeSpecifier
 #                             | typeQualifier
@@ -515,51 +515,51 @@ specifierQualifierList2 ::= # List with one or more typeSpecifier2
 structDeclaratorList ::= structDeclarator+ separator => COMMA proper => 1
 
 structDeclarator
-	::= COLON constantExpression
-	| declarator COLON constantExpression
-	| declarator
+        ::= COLON constantExpression
+        | declarator COLON constantExpression
+        | declarator
 
 enumSpecifier
-	::= ENUM LCURLY enumeratorList RCURLY
-	| ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
-	| ENUM IDENTIFIER_UNAMBIGUOUS
+        ::= ENUM LCURLY enumeratorList RCURLY
+        | ENUM IDENTIFIER_UNAMBIGUOUS LCURLY enumeratorList RCURLY
+        | ENUM IDENTIFIER_UNAMBIGUOUS
 
 #
 # Saying 0 allow to have a final COMMA after the list
 #
 enumeratorList ::= enumerator+ separator => COMMA proper => 0
 
-enumerator	# identifiers must be flagged as ENUMERATION_CONSTANT
-	::= enumerationConstant EQUAL constantExpression
-	| enumerationConstant
+enumerator      # identifiers must be flagged as ENUMERATION_CONSTANT
+        ::= enumerationConstant EQUAL constantExpression
+        | enumerationConstant
 
 atomicTypeSpecifier
-	::= ATOMIC LPAREN typeName RPAREN
+        ::= ATOMIC LPAREN typeName RPAREN
 
 typeQualifier
-	::= CONST
-	| RESTRICT
-	| VOLATILE
-	| ATOMIC
-	| MSVS_W64
-	| MSVS_PTR32
-	| MSVS_PTR64
+        ::= CONST
+        | RESTRICT
+        | VOLATILE
+        | ATOMIC
+        | MSVS_W64
+        | MSVS_PTR32
+        | MSVS_PTR64
 
 functionSpecifier
-	::= INLINE
-	| NORETURN
+        ::= INLINE
+        | NORETURN
 
 alignmentSpecifier
-	::= ALIGNAS LPAREN typeName RPAREN
-	| ALIGNAS LPAREN constantExpression RPAREN
+        ::= ALIGNAS LPAREN typeName RPAREN
+        | ALIGNAS LPAREN constantExpression RPAREN
 
 msvsAttributeAny ::= msvsAttribute*
 
 declarator
-	::= pointer msvsAttributeAny directDeclarator
-	| pointer msvsAttributeAny directDeclarator gccAsmExpression
-	| msvsAttributeAny directDeclarator
-	| msvsAttributeAny directDeclarator gccAsmExpression
+        ::= pointer msvsAttributeAny directDeclarator
+        | pointer msvsAttributeAny directDeclarator gccAsmExpression
+        | msvsAttributeAny directDeclarator
+        | msvsAttributeAny directDeclarator gccAsmExpression
         #
         # Microsoft hack that does not really declare a declarator
         #
@@ -571,43 +571,43 @@ declarator
 #
 event 'directDeclaratorIdentifier$' = completed <directDeclaratorIdentifier>
 directDeclaratorIdentifier
-	::= IDENTIFIER
+        ::= IDENTIFIER
 
 directDeclarator
-	::= directDeclaratorIdentifier
-	| LPAREN declarator RPAREN
-	| directDeclarator LBRACKET RBRACKET
-	| directDeclarator LBRACKET STAR RBRACKET
-	| directDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
-	| directDeclarator LBRACKET STATIC assignmentExpression RBRACKET
-	| directDeclarator LBRACKET typeQualifierList STAR RBRACKET
-	| directDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
-	| directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
-	| directDeclarator LBRACKET typeQualifierList RBRACKET
-	| directDeclarator LBRACKET assignmentExpression RBRACKET
-	| directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
-	| directDeclarator LPAREN_SCOPE RPAREN_SCOPE
-	| directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
+        ::= directDeclaratorIdentifier
+        | LPAREN declarator RPAREN
+        | directDeclarator LBRACKET RBRACKET
+        | directDeclarator LBRACKET STAR RBRACKET
+        | directDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
+        | directDeclarator LBRACKET STATIC assignmentExpression RBRACKET
+        | directDeclarator LBRACKET typeQualifierList STAR RBRACKET
+        | directDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+        | directDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
+        | directDeclarator LBRACKET typeQualifierList RBRACKET
+        | directDeclarator LBRACKET assignmentExpression RBRACKET
+        | directDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+        | directDeclarator LPAREN_SCOPE RPAREN_SCOPE
+        | directDeclarator LPAREN_SCOPE identifierList RPAREN_SCOPE
 
 pointerQualifier ::= typeQualifier
 
 pointerQualifierList ::= pointerQualifier+
 
 pointer
-	::= msvsAttributeAny STAR pointerQualifierList pointer
-	| msvsAttributeAny STAR pointerQualifierList
-	| msvsAttributeAny STAR pointer
-	| msvsAttributeAny STAR
+        ::= msvsAttributeAny STAR pointerQualifierList pointer
+        | msvsAttributeAny STAR pointerQualifierList
+        | msvsAttributeAny STAR pointer
+        | msvsAttributeAny STAR
 
 typeQualifierList ::= typeQualifier+
 
 #typeQualifierList
-#	::= typeQualifier
-#	| typeQualifierList typeQualifier
+#       ::= typeQualifier
+#       | typeQualifierList typeQualifier
 
 parameterTypeList
-	::= parameterList COMMA ELLIPSIS
-	| parameterList
+        ::= parameterList COMMA ELLIPSIS
+        | parameterList
 
 parameterList ::= parameterDeclaration+ separator => COMMA proper => 1
 
@@ -621,137 +621,137 @@ event 'parameterDeclarationCheckDeclarator$' = completed <parameterDeclarationCh
 parameterDeclarationCheckDeclarator ::= declarator
 
 parameterDeclaration
-	::= parameterDeclarationCheck               rank =>  0
-	| declarationSpecifiers abstractDeclarator  rank => -1
-	| declarationSpecifiers                     rank => -2
+        ::= parameterDeclarationCheck               rank =>  0
+        | declarationSpecifiers abstractDeclarator  rank => -1
+        | declarationSpecifiers                     rank => -2
 
 identifierList ::= IDENTIFIER+ separator => COMMA proper => 1
 
 typeName
-	::= specifierQualifierList abstractDeclarator
-	| specifierQualifierList
+        ::= specifierQualifierList abstractDeclarator
+        | specifierQualifierList
 
 abstractDeclarator
-	::= pointer msvsAttributeAny directAbstractDeclarator
-	| pointer msvsAttributeAny directAbstractDeclarator gccAsmExpression
-	| pointer msvsAttributeAny
-	| directAbstractDeclarator
-	| directAbstractDeclarator gccAsmExpression
+        ::= pointer msvsAttributeAny directAbstractDeclarator
+        | pointer msvsAttributeAny directAbstractDeclarator gccAsmExpression
+        | pointer msvsAttributeAny
+        | directAbstractDeclarator
+        | directAbstractDeclarator gccAsmExpression
 
 directAbstractDeclarator
-	::= LPAREN abstractDeclarator RPAREN
-	| LBRACKET RBRACKET
-	| LBRACKET STAR RBRACKET
-	| LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
-	| LBRACKET STATIC assignmentExpression RBRACKET
-	| LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
-	| LBRACKET typeQualifierList assignmentExpression RBRACKET
-	| LBRACKET typeQualifierList RBRACKET
-	| LBRACKET assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET RBRACKET
-	| directAbstractDeclarator LBRACKET STAR RBRACKET
-	| directAbstractDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
-	| directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
-	| directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
-	| LPAREN_SCOPE RPAREN_SCOPE
-	| LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
-	| directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
-	| directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+        ::= LPAREN abstractDeclarator RPAREN
+        | LBRACKET RBRACKET
+        | LBRACKET STAR RBRACKET
+        | LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
+        | LBRACKET STATIC assignmentExpression RBRACKET
+        | LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+        | LBRACKET typeQualifierList assignmentExpression RBRACKET
+        | LBRACKET typeQualifierList RBRACKET
+        | LBRACKET assignmentExpression RBRACKET
+        | directAbstractDeclarator LBRACKET RBRACKET
+        | directAbstractDeclarator LBRACKET STAR RBRACKET
+        | directAbstractDeclarator LBRACKET STATIC typeQualifierList assignmentExpression RBRACKET
+        | directAbstractDeclarator LBRACKET STATIC assignmentExpression RBRACKET
+        | directAbstractDeclarator LBRACKET typeQualifierList assignmentExpression RBRACKET
+        | directAbstractDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
+        | directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
+        | directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
+        | LPAREN_SCOPE RPAREN_SCOPE
+        | LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+        | directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
+        | directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
 
 initializer
-	::= LCURLY initializerList RCURLY
-	| LCURLY initializerList COMMA RCURLY
-	| assignmentExpression
+        ::= LCURLY initializerList RCURLY
+        | LCURLY initializerList COMMA RCURLY
+        | assignmentExpression
 
 initializerList
-	::= designation initializer
-	| initializer
-	| IDENTIFIER COLON initializer
-	| initializerList COMMA designation initializer
-	| initializerList COMMA initializer
+        ::= designation initializer
+        | initializer
+        | IDENTIFIER COLON initializer
+        | initializerList COMMA designation initializer
+        | initializerList COMMA initializer
 
 designation
-	::= designatorList EQUAL
+        ::= designatorList EQUAL
 
 designatorList ::= designator+
 
 designator
-	::= LBRACKET constantExpression RBRACKET
-	| DOT IDENTIFIER_UNAMBIGUOUS
+        ::= LBRACKET constantExpression RBRACKET
+        | DOT IDENTIFIER_UNAMBIGUOUS
         | LBRACKET constantExpression ELLIPSIS constantExpression RBRACKET # GCC Extension
 
 staticAssertDeclaration
-	::= STATIC_ASSERT LPAREN constantExpression COMMA stringLiteral RPAREN SEMICOLON
+        ::= STATIC_ASSERT LPAREN constantExpression COMMA stringLiteral RPAREN SEMICOLON
 
 statement
-	::= labeledStatement
-	| compoundStatement
-	| expressionStatement
-	| selectionStatement
-	| iterationStatement
-	| jumpStatement
+        ::= labeledStatement
+        | compoundStatement
+        | expressionStatement
+        | selectionStatement
+        | iterationStatement
+        | jumpStatement
         | opaqueAsmStatement
         | gccAsmStatement
 
 labeledStatement
-	::= IDENTIFIER COLON statement
-	| CASE constantExpression           COLON statement
-	| CASE constantExpression (WS_MANY) COLON statement
-	| CASE constantExpression (WS_MANY) ELLIPSIS (WS_MANY) constantExpression COLON statement
-	| DEFAULT COLON statement
+        ::= IDENTIFIER COLON statement
+        | CASE constantExpression           COLON statement
+        | CASE constantExpression (WS_MANY) COLON statement
+        | CASE constantExpression (WS_MANY) ELLIPSIS (WS_MANY) constantExpression COLON statement
+        | DEFAULT COLON statement
 
 compoundStatement
-	::= LCURLY_SCOPE RCURLY_SCOPE
-	| LCURLY_SCOPE blockItemList RCURLY_SCOPE
+        ::= LCURLY_SCOPE RCURLY_SCOPE
+        | LCURLY_SCOPE blockItemList RCURLY_SCOPE
 
 blockItemList ::= blockItem+
 
 blockItem
-	::= declaration
-	| statement
+        ::= declaration
+        | statement
 
 expressionStatement
-	::= SEMICOLON
-	| expression SEMICOLON
+        ::= SEMICOLON
+        | expression SEMICOLON
 
 selectionStatement
-	::= IF LPAREN expression RPAREN statement ELSE statement
-	| IF LPAREN expression RPAREN statement rank => 1
-	| SWITCH LPAREN expression RPAREN statement
+        ::= IF LPAREN expression RPAREN statement ELSE statement
+        | IF LPAREN expression RPAREN statement rank => 1
+        | SWITCH LPAREN expression RPAREN statement
 
 iterationStatement
-	::= WHILE LPAREN expression RPAREN statement
-	| DO statement WHILE LPAREN expression RPAREN SEMICOLON
-	| FOR LPAREN expressionStatement expressionStatement RPAREN statement
-	| FOR LPAREN expressionStatement expressionStatement expression RPAREN statement
-	| FOR LPAREN declaration expressionStatement RPAREN statement
-	| FOR LPAREN declaration expressionStatement expression RPAREN statement
+        ::= WHILE LPAREN expression RPAREN statement
+        | DO statement WHILE LPAREN expression RPAREN SEMICOLON
+        | FOR LPAREN expressionStatement expressionStatement RPAREN statement
+        | FOR LPAREN expressionStatement expressionStatement expression RPAREN statement
+        | FOR LPAREN declaration expressionStatement RPAREN statement
+        | FOR LPAREN declaration expressionStatement expression RPAREN statement
 
 jumpStatement
-	::= GOTO IDENTIFIER_UNAMBIGUOUS SEMICOLON
-	| CONTINUE SEMICOLON
-	| BREAK SEMICOLON
-	| RETURN SEMICOLON
-	| RETURN expression SEMICOLON
+        ::= GOTO IDENTIFIER_UNAMBIGUOUS SEMICOLON
+        | CONTINUE SEMICOLON
+        | BREAK SEMICOLON
+        | RETURN SEMICOLON
+        | RETURN expression SEMICOLON
 
 event 'translationUnit$' = completed <translationUnit>
 translationUnit ::= externalDeclaration*
 
 event '^externalDeclaration' = predicted <externalDeclaration>
 externalDeclaration
-	::= functionDefinition
-	| declaration
+        ::= functionDefinition
+        | declaration
         | SEMICOLON
 
 compoundStatementReenterScope ::= LCURLY_REENTERSCOPE RCURLY_SCOPE
-	                        | LCURLY_REENTERSCOPE blockItemList RCURLY_SCOPE
+                                | LCURLY_REENTERSCOPE blockItemList RCURLY_SCOPE
 
 functionDefinition
-	::= functionDefinitionCheck1
-	| functionDefinitionCheck2
+        ::= functionDefinitionCheck1
+        | functionDefinitionCheck2
 
 event 'fileScopeDeclarator$' = completed <fileScopeDeclarator>
 fileScopeDeclarator ::= declarator
@@ -1383,17 +1383,17 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 #
 # G0 operators
 #
-<G0 mul assign> ~ WS_any '*=' WS_any 
-<G0 div assign> ~ WS_any '/=' WS_any 
-<G0 mod assign> ~ WS_any '%=' WS_any 
-<G0 add assign> ~ WS_any '+=' WS_any 
-<G0 sub assign> ~ WS_any '-=' WS_any 
-<G0 left assign> ~ WS_any '<<=' WS_any 
-<G0 right assign> ~ WS_any '>>=' WS_any 
-<G0 and assign> ~ WS_any '&=' WS_any 
-<G0 xor assign> ~ WS_any '^=' WS_any 
-<G0 or assign> ~ WS_any '|=' WS_any 
-<G0 or op> ~ WS_any '||' WS_any 
+<G0 mul assign> ~ WS_any '*=' WS_any
+<G0 div assign> ~ WS_any '/=' WS_any
+<G0 mod assign> ~ WS_any '%=' WS_any
+<G0 add assign> ~ WS_any '+=' WS_any
+<G0 sub assign> ~ WS_any '-=' WS_any
+<G0 left assign> ~ WS_any '<<=' WS_any
+<G0 right assign> ~ WS_any '>>=' WS_any
+<G0 and assign> ~ WS_any '&=' WS_any
+<G0 xor assign> ~ WS_any '^=' WS_any
+<G0 or assign> ~ WS_any '|=' WS_any
+<G0 or op> ~ WS_any '||' WS_any
 <G0 and op> ~ WS_any '&&' WS_any
 <G0 vertical bar> ~ WS_any '|' WS_any
 <G0 caret> ~ WS_any '^' WS_any
@@ -1488,20 +1488,20 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                         | <MSVS pragma directive unmanaged>
                         | <MSVS pragma directive message>
                         # TODO - only the parallel if() is causing trouble
-			# | <MSVS pragma directive omp>
-			| <MSVS pragma directive once>
-			| <MSVS pragma directive optimize>
-			| <MSVS pragma directive pack>
-			| <MSVS pragma directive pointers_to_members>
-			| <MSVS pragma directive pop_macro>
-			| <MSVS pragma directive push_macro>
-			| <MSVS pragma directive region>
-			| <MSVS pragma directive endregion>
-			| <MSVS pragma directive runtime_checks>
-			| <MSVS pragma directive section>
-			| <MSVS pragma directive setlocale>
-			| <MSVS pragma directive strict_gs_check>
-			| <MSVS pragma directive vtordisp>
+                        # | <MSVS pragma directive omp>
+                        | <MSVS pragma directive once>
+                        | <MSVS pragma directive optimize>
+                        | <MSVS pragma directive pack>
+                        | <MSVS pragma directive pointers_to_members>
+                        | <MSVS pragma directive pop_macro>
+                        | <MSVS pragma directive push_macro>
+                        | <MSVS pragma directive region>
+                        | <MSVS pragma directive endregion>
+                        | <MSVS pragma directive runtime_checks>
+                        | <MSVS pragma directive section>
+                        | <MSVS pragma directive setlocale>
+                        | <MSVS pragma directive strict_gs_check>
+                        | <MSVS pragma directive vtordisp>
                         | <MSVS pragma directive warning>
 
 # alloc_text( "textsection", function1, ... )
@@ -1518,8 +1518,8 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive auto_inline interior> ~ 'on' | 'off'
 
 
-# warning( warning-specifier : warning-number-list [; warning-specifier : warning-number-list...] ) 
-# warning( push[ ,n ] ) 
+# warning( warning-specifier : warning-number-list [; warning-specifier : warning-number-list...] )
+# warning( push[ ,n ] )
 # warning( pop )
 <MSVS pragma directive warning> ~ 'warning' <G0 lparen> <MSVS pragma directive warning interior> <G0 rparen>
 <MSVS pragma directive warning interior> ~ <MSVS pragma directive warning interior specifier list>
@@ -1567,7 +1567,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <MSVS pragma directive comment> ~ 'comment' <G0 lparen> <MSVS pragma directive comment interior> <G0 rparen>
 
 # component( browser, { on | off }[, references [, name ]] )
-# component( minrebuild, on | off ) 
+# component( minrebuild, on | off )
 # component( mintypeinfo, on | off )
 # Note: we use <G0 identifier> for name, which is ok, since it refers a storage type, that matches <G0 identifier>
 
@@ -1623,7 +1623,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 # float_control( value,setting [push] | push | pop )
 <MSVS pragma directive float_control interior value> ~ 'precise' | 'except'
 <MSVS pragma directive float_control interior setting> ~ 'on' | 'off'
-<MSVS pragma directive float_control interior> ~ <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting> 
+<MSVS pragma directive float_control interior> ~ <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting>
                                                | <MSVS pragma directive float_control interior value> <G0 comma> <MSVS pragma directive float_control interior setting> WS_any 'push'
                                                | 'push'
                                                | 'pop'
@@ -1918,23 +1918,23 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 #
 <GCC attribute parameters expression> ~ <G0 expression>
 
-<G0 expression>	~ <G0 assignmentExpression>
-	        | <G0 expression> <G0 comma> <G0 assignmentExpression>
+<G0 expression> ~ <G0 assignmentExpression>
+                | <G0 expression> <G0 comma> <G0 assignmentExpression>
 
 <G0 assignmentExpression> ~ <G0 conditionalExpression>
-	                  | <G0 unaryExpression> <G0 assignmentOperator> <G0 assignmentExpression>
+                          | <G0 unaryExpression> <G0 assignmentOperator> <G0 assignmentExpression>
 
-<G0 assignmentOperator>	~ <G0 equal>
-	                | <G0 mul assign>
-                	| <G0 div assign>
-                	| <G0 mod assign>
-                	| <G0 add assign>
-                	| <G0 sub assign>
-                	| <G0 left assign>
-                	| <G0 right assign>
-                	| <G0 and assign>
-                	| <G0 xor assign>
-                	| <G0 or assign>
+<G0 assignmentOperator> ~ <G0 equal>
+                        | <G0 mul assign>
+                        | <G0 div assign>
+                        | <G0 mod assign>
+                        | <G0 add assign>
+                        | <G0 sub assign>
+                        | <G0 left assign>
+                        | <G0 right assign>
+                        | <G0 and assign>
+                        | <G0 xor assign>
+                        | <G0 or assign>
 
 <G0 conditionalExpression> ~ <G0 logicalOrExpression>
                            | <G0 logicalOrExpression> <G0 question mark> <G0 expression> <G0 colon> <G0 conditionalExpression>
@@ -1969,7 +1969,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                      | <G0 shiftExpression> <G0 left op> <G0 additiveExpression>
                      | <G0 shiftExpression> <G0 right op> <G0 additiveExpression>
 
-<G0 additiveExpression>	~ <G0 multiplicativeExpression>
+<G0 additiveExpression> ~ <G0 multiplicativeExpression>
                         | <G0 additiveExpression> <G0 plus> <G0 multiplicativeExpression>
                         | <G0 additiveExpression> <G0 hyphen> <G0 multiplicativeExpression>
 
@@ -1996,7 +1996,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
                      | <G0 sizeof> <G0 lparen> <G0 words> <G0 rparen>
                      | <G0 alignof> <G0 lparen> <G0 words> <G0 rparen>
 
-<G0 postfixExpression>	~ <G0 primaryExpression>
+<G0 postfixExpression>  ~ <G0 primaryExpression>
                         | <G0 postfixExpression> <G0 lbracket> <G0 expression> <G0 rbracket>
                         | <G0 postfixExpression> <G0 lparen> <G0 rparen>
                         | <G0 postfixExpression> <G0 lparen> <G0 argumentExpressionList> <G0 rparen>
@@ -2022,7 +2022,7 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 <G0 genericAssocList> ~ <G0 genericAssociation>
                       | <G0 genericAssocList> <G0 comma> <G0 genericAssociation>
 
-<G0 genericAssociation>	~ <G0 words> <G0 colon> <G0 assignmentExpression>
+<G0 genericAssociation> ~ <G0 words> <G0 colon> <G0 assignmentExpression>
                         | <G0 default> <G0 colon> <G0 assignmentExpression>
 
 <G0 initializerList> ~ <G0 designation> <G0 initializer>
@@ -2039,10 +2039,10 @@ STRING_LITERAL_INSIDE2_any ~ STRING_LITERAL_INSIDE2*
 
 <G0 designatorList> ~ <G0 designator>+
 
-<G0 designator>	~ <G0 lbracket> <G0 constantExpression> <G0 rbracket>
+<G0 designator> ~ <G0 lbracket> <G0 constantExpression> <G0 rbracket>
                 | <G0 dot> <G0 identifier>
                 | <G0 lbracket> <G0 constantExpression> <G0 ellipsis> <G0 constantExpression> <G0 rbracket> # GCC Extension
 
-<G0 constantExpression>	~ <G0 conditionalExpression> # with constraints
+<G0 constantExpression> ~ <G0 conditionalExpression> # with constraints
 
 :discard ~ <GCC attribute>

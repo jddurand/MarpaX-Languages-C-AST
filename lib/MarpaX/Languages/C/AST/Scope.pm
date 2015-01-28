@@ -130,7 +130,7 @@ sub parseDelay {
   if (@_) {
     my $value = shift;
     if ($log->is_debug) {
-	$log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $self->{_nscope});
+        $log->debugf('[%s] Setting delay flag to %d at scope %d', whoami(__PACKAGE__), $value, $self->{_nscope});
     }
     $self->{_delay}->[-1] = $value;
   }

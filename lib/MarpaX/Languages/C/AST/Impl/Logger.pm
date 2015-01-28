@@ -22,10 +22,10 @@ sub BEGIN {
     #
     my $log4perl = eval 'use Log::Log4perl; 1;' || 0; ## no critic
     if ($log4perl) {
-	#
-	## Here we put know hooks for logger implementations
-	#
-	Log::Log4perl->wrapper_register(__PACKAGE__);
+        #
+        ## Here we put know hooks for logger implementations
+        #
+        Log::Log4perl->wrapper_register(__PACKAGE__);
     }
 }
 

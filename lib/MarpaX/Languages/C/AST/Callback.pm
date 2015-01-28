@@ -92,7 +92,7 @@ sub register {
   my $option = $cb->option;
   foreach (@{$option->condition}) {
     if (! defined($_) || (! (ref($_) eq 'ARRAY')) || (! (ref($_->[0]) eq 'CODE' || (! ref($_->[0]) && $_->[0] eq 'auto')))) {
-	croak 'A condition is not an ARRAY reference, that must start with a CODE reference or the "auto" keyword"';
+        croak 'A condition is not an ARRAY reference, that must start with a CODE reference or the "auto" keyword"';
     }
   }
 
@@ -146,12 +146,12 @@ sub _unregister {
 
     foreach (sort _sort_by_numeric_desc @_) {
 
-	my $cb = $self->cb($_);
-	croak "Unknown callback indice $_" if (! defined($cb));
+        my $cb = $self->cb($_);
+        croak "Unknown callback indice $_" if (! defined($cb));
 
-	splice(@{$self->cb}, $_, 1);
-	$self->ncb($self->ncb - 1);
-	$self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}]);
+        splice(@{$self->cb}, $_, 1);
+        $self->ncb($self->ncb - 1);
+        $self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}]);
 
     }
 
@@ -235,15 +235,15 @@ sub _inventory_condition_tofire {
     my @condition = ();
     my $description = defined($__PACKAGE__::_cacheCbDescriptionp) ? $__PACKAGE__::_cacheCbDescriptionp->[$i] : $cb->description;
     foreach my $condition (defined($__PACKAGE__::_cacheOptionConditionp) ? @{$__PACKAGE__::_cacheOptionConditionp->[$i]} : @{$option->condition}) {
-	my ($coderef, @arguments) = @{$condition};
-	if (ref($coderef) eq 'CODE') {
-	    push(@condition, &$coderef($cb, $self, $argumentsp, @arguments) ? 1 :0);
-	} elsif (defined($description)) {
-	    #
-	    # Per def condition is the string 'auto'
-	    #
-	    push(@condition, (grep {$_ eq $description} @{$argumentsp}) ? 1 :0);
-	}
+        my ($coderef, @arguments) = @{$condition};
+        if (ref($coderef) eq 'CODE') {
+            push(@condition, &$coderef($cb, $self, $argumentsp, @arguments) ? 1 :0);
+        } elsif (defined($description)) {
+            #
+            # Per def condition is the string 'auto'
+            #
+            push(@condition, (grep {$_ eq $description} @{$argumentsp}) ? 1 :0);
+        }
     }
     #
     ## Apply conditionMethod. If none, then the callback will never be
@@ -253,16 +253,16 @@ sub _inventory_condition_tofire {
     if (@condition) {
       $condition = shift(@condition);
       if ($conditionMode) {
-	  #
-	  # Per def, this is 'and'
-	  #
+          #
+          # Per def, this is 'and'
+          #
         foreach (@condition) {
           $condition &&= $_;
         }
       } else {
-	  #
-	  # Per def, this is 'or'
-	  #
+          #
+          # Per def, this is 'or'
+          #
         foreach (@condition) {
           $condition ||= $_;
         }
@@ -281,7 +281,7 @@ sub _inventory_condition_tofire {
           $topic_fired_persistencep->{$topic} = defined($__PACKAGE__::_cacheOptionTopic_persistencep) ? $__PACKAGE__::_cacheOptionTopic_persistencep->[$i] : $option->topic_persistence;
           if (! defined($topic_fired_datap->{$topic})) {
             $topic_fired_datap->{$topic} = [];
-	    ++$nbNewTopics;
+            ++$nbNewTopics;
           }
         }
       }
@@ -390,14 +390,14 @@ sub _fire {
       my @rc;
       if (ref($method) eq 'ARRAY') {
         my ($method, @arguments) = @{$method};
-	if (ref($method) eq 'CODE') {
-	    @rc = &$method($cb, $self, $argumentsp, @arguments);
-	} else {
-	    #
-	    # Per def method is the string 'auto'
-	    #
-	    @rc = $topic_fired_datap->{$cb->description} || [];
-	}
+        if (ref($method) eq 'CODE') {
+            @rc = &$method($cb, $self, $argumentsp, @arguments);
+        } else {
+            #
+            # Per def method is the string 'auto'
+            #
+            @rc = $topic_fired_datap->{$cb->description} || [];
+        }
       }
       #
       # Push result to data attached to every topic of this callback
@@ -445,18 +445,18 @@ sub topic_level_fired_data {
     #
     $level = int($level);
     if ($level > 0) {
-	croak 'int(level) must be 0 or a negative number';
+        croak 'int(level) must be 0 or a negative number';
     }
     if ($level == 0) {
-	if (@_) {
-	    $self->topic_fired_data($topic, shift);
-	}
+        if (@_) {
+            $self->topic_fired_data($topic, shift);
+        }
         return $self->topic_fired_data($topic);
     } else {
-	my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level($level)};
-	if (@_) {
-	    $old_topic_datap->{$topic} = shift;
-	}
+        my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level($level)};
+        if (@_) {
+            $old_topic_datap->{$topic} = shift;
+        }
         return $old_topic_datap->{$topic};
     }
 }
@@ -531,8 +531,8 @@ sub _inventory {
       $nbTopicsCreated += $self->_inventory_condition_tofire();
       $nbTopicsCreated += $self->_inventory_subscription_tofire();
       if ($nbTopicsCreated > 0) {
-	  $self->_fire();
-	  $nbTopicsCreated = 0;
+          $self->_fire();
+          $nbTopicsCreated = 0;
       }
   } while ($nbTopicsCreated > 0);
   return;
@@ -699,13 +699,13 @@ sub reset_topic_fired_data {
     #
     $level = int($level);
     if ($level > 0) {
-	croak 'int(level) must be 0 or a negative number';
+        croak 'int(level) must be 0 or a negative number';
     }
     if ($level == 0) {
-	$self->topic_fired_data($topic, $value);
+        $self->topic_fired_data($topic, $value);
     } else {
-	my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
-	$old_topic_data->{$topic} = $value;
+        my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
+        $old_topic_data->{$topic} = $value;
     }
 
     return;

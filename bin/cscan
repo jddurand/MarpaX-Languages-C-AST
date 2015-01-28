@@ -51,14 +51,14 @@ GetOptions ('help!' => \$help,
             'in=s' => \$in,
             'xpath=s' => \$xpath,
             'loglevel=s' => \$loglevel,
-	    'debug' => sub { $loglevel = 'DEBUG' },
-	    'info' => sub { $loglevel = 'INFO' },
-	    'warn' => sub { $loglevel = 'WARN' },
-	    'error' => sub { $loglevel = 'ERROR' },
-	    'fatal' => sub { $loglevel = 'FATAL' },
-	    'trace' => sub { $loglevel = 'TRACE' },
-	    'logstderr!' => \$logstderr,
-	    'enumType=s' => \$enumType,
+            'debug' => sub { $loglevel = 'DEBUG' },
+            'info' => sub { $loglevel = 'INFO' },
+            'warn' => sub { $loglevel = 'WARN' },
+            'error' => sub { $loglevel = 'ERROR' },
+            'fatal' => sub { $loglevel = 'FATAL' },
+            'trace' => sub { $loglevel = 'TRACE' },
+            'logstderr!' => \$logstderr,
+            'enumType=s' => \$enumType,
             'out=s' => \$out,
             'err=s' => \$err,
             'get=s' => \$get);
@@ -83,7 +83,7 @@ if (! $help) {
 }
 
 # ----
-# Init 
+# Init
 # ----
 my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = $loglevel, Screen
@@ -175,15 +175,15 @@ if (! $in) {
         foreach (split(/,/, $get)) {
             next if (! $_ || ! "$_");
             my $rc = eval { $c->$_; };
-	    if ($@) {
-	      print STDERR "$@" if ($@);
-	    } else {
-	      if (ref($rc) =~ '^XML::') {
-		print $rc->toString(1);
-	      } else {
-		print Dumper($rc);
-	      }
-	    }
+            if ($@) {
+              print STDERR "$@" if ($@);
+            } else {
+              if (ref($rc) =~ '^XML::') {
+                print $rc->toString(1);
+              } else {
+                print Dumper($rc);
+              }
+            }
         }
     }
     if ($xpath || $xml) {

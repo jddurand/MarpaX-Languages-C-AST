@@ -69,19 +69,19 @@ GetOptions ('help!' => \$help,
             'dumpfile=s' => \$dumpfile,
             'allowAmbiguity!' => \$allowAmbiguity,
             'loglevel=s' => \$loglevel,
-	    'debug' => sub { $loglevel = 'DEBUG' },
-	    'info' => sub { $loglevel = 'INFO' },
-	    'warn' => sub { $loglevel = 'WARN' },
-	    'error' => sub { $loglevel = 'ERROR' },
-	    'fatal' => sub { $loglevel = 'FATAL' },
-	    'trace' => sub { $loglevel = 'TRACE' },
+            'debug' => sub { $loglevel = 'DEBUG' },
+            'info' => sub { $loglevel = 'INFO' },
+            'warn' => sub { $loglevel = 'WARN' },
+            'error' => sub { $loglevel = 'ERROR' },
+            'fatal' => sub { $loglevel = 'FATAL' },
+            'trace' => sub { $loglevel = 'TRACE' },
             'logstderr!' => \$logstderr);
 
 @typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
 @enum = grep {$_ && "$_"} split(/,/, join(',', @enum));
 
 # ----
-# Init 
+# Init
 # ----
 my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = $loglevel, Screen
@@ -109,23 +109,23 @@ if (! $nocpp) {
     $log->infof('Executing preprocessor, command: %s', join(' ', @cmd));
     run(\@cmd, \*STDIN, \$preprocessedOutput);
     if ($cppdup) {
-	my $fh;
-	$log->infof('Saving preprocessor output to file: %s', $cppdup);
-	if (! open($fh, '>', $cppdup)) {
-	    warn "Cannot open $cppdup, $!\n";
-	} else {
-	    print $fh $preprocessedOutput;
-	    if (! close($fh)) {
-		warn "Cannot close $cppdup, $!\n";
-	    }
-	}
+      my $fh;
+      $log->infof('Saving preprocessor output to file: %s', $cppdup);
+      if (! open($fh, '>', $cppdup)) {
+        warn "Cannot open $cppdup, $!\n";
+      } else {
+        print $fh $preprocessedOutput;
+        if (! close($fh)) {
+          warn "Cannot close $cppdup, $!\n";
+        }
+      }
     }
 } else {
     my ($readfh, $what, $name);
     if ($ARGV[-1] eq '-') {
-	($readfh, $what, $name) = (\*STDIN, 'handle', 'STDIN');
+      ($readfh, $what, $name) = (\*STDIN, 'handle', 'STDIN');
     } else {
-	($readfh, $what, $name) = ($ARGV[-1], 'file', $ARGV[-1]);
+      ($readfh, $what, $name) = ($ARGV[-1], 'file', $ARGV[-1]);
     }
     $log->infof('Reading preprocessor output from %s: %s', $what, $name);
     $preprocessedOutput = read_file($readfh);
@@ -134,12 +134,12 @@ if (! $nocpp) {
 # Callback argument
 # -----------------
 my %lexemeCallbackHash = (file => File::Spec->canonpath($cppfile),
-			  lexeme => {},
-			  internalLexeme => {},
-			  progress => undef,
-			  position2line => {},
-			  next_progress => 0,
-			  allfiles => {});
+                          lexeme => {},
+                          internalLexeme => {},
+                          progress => undef,
+                          position2line => {},
+                          next_progress => 0,
+                          allfiles => {});
 
 my %check = ();
 map {++$check{$_}} @check;
@@ -171,7 +171,7 @@ $log->infof('Parsing input');
 my $bless = $cAstObject->parse(\$preprocessedOutput);
 if ($progress) {
     if ($lexemeCallbackHash{nbLines} > $lexemeCallbackHash{next_progress}) {
-	$lexemeCallbackHash{progress}->update($lexemeCallbackHash{nbLines});
+      $lexemeCallbackHash{progress}->update($lexemeCallbackHash{nbLines});
     }
 }
 
@@ -202,8 +202,8 @@ if ($dump || $dumpfile || %check) {
       print $dumped;
     }
     if ($dumpfile) {
-        $log->infof('Printing dumped AST to file: %s', $dumpfile);
-	my $fh;
+      $log->infof('Printing dumped AST to file: %s', $dumpfile);
+      my $fh;
       if (! open($fh, '>', $dumpfile)) {
         warn "Cannot open $dumpfile, $!\n";
       } else {
@@ -224,7 +224,7 @@ sub check {
     my ($checkp, $lexemeCallbackHashp, $bless) = @_;
 
     if (exists($checkp->{reservedNames})) {
-	checkreservedNames($lexemeCallbackHashp, $bless);
+      checkreservedNames($lexemeCallbackHashp, $bless);
     }
 
 }
@@ -240,70 +240,70 @@ sub checkreservedNames {
     #
 
     my %check = (
-	qr/^E[\dA-Z]/             => 'Names beginning with a capital \'E\' followed by a digit or uppercase letter may be used for additional error code names',
-	qr/^(?:is|to)[a-z]/       => 'Names that begin with either \'is\' or \'to\' followed by a lowercase letter may be used for additional character testing and conversion functions.',
-	qr/^LC_[A-Z]/             => 'Names that begin with \'LC_\' followed by an uppercase letter may be used for additional macros specifying locale attributes',
-	qr/^(?:sin|cos|tan|sincos|csin|ccos|ctan|asin|acos|atan|atan2|casin|cacos|catan|exp|exp2|exp10|log|log10|log2|logb|ilogb|pow|sqrt|cbrt|hypot|expm1|log1p|cexp|clog|clog10|csqrt|cpow|sinh|cosh|tanh|csinh|ccosh|ctanh|asinh|acosh|atanh|casinh|cacosh|catanh|erf|erfc|lgamma|gamma|tgamma|j0|j1|jn|y0|y1|yn)[fl]$/                => 'Names of all existing mathematics functions suffixed with \'f\' or \'l\' are reserved for corresponding functions that operate on float and long double arguments, respectively',
-	qr/^SIG[A-Z]/             => 'Names that begin with \'SIG\' followed by an uppercase letter are reserved for additional signal names',
-	qr/^SIG_[A-Z]/            => 'Names that begin with \'SIG_\' followed by an uppercase letter are reserved for additional signal actions',
-	qr/^(?:str|mem|wcs)[a-z]/ => 'Names beginning with \'str\', \'mem\', or \'wcs\' followed by a lowercase letter are reserved for additional string and array functions',
-	qr/_t$/                   => 'Names that end with \'_t\' are reserved for additional type names'
+                 qr/^E[\dA-Z]/             => 'Names beginning with a capital \'E\' followed by a digit or uppercase letter may be used for additional error code names',
+                 qr/^(?:is|to)[a-z]/       => 'Names that begin with either \'is\' or \'to\' followed by a lowercase letter may be used for additional character testing and conversion functions.',
+                 qr/^LC_[A-Z]/             => 'Names that begin with \'LC_\' followed by an uppercase letter may be used for additional macros specifying locale attributes',
+                 qr/^(?:sin|cos|tan|sincos|csin|ccos|ctan|asin|acos|atan|atan2|casin|cacos|catan|exp|exp2|exp10|log|log10|log2|logb|ilogb|pow|sqrt|cbrt|hypot|expm1|log1p|cexp|clog|clog10|csqrt|cpow|sinh|cosh|tanh|csinh|ccosh|ctanh|asinh|acosh|atanh|casinh|cacosh|catanh|erf|erfc|lgamma|gamma|tgamma|j0|j1|jn|y0|y1|yn)[fl]$/                => 'Names of all existing mathematics functions suffixed with \'f\' or \'l\' are reserved for corresponding functions that operate on float and long double arguments, respectively',
+                 qr/^SIG[A-Z]/             => 'Names that begin with \'SIG\' followed by an uppercase letter are reserved for additional signal names',
+                 qr/^SIG_[A-Z]/            => 'Names that begin with \'SIG_\' followed by an uppercase letter are reserved for additional signal actions',
+                 qr/^(?:str|mem|wcs)[a-z]/ => 'Names beginning with \'str\', \'mem\', or \'wcs\' followed by a lowercase letter are reserved for additional string and array functions',
+                 qr/_t$/                   => 'Names that end with \'_t\' are reserved for additional type names'
     );
 
     if (grep {basename($_) eq 'dirent.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^d_/}      =  'The header file dirent.h reserves names prefixed with \'d_\'';
+      $check{qr/^d_/}      =  'The header file dirent.h reserves names prefixed with \'d_\'';
     }
     if (grep {basename($_) eq 'fcntl.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^[lFOS]_/} =  'The header file fcntl.h reserves names prefixed with \'l_\', \'F_\', \'O_\', and \'S_\'';
+      $check{qr/^[lFOS]_/} =  'The header file fcntl.h reserves names prefixed with \'l_\', \'F_\', \'O_\', and \'S_\'';
     }
     if (grep {basename($_) eq 'grp.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^gr_/}     =  'The header file grp.h reserves names prefixed with \'gr_\'';
+      $check{qr/^gr_/}     =  'The header file grp.h reserves names prefixed with \'gr_\'';
     }
     if (grep {basename($_) eq 'limits.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/_MAX$/}    =  'The header file limits.h reserves names suffixed with \'_MAX\'';
+      $check{qr/_MAX$/}    =  'The header file limits.h reserves names suffixed with \'_MAX\'';
     }
     if (grep {basename($_) eq 'pwd.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^pw_/}      =  'The header file pwd.h reserves names prefixed with \'pw_\'';
+      $check{qr/^pw_/}      =  'The header file pwd.h reserves names prefixed with \'pw_\'';
     }
     if (grep {basename($_) eq 'signal.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^(?:ssa|SA)_/}  =  'The header file signal.h reserves names prefixed with \'sa_\' and \'SA_\'';
+      $check{qr/^(?:ssa|SA)_/}  =  'The header file signal.h reserves names prefixed with \'sa_\' and \'SA_\'';
     }
     if (grep {basename(dirname($_)) eq 'sys' && basename($_) eq 'stat.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^(?:st|S)_/}      =  'The header file sys/stat.h reserves names prefixed with \'st_\' and \'S_\'';
+        $check{qr/^(?:st|S)_/}      =  'The header file sys/stat.h reserves names prefixed with \'st_\' and \'S_\'';
     }
     if (grep {basename(dirname($_)) eq 'sys' && basename($_) eq 'times.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^tms_/}      =  'The header file sys/times.h reserves names prefixed with \'tms_\'';
+        $check{qr/^tms_/}      =  'The header file sys/times.h reserves names prefixed with \'tms_\'';
     }
     if (grep {basename($_) eq 'termios.h'} keys %{$lexemeCallbackHashp->{allfiles}}) {
-	$check{qr/^(?:c_|V|I|O|TC|B\d)/}      =  'The header file termios.h reserves names prefixed with \'c_\', \'V\', \'I\', \'O\', and \'TC\'; and names prefixed with \'B\' followed by a digit';
+        $check{qr/^(?:c_|V|I|O|TC|B\d)/}      =  'The header file termios.h reserves names prefixed with \'c_\', \'V\', \'I\', \'O\', and \'TC\'; and names prefixed with \'B\' followed by a digit';
     }
 
     MarpaX::Languages::C::AST::Util::Data::Find->new(
-	wanted => sub { my $o = shift;
-			my $class = blessed($o) || '';
-			return ($class eq 'C::AST::directDeclaratorIdentifier');
-	},
-	callback => sub { my ($lexemeCallbackHashp, $o) = @_;
-			  #
-			  # By definition, the "value" of directDeclaratorIdentifier is
-			  # the IDENTIFIER lexeme value: [start,length,values]
-			  #
-			  my $position = $o->[0]->[0];
-			  if (exists($lexemeCallbackHashp->{position2line}->{$position})) {
-			      my $name = $o->[0]->[2];
-			      my $line = $lexemeCallbackHashp->{position2line}->{$position};
+        wanted => sub { my $o = shift;
+                        my $class = blessed($o) || '';
+                        return ($class eq 'C::AST::directDeclaratorIdentifier');
+        },
+        callback => sub { my ($lexemeCallbackHashp, $o) = @_;
+                          #
+                          # By definition, the "value" of directDeclaratorIdentifier is
+                          # the IDENTIFIER lexeme value: [start,length,values]
+                          #
+                          my $position = $o->[0]->[0];
+                          if (exists($lexemeCallbackHashp->{position2line}->{$position})) {
+                              my $name = $o->[0]->[2];
+                              my $line = $lexemeCallbackHashp->{position2line}->{$position};
 
-			      my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{curfile}, $line);
+                              my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{curfile}, $line);
 
-			      while (my ($re, $string) = each %check) {
-				  if ($name =~ $re) {
-				      printf STDERR "%-*s %s: %s\n", $lexemeCallbackHashp->{tryToAlignMax}, $tryToAlign, $name, $string;
-				  }
-			      }
-			  }
-	},
-	callbackArgs => [ $lexemeCallbackHashp ],
-	)->process(${$bless});
+                              while (my ($re, $string) = each %check) {
+                                  if ($name =~ $re) {
+                                      printf STDERR "%-*s %s: %s\n", $lexemeCallbackHashp->{tryToAlignMax}, $tryToAlign, $name, $string;
+                                  }
+                              }
+                          }
+        },
+        callbackArgs => [ $lexemeCallbackHashp ],
+        )->process(${$bless});
 }
 
 # --------------------------------------------------------------------------------------
@@ -321,18 +321,18 @@ sub lexemeCallback {
     # We wait until the first #line information: this will give the name of current file
     #
     if ($lexemeHashp->{name} eq 'PREPROCESSOR_LINE_DIRECTIVE') {
-	if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
-	    $lexemeCallbackHashp->{curline} = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
-	    $lexemeCallbackHashp->{curline_real} = $lexemeHashp->{line};
-	    $lexemeCallbackHashp->{curfile} = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
-	    $lexemeCallbackHashp->{allfiles}->{$lexemeCallbackHashp->{curfile}}++;
-	    if (! $lexemeCallbackHashp->{file}) {
-		$lexemeCallbackHashp->{file} = File::Spec->canonpath($lexemeCallbackHashp->{curfile});
-	    }
-	    if (! defined($lexemeCallbackHashp->{tryToAlignMax})) {
-		$lexemeCallbackHashp->{tryToAlignMax} = length(sprintf('%s(%d)', $lexemeCallbackHashp->{file}, 1000000)); # a pretty good max -;
-	    }
-	}
+        if ($lexemeHashp->{value} =~ /([\d]+)\s*\"([^\"]+)\"/) {
+            $lexemeCallbackHashp->{curline} = substr($lexemeHashp->{value}, $-[1], $+[1] - $-[1]);
+            $lexemeCallbackHashp->{curline_real} = $lexemeHashp->{line};
+            $lexemeCallbackHashp->{curfile} = File::Spec->canonpath(substr($lexemeHashp->{value}, $-[2], $+[2] - $-[2]));
+            $lexemeCallbackHashp->{allfiles}->{$lexemeCallbackHashp->{curfile}}++;
+            if (! $lexemeCallbackHashp->{file}) {
+                $lexemeCallbackHashp->{file} = File::Spec->canonpath($lexemeCallbackHashp->{curfile});
+            }
+            if (! defined($lexemeCallbackHashp->{tryToAlignMax})) {
+                $lexemeCallbackHashp->{tryToAlignMax} = length(sprintf('%s(%d)', $lexemeCallbackHashp->{file}, 1000000)); # a pretty good max -;
+            }
+        }
         #
         # This is an internal lexeme, no problem to change a bit the value. For instance, remove
         # \s if any.
@@ -343,18 +343,18 @@ sub lexemeCallback {
     }
 
     if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}}) ||
-	exists($lexemeCallbackHashp->{internalLexeme}->{$lexemeHashp->{name}})) {
+        exists($lexemeCallbackHashp->{internalLexeme}->{$lexemeHashp->{name}})) {
 
-	if (defined($lexemeCallbackHashp->{file}) &&
-	    defined($lexemeCallbackHashp->{curfile}) &&
-	    $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
-	    my $line = $lexemeCallbackHashp->{curline} + ($lexemeHashp->{line} - $lexemeCallbackHashp->{curline_real} - 1);
-	    $lexemeCallbackHashp->{position2line}->{$lexemeHashp->{start}} = $line;
-	    if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}})) {
-		my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{file}, $line);
-		printf "%-*s %-30s %s\n", $lexemeCallbackHashp->{tryToAlignMax}, $tryToAlign, $lexemeHashp->{name}, $lexemeHashp->{value};
-	    }
-	}
+        if (defined($lexemeCallbackHashp->{file}) &&
+            defined($lexemeCallbackHashp->{curfile}) &&
+            $lexemeCallbackHashp->{file} eq $lexemeCallbackHashp->{curfile}) {
+            my $line = $lexemeCallbackHashp->{curline} + ($lexemeHashp->{line} - $lexemeCallbackHashp->{curline_real} - 1);
+            $lexemeCallbackHashp->{position2line}->{$lexemeHashp->{start}} = $line;
+            if (exists($lexemeCallbackHashp->{lexeme}->{$lexemeHashp->{name}})) {
+                my $tryToAlign = sprintf('%s(%d)', $lexemeCallbackHashp->{file}, $line);
+                printf "%-*s %-30s %s\n", $lexemeCallbackHashp->{tryToAlignMax}, $tryToAlign, $lexemeHashp->{name}, $lexemeHashp->{value};
+            }
+        }
     }
 }
 
