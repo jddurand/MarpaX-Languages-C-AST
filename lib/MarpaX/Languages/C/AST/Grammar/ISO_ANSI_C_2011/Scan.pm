@@ -10,12 +10,12 @@ use MarpaX::Languages::C::AST;
 use Config;
 use Carp qw/croak/;
 use Data::Dumper;
-use IPC::Cmd qw/run/;
+use Try::Tiny;
+use IO::CaptureOutput qw/capture_exec/;
 use File::Temp qw/tempfile/;
 use IO::File;
 use Scalar::Util qw/blessed reftype/;
 use Regexp::Common;
-use String::ShellQuote qw/shell_quote_best_effort/;  # Not for Win32, but passes everywhere, so ok to use it like that
 use Log::Any qw/$log/;
 use constant {
     LEXEME_POSITION_INDEX => 0,
@@ -33,8 +33,6 @@ use XML::LibXSLT;
 use constant { TYPE => 0, QUALIFIER => 1, IDENTIFIER => 2, OTHER => 3, SKIPPED => 4, DECLARATOR => 5 };
 our @type2String = qw/TYPE QUALIFIER IDENTIFIER OTHER SKIPPED DECLARATOR/;
 
-our $HAVE_SYS__INFO = eval 'use Sys::Info; 1' || 0;
-our $HAVE_Win32__ShellQuote = _is_windows() ? (eval 'use Win32::ShellQuote qw/quote_native/; 1' || 0) : 0;
 our $RESAMELINE = qr/(?:[ \t\v\f])*/;                        # i.e. WS* without \n
 our $REDEFINE = qr/^${RESAMELINE}#${RESAMELINE}define${RESAMELINE}((\w+)(?>[^\n\\]*)(?>\\.[^\n\\]*)*)/ms; # dot-matches-all mode, keeping ^ meaningful
 our $BALANCEDPARENS = qr/$RE{balanced}{-parens=>'()'}{-keep}/;
@@ -544,46 +542,6 @@ sub cdecl {
 
 
 # ----------------------------------------------------------------------------------------
-# Brutal copy of String::ShellQuote::quote_literal
-
-sub _quote_literal {
-    my ($text, $force) = @_;
-
-    # basic argument quoting.  uses backslashes and quotes to escape
-    # everything.
-    if (!$force && $text ne '' && $text !~ /[ \t\n\x0b"]/) {
-        # no quoting needed
-    }
-    else {
-        $text =~ s{(\\*)(?="|\z)}{$1$1}g;
-        $text =~ s{"}{\\"}g;
-        $text = qq{"$text"};
-    }
-
-    return $text;
-}
-
-# ----------------------------------------------------------------------------------------
-
-sub _is_windows {
-  my $rc;
-
-  if ($HAVE_SYS__INFO) {
-    my $info = Sys::Info->new;
-    my $os   = $info->os();
-    $rc = $os->is_windows;
-  } else {
-    if ($^O =~ /win32/i) {
-      $rc = 1;
-    } else {
-      $rc = 0;
-    }
-  }
-
-  return $rc;
-}
-
-# ----------------------------------------------------------------------------------------
 
 sub _init {
     my ($self) = @_;
@@ -599,26 +557,31 @@ sub _init {
       # Remains the filename that we do ourself.
       # Two big categories: Win32, others
       #
-      my $quotedFilename;
-      my $cmd = "$self->{_cpprun} $self->{_cppflags} ";
-      if (_is_windows()) {
-        if ($HAVE_Win32__ShellQuote) {
-          $quotedFilename = quote_native($self->{_orig_filename});
-        } else {
-          $quotedFilename = _quote_literal($self->{_orig_filename}, 1);
+      my $cmd = "$self->{_cpprun} $self->{_cppflags} $self->{_orig_filename}";
+
+      my ($stdout, $stderr, $success, $exitCode );
+      my $executed = 0;
+      my $errorString = undef;
+      try {
+        ($stdout, $stderr, $success, $exitCode) = capture_exec($cmd);
+      } catch {
+        $errorString = $_;
+        return;
+      } finally {
+        if (! $@) {
+          $executed = 1;
         }
-      } else {
-        $quotedFilename = shell_quote_best_effort($self->{_orig_filename});
+      };
+
+      if (! $executed) {
+        if (defined($errorString)) {
+          croak "$cmd: $errorString";
+        } else {
+          croak "$cmd: failure (no error available)";
+        }
       }
-      $cmd .= $quotedFilename;
 
-      my ($success, $error_code, undef, $stdout_bufp, $stderr_bufp) = run(command => $cmd);
-
-      if (! $success) {
-        croak join('', @{$stderr_bufp});
-      }
-
-      $stdout_buf = join('',@{$stdout_bufp});
+      $stdout_buf = $stdout;
     } else {
       $log->debugf('Disabling cpp step');
       my $fh;
