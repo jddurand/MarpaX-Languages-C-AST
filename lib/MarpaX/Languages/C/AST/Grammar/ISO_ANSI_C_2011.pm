@@ -544,6 +544,9 @@ typeQualifier
         | MSVS_W64
         | MSVS_PTR32
         | MSVS_PTR64
+        | MSVS_UNALIGNED
+        | MSVS_SPTR
+        | MSVS_UPTR
 
 functionSpecifier
         ::= INLINE
@@ -560,10 +563,6 @@ declarator
         | pointer msvsAttributeAny directDeclarator gccAsmExpression
         | msvsAttributeAny directDeclarator
         | msvsAttributeAny directDeclarator gccAsmExpression
-        #
-        # Microsoft hack that does not really declare a declarator
-        #
-        | MSVS___C_ASSERT__ LBRACKET expression RBRACKET
 
 #
 # It is VERY important that directDeclaratorIdentifier remains forever an LHS
@@ -872,6 +871,7 @@ INLINE        ~ '__inline__'
 INLINE        ~ 'inline__'
 INLINE        ~ '__inline'
 INLINE        ~ '__forceinline'           # MSVS
+INLINE        ~ '_inline'                 # MSVS backward compatbility
 :lexeme ~ <INT>           priority => -18
 INT           ~ 'int'
 :lexeme ~ <LONG>          priority => -19
@@ -1221,8 +1221,6 @@ MSVS_BASED ~ '__based'
 MSVS_CDECL ~ '__cdecl'
 :lexeme ~ <MSVS_CLRCALL>             priority => -60
 MSVS_CLRCALL ~ '__clrcall'
-:lexeme ~ <MSVS___C_ASSERT__>        priority => -60
-MSVS___C_ASSERT__ ~ '__C_ASSERT__'
 :lexeme ~ <MSVS_STDCALL>             priority => -60
 MSVS_STDCALL ~ '__stdcall'
 :lexeme ~ <MSVS_INT8>                priority => -60
@@ -1239,6 +1237,12 @@ MSVS_W64 ~ '__w64'
 MSVS_PTR32 ~ '__ptr32'
 :lexeme ~ <MSVS_PTR64>               priority => -60
 MSVS_PTR64 ~ '__ptr64'
+:lexeme ~ <MSVS_UNALIGNED>           priority => -60
+MSVS_UNALIGNED ~ '__unaligned'
+:lexeme ~ <MSVS_SPTR>                priority => -60
+MSVS_SPTR ~ '__sptr'
+:lexeme ~ <MSVS_UPTR>                priority => -60
+MSVS_UPTR ~ '__uptr'
 
 
 ##########################################################
