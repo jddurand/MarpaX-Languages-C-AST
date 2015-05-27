@@ -173,8 +173,8 @@ sub new {
     # physically on disk and still visible for our process
     #
     $self->{_tmpfh} = IO::File->new($filename, 'r') || croak "Cannot open $filename, $!";
-    print($self->{_content2fh}, $opts{content});
-    close($self->{_content2fh}) || warn "Cannot close $self->{_content2fh}, $!";
+    $self->{_content2fh}->print($opts{content});
+    $self->{_content2fh}->close() || warn "Cannot close $self->{_content2fh}, $!";
     $self->{_content} = $opts{content};
   } else {
     if (! exists($opts{filename}) || ! defined($opts{filename})) {
