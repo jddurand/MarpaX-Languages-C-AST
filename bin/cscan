@@ -617,11 +617,11 @@ Instruct the parser to try all alternatives on typedef/enum/identifier. Default 
 
 =item B<--typedef typedefs>
 
-Comma separated list of known typedefs. Default is an empty list.
+Comma separated list of known typedefs. Can be repeated. Default is an empty list.
 
 =item B<--enum enums>
 
-Comma separated list of known enums. Default is an empty list.
+Comma separated list of known enums. Can be repeated. Default is an empty list.
 
 =back
 
