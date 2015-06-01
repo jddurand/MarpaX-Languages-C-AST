@@ -156,7 +156,6 @@ sub new {
               _astConfig        => \%astConfig,
              };
 
-
   #
   # For anonymous enums or structs, so that their names do not clash
   #
@@ -219,7 +218,7 @@ sub new {
   #
   # Delete what is left
   #
-  delete($self->{_content});
+  # delete($self->{_content});
   delete($self->{_anonCount});
 
   return $self;
@@ -251,6 +250,20 @@ sub astToString {
   my $self = shift;
 
   return $self->{_asDOM} ? $self->ast()->toString(1) : Dumper($self->ast());
+}
+
+# ----------------------------------------------------------------------------------------
+
+=head2 content($self)
+
+Original content.
+
+=cut
+
+sub content {
+  my $self = shift;
+
+  return $self->{_content};
 }
 
 # ----------------------------------------------------------------------------------------
@@ -745,7 +758,13 @@ sub _xpath {
 
 # ----------------------------------------------------------------------------------------
 
-sub _xslt {
+=head2 xslt($self, $wantedFilename)
+
+Compiles an XSLT, searching $wantedFilename in the $self's xsltDirectories if given, then in the shared directory provided with this package. Returns an XML::LibXSLT object instance.
+
+=cut
+
+sub xslt {
   my ($self, $wantedFilename) = @_;
 
   if (! defined($self->{_xslt}->{$wantedFilename})) {
@@ -2393,7 +2412,7 @@ sub c2cifce {
   $log->tracef('Calling transformation with parameters %s', \%params);
 
   my $ast = $self->ast();
-  my $langXslt = $self->_xslt($lang);
+  my $langXslt = $self->xslt($lang);
   my $transform = $langXslt->transform($ast, %params);
 
   return ($langXslt, $transform);
