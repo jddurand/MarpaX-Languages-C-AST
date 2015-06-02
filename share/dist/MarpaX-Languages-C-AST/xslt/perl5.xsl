@@ -4,11 +4,17 @@
                 xmlns:hsl="urn:hsl">
   <xsl:output method="text" omit-xml-declaration="yes" />
 
-  <!-- =================================== -->
+  <!-- =================================================================== -->
+  <!--                            MAIN                                     -->
+  <!-- =================================================================== -->
 
   <xsl:template match="/">
+/* ==================================================== */
+/*                 INTERFACE START                      */
+/* ==================================================== */
 /*
- * C binding pseudo code of <xsl:value-of select="hsl:opt('module')"/>, generated <xsl:value-of select="hsl:localtime()"/>
+ * C binding pseudo code of <xsl:value-of select="hsl:opt('module')"/>
+ * Generated <xsl:value-of select="hsl:localtime()"/>
  */
 
 #define PERL_NO_GET_CONTEXT 1
@@ -21,8 +27,8 @@
 /* ==================================================== */
 /*                    USER INPUT                        */
 /* ==================================================== */
-
-<xsl:value-of select="hsl:content()"/><!-- left-aligned voluntarirly -->
+<!-- left-aligned voluntarirly -->
+<xsl:value-of select="hsl:content()"/>
 
 /* ==================================================== */
 /*               INTERNAL STRUCTURES                    */
@@ -42,7 +48,6 @@ typedef struct hsl_outer {
 /* ==================================================== */
 /*                        XSUB                          */
 /* ==================================================== */
-
    <xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
      <!-- Then definitions -->
      <xsl:call-template name="topStructOrUnionSpecifier">
@@ -51,9 +56,14 @@ typedef struct hsl_outer {
      </xsl:call-template>
    </xsl:for-each>
 
+/* ==================================================== */
+/*                  INTERFACE END                       */
+/* ==================================================== */
   </xsl:template>
 
-  <!-- =================================== -->
+  <!-- =================================================================== -->
+  <!--                      Top Level Structure                            -->
+  <!-- =================================================================== -->
 
   <xsl:template name="topStructOrUnionSpecifier">
     <xsl:param name="topStructOrUnionSpecifierCounter" />
@@ -65,32 +75,35 @@ typedef struct hsl_outer {
           <xsl:value-of select="./*[local-name()='IDENTIFIER_UNAMBIGUOUS']/@text"/>
         </xsl:when>
         <xsl:otherwise>
-          <xsl:value-of select="concat('__ANON__STRUCT__', $topStructOrUnionSpecifierCounter)"/>
+          <xsl:value-of select="concat('__ANON__', $topStructOrUnionSpecifierCounter)"/>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
-    <!-- Call the template engine -->
-    <xsl:call-template name="structOrUnion">
+    <!-- Decypher the structure or union -->
+    <xsl:call-template name="structOrUnionSpecifier">
       <xsl:with-param name="identifier" select="$identifier"/>
       <xsl:with-param name="mode" select="$mode"/>
     </xsl:call-template>
-    <!-- [%~ PROCESS structOrUnion('identifier', '<xsl:value-of select="$identifier"/>') ~%] -->
   </xsl:template>
 
-  <!-- =================================== -->
+  <!-- =================================================================== -->
+  <!--                   structOrUnionSpecifier                            -->
+  <!-- =================================================================== -->
 
-  <xsl:template name="structOrUnion">
+  <xsl:template name="structOrUnionSpecifier">
     <xsl:param name="identifier" />
     <xsl:param name="mode" />
     <xsl:variable name="hslIdentifier" select="concat(hsl:prefix(), $identifier)"/>
 /* ---------------------------------------------------- */
     <xsl:choose>
+      <!--  Structure Or Union: Declarations   -->
       <xsl:when test="$mode = 'decl'">
 typedef struct <xsl:value-of select="$hslIdentifier"/> {
   struct <xsl:value-of select="$identifier"/> inner;
   hsl_outer outer;
 } <xsl:value-of select="$hslIdentifier"/>;
       </xsl:when>
+      <!--  Structure Or Union: Definitions    -->
       <xsl:when test="$mode = 'def'">
 MODULE = <xsl:value-of select="hsl:opt('module')"/>	PACKAGE = <xsl:value-of select="concat(hsl:opt('module'), '::', $identifier)"/>
 
@@ -111,17 +124,65 @@ DESTROY(pTHX_ void *self)
 CODE: 
   Safefree(self); 
         <!-- Generate accessors -->
-        <xsl:for-each select="./*[local-name()='structDeclarationList']/*">
-          <xsl:call-template name="structDeclaration"/>
+        <!-- we are only interested by declarations that declare something -->
+        <xsl:for-each select="./structDeclarationList/*/structDeclaratorList/*/declarator">
+          <!-- In addition we are absolutely NOT interested by the type of what
+               we return: we always return the address of the element. Full point. -->
+          <xsl:call-template name="declarator">
+            <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
+          </xsl:call-template>
         </xsl:for-each>
       </xsl:when>
     </xsl:choose>
   </xsl:template>
 
-  <!-- =================================== -->
+  <!-- =================================================================== -->
+  <!--                       Decypher declarators                          -->
+  <!-- =================================================================== -->
 
-  <xsl:template name="structDeclaration">
-HERE structDeclaration
+  <xsl:template name="declarator">
+    <xsl:param name="hslIdentifier" />
+    <!-- by definition the first found identifier is the one we are looking for -->
+    <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
+void *
+<xsl:value-of select="$IDENTIFIER/@text"/>_get(pTHX_ void *self)
+PREINIT:
+  void *rc;
+CODE:
+  rc = &amp;(((<xsl:value-of select="$hslIdentifier"/> *) self)-><xsl:value-of select="$IDENTIFIER/@text"/>);
+  { /* Decypher of <xsl:value-of select="./@text" /> */
+  <xsl:for-each select="$IDENTIFIER/../..">
+    <!-- Looping just to have directDeclarator in "." -->
+    <xsl:call-template name="decypherDirectDeclarator">
+      <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
+    </xsl:call-template>
+  </xsl:for-each>
+  }
+  RETVAL = rc;
+OUTPUT:
+  RETVAL
+  </xsl:template>
+
+  <xsl:template name="decypherDirectDeclarator">
+    <xsl:param name="hslIdentifier" />
+    <!-- Look for the next lexeme on the right -->
+    <xsl:variable name="nextLexeme" select="./following-sibling::*[1]" />
+    <xsl:choose>
+      <xsl:when test="$nextLexeme[local-name()='RPAREN']">
+        RPAREN DETECTED
+      </xsl:when>
+      <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
+        /* Array */
+        LBRACKET DETECTED
+      </xsl:when>
+      <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
+        /* Function */
+        LPAREN_SCOPE DETECTED
+      </xsl:when>
+      <xsl:otherwise>
+        NO LEXEME ON THE RIGHT
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
 </xsl:stylesheet>

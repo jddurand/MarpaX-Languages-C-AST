@@ -169,7 +169,7 @@ my $c = undef;
 if (! defined($c)) {
   exit(EXIT_FAILURE);
 }
-print $c->astToString;
+# print $c->astToString;
 
 # ----------
 # Apply XSLT
