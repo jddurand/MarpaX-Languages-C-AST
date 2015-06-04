@@ -188,25 +188,42 @@ typedef struct <xsl:value-of select="$hslIdentifier"/> {
   <xsl:value-of select="./@text"/> inner;
   hsl_outer outer;
 } <xsl:value-of select="$hslIdentifier"/>;
+void *<xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString);
+void <xsl:value-of select="$hslIdentifier"/>_DESTROY(pTHX_ void *self);
       </xsl:when>
       <!--  Structure Or Union: Definitions    -->
       <xsl:when test="$mode = 'def'">
+int <xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString, <xsl:value-of select="$hslIdentifier"/> **selfPtrPtr) {
+  Newx(*selfPtrPtr, 1, <xsl:value-of select="$hslIdentifier"/>);
+  return 1;
+}
+int <xsl:value-of select="$hslIdentifier"/>_DESTROY(pTHX_ void **selfPtrPtr) {
+  Safefree(*selfPtrPtr);
+  return 1;
+}
+      </xsl:when>
+      <!--  Structure Or Union: Interface    -->
+      <xsl:when test="$mode = 'ifce'">
 MODULE = <xsl:value-of select="hsl:opt('module')"/>	PACKAGE = <xsl:value-of select="concat(hsl:opt('module'), '::', $identifier)"/>
 
 PROTOTYPES: ENABLE
         <!-- Generate creator, destructor -->
 void *
-<xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *CLASS)
+<xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString)
 PREINIT:
-  void *rc;
+  <xsl:value-of select="$hslIdentifier"/> *selfPtr;
 CODE:
-  Newx(rc, 1, <xsl:value-of select="$hslIdentifier"/>);
-  RETVAL = rc;
+  if (! <xsl:value-of select="$hslIdentifier"/>_new(aTHX_ classString, &amp;selfPtr)) {
+    RETVAL = PL_undef;
+  } else {
+    RETVAL = selfPtr;
+  }
 OUTPUT: 
   RETVAL 
 
 void 
 DESTROY(pTHX_ void *self)
+PREINIT:
 CODE: 
   Safefree(self); 
         <!-- Generate accessors -->
@@ -215,6 +232,7 @@ CODE:
           <!-- In addition we are absolutely NOT interested by the type of what
                we return: we always return the address of the element. Full point. -->
           <xsl:call-template name="declarator">
+            <xsl:with-param name="mode" select="$mode" />
             <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
           </xsl:call-template>
         </xsl:for-each>
@@ -227,6 +245,7 @@ CODE:
   <!-- =================================================================== -->
 
   <xsl:template name="declarator">
+    <xsl:param name="mode" />
     <xsl:param name="hslIdentifier" />
     <!-- by definition the first found identifier is the one we are looking for -->
     <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
@@ -240,6 +259,7 @@ CODE:
   <xsl:for-each select="$IDENTIFIER/../..">
     <!-- Looping just to have directDeclarator in "." -->
     <xsl:call-template name="decypherDirectDeclarator">
+      <xsl:with-param name="mode" select="$mode" />
       <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
     </xsl:call-template>
   </xsl:for-each>
