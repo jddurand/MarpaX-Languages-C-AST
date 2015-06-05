@@ -9,9 +9,18 @@
   <!-- =================================================================== -->
 
   <xsl:template match="/">
+    <xsl:variable name="input"     select="hsl:opt('input')" />
+    <xsl:variable name="module"    select="hsl:opt('module')" />
+    <xsl:variable name="localtime" select="hsl:opt('localtime')" />
+    <xsl:if test="not($module)">
+      <xsl:message terminate="yes">
+Input was: <xsl:value-of select="$input" />
+Please specify a module name using --targetopt module=xxx
+      </xsl:message>
+    </xsl:if>
 /*
- * Perl5 binding of module: <xsl:value-of select="hsl:opt('module')"/>.
- * Generated: <xsl:value-of select="hsl:localtime()"/>.
+ * Perl5 binding of module: <xsl:value-of select="$module"/>.
+ * Generated: <xsl:value-of select="$localtime"/>.
  */
 #define PERL_NO_GET_CONTEXT 1
 #include "EXTERN.h"
@@ -59,6 +68,7 @@ static IV get_type(pTHX_ SV* sv);
 
 <xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
   <xsl:call-template name="topStructOrUnionSpecifier">
+    <xsl:with-param name="module" select="$module"/>
     <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
     <xsl:with-param name="mode" select="'decl'"/>
   </xsl:call-template>
@@ -69,6 +79,7 @@ static IV get_type(pTHX_ SV* sv);
 /* ==================================================== */
 <xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
   <xsl:call-template name="topStructOrUnionSpecifier">
+    <xsl:with-param name="module" select="$module"/>
     <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
     <xsl:with-param name="mode" select="'def'"/>
   </xsl:call-template>
@@ -141,6 +152,7 @@ get_type(pTHX_ SV* sv) {
 /* ==================================================== */
 <xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
   <xsl:call-template name="topStructOrUnionSpecifier">
+    <xsl:with-param name="module" select="$module"/>
     <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
     <xsl:with-param name="mode" select="'ifce'"/>
   </xsl:call-template>
@@ -152,6 +164,7 @@ get_type(pTHX_ SV* sv) {
   <!-- =================================================================== -->
 
   <xsl:template name="topStructOrUnionSpecifier">
+    <xsl:param name="module" />
     <xsl:param name="topStructOrUnionSpecifierCounter" />
     <xsl:param name="mode" />
     <!-- Get the identifier, eventually anonymous -->
@@ -167,6 +180,7 @@ get_type(pTHX_ SV* sv) {
     </xsl:variable>
     <!-- Decypher the structure or union -->
     <xsl:call-template name="structOrUnionSpecifier">
+      <xsl:with-param name="module" select="$module"/>
       <xsl:with-param name="identifier" select="$identifier"/>
       <xsl:with-param name="mode" select="$mode"/>
     </xsl:call-template>
@@ -177,6 +191,7 @@ get_type(pTHX_ SV* sv) {
   <!-- =================================================================== -->
 
   <xsl:template name="structOrUnionSpecifier">
+    <xsl:param name="module" />
     <xsl:param name="identifier" />
     <xsl:param name="mode" />
     <xsl:variable name="hslIdentifier" select="concat(hsl:prefix(), $identifier)"/>
@@ -204,7 +219,7 @@ int <xsl:value-of select="$hslIdentifier"/>_DESTROY(pTHX_ void **selfPtrPtr) {
       </xsl:when>
       <!--  Structure Or Union: Interface    -->
       <xsl:when test="$mode = 'ifce'">
-MODULE = <xsl:value-of select="hsl:opt('module')"/>	PACKAGE = <xsl:value-of select="concat(hsl:opt('module'), '::', $identifier)"/>
+MODULE = <xsl:value-of select="$module"/>	PACKAGE = <xsl:value-of select="concat($module, '::', $identifier)"/>
 
 PROTOTYPES: ENABLE
         <!-- Generate creator, destructor -->
@@ -232,6 +247,7 @@ CODE:
           <!-- In addition we are absolutely NOT interested by the type of what
                we return: we always return the address of the element. Full point. -->
           <xsl:call-template name="declarator">
+            <xsl:with-param name="module" select="$module"/>
             <xsl:with-param name="mode" select="$mode" />
             <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
           </xsl:call-template>
@@ -245,6 +261,7 @@ CODE:
   <!-- =================================================================== -->
 
   <xsl:template name="declarator">
+    <xsl:param name="module" />
     <xsl:param name="mode" />
     <xsl:param name="hslIdentifier" />
     <!-- by definition the first found identifier is the one we are looking for -->

@@ -144,6 +144,7 @@ $config{xsltDirectories} = \@xsltDirectories if (@xsltDirectories);
 my $c = undef;
 {
   my $filename = shift;
+  $targetopt{input} = $filename;
   my $tmp = undef;
   if (! defined($filename) || $filename eq '-') {
     $tmp = File::Temp->new( UNLINK => 1, SUFFIX => '.c' ) || die "Cannot get a temporary file, $!";
@@ -185,6 +186,10 @@ my $currentDate = localtime;
 XML::LibXSLT->register_function("urn:hsl", "content", sub { return $c->content; });
 XML::LibXSLT->register_function("urn:hsl", "localtime", sub { return localtime; });
 XML::LibXSLT->register_function("urn:hsl", "prefix", sub { return $prefix; });
+if ($targetopt{input} ne '-' && ! defined($targetopt{module})) {
+  $targetopt{module} = basename($targetopt{input});
+  $targetopt{module} =~ s/\..*//;
+}
 XML::LibXSLT->register_function("urn:hsl", "opt", sub { my $opt = shift; return $targetopt{$opt}; });
 foreach (@target) {
   my $stylesheet = eval {$c->xslt("$_.xsl")};
