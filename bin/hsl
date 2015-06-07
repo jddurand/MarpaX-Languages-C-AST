@@ -37,9 +37,11 @@ my $lazy = 0;
 my @typedef = ();
 my @enum = ();
 my @xsltDirectories = ();
+my $module = '';
 
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
+            'module=s' => \$module,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'lazy!' => \$lazy,
@@ -142,26 +144,32 @@ $config{xsltDirectories} = \@xsltDirectories if (@xsltDirectories);
 # Parse C
 # -------
 my $c = undef;
-{
-  my $filename = shift;
-  $targetopt{input} = $filename;
-  my $tmp = undef;
-  if (! defined($filename) || $filename eq '-') {
-    $tmp = File::Temp->new( UNLINK => 1, SUFFIX => '.c' ) || die "Cannot get a temporary file, $!";
-    print $tmp <STDIN> || $log->warnf('Cannot print to %s, %s', $tmp->filename, $!);
-    $filename = $tmp->filename;
+my $input = shift;
+if (! $module) {
+  if ($input ne '-') {
+    $module = basename($input);
+    $module =~ s/\..*//;
+  } else {
+    $log->errorf('Please give a module name with --module option');
+    exit(EXIT_FAILURE);
   }
-  if (! defined($filter)) {
-    my $basename = basename($filename);
-    my $quotedBasename = quotemeta($basename);
-    $filter = eval "qr/$quotedBasename/"; ## no critic (ProhibitStringyEval)
-    die $@ if ($@);
-    $config{filename_filter} = $filter;
-  }
-  $c = MarpaX::Languages::C::Scan->new(filename => $filename, %config);
-  if (defined($tmp)) {
-    close($tmp) || $log->warnf('Cannot close %s, %s', $tmp->filename, $!);
-  }
+}
+my $tmp = undef;
+if (! defined($input) || $input eq '-') {
+  $tmp = File::Temp->new( UNLINK => 1, SUFFIX => '.c' ) || die "Cannot get a temporary file, $!";
+  print $tmp <STDIN> || $log->warnf('Cannot print to %s, %s', $tmp->filename, $!);
+  $input = $tmp->filename;
+}
+if (! defined($filter)) {
+  my $basename = basename($input);
+  my $quotedBasename = quotemeta($basename);
+  $filter = eval "qr/$quotedBasename/"; ## no critic (ProhibitStringyEval)
+  die $@ if ($@);
+  $config{filename_filter} = $filter;
+}
+$c = MarpaX::Languages::C::Scan->new(filename => $input, %config);
+if (defined($tmp)) {
+  close($tmp) || $log->warnf('Cannot close %s, %s', $tmp->filename, $!);
 }
 
 # -----------------------
@@ -176,36 +184,31 @@ if (! defined($c)) {
 # Apply XSLT
 # ----------
 #
-# Get required options
+# Register XSL callbacks
 #
-my $currentDate = localtime;
-#
-# I could have used a normal parameter as well, but then we have to take care of
-# quoting: registering functions gives more freedom.
-#
-XML::LibXSLT->register_function("urn:hsl", "content", sub { return $c->content; });
-XML::LibXSLT->register_function("urn:hsl", "localtime", sub { return localtime; });
-XML::LibXSLT->register_function("urn:hsl", "prefix", sub { return $prefix; });
-if ($targetopt{input} ne '-' && ! defined($targetopt{module})) {
-  $targetopt{module} = basename($targetopt{input});
-  $targetopt{module} =~ s/\..*//;
-}
-XML::LibXSLT->register_function("urn:hsl", "opt", sub { my $opt = shift; return $targetopt{$opt}; });
-foreach (@target) {
-  my $stylesheet = eval {$c->xslt("$_.xsl")};
+{
+  XML::LibXSLT->register_function("urn:hsl", "input", sub { return $input; });
+  XML::LibXSLT->register_function("urn:hsl", "module", sub { return $module; });
+  XML::LibXSLT->register_function("urn:hsl", "localtime", sub { return localtime; });
+  XML::LibXSLT->register_function("urn:hsl", "prefix", sub { return $prefix; });
+  XML::LibXSLT->register_function("urn:hsl", "content", sub { return $c->content; });
+  XML::LibXSLT->register_function("urn:hsl", "opt", sub { my $opt = shift; return $targetopt{$opt}; });
+  my $stylesheet = eval {$c->xslt("generatePseudoIfceCode.xsl")};
   if ($@) {
-    $log->warnf('%s', $@);
-    next;
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
   }
-  #
-  # XSLT evaluated ok: execute it.
-  #
   my $result = eval {$stylesheet->transform($c->ast)};
   if ($@) {
-    $log->warnf('%s', $@);
-    next;
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
   }
   print $stylesheet->output_as_chars($result);
+}
+#
+# Generate targets
+# ----------------
+foreach (@target) {
 }
 
 exit(EXIT_SUCCESS);
@@ -270,6 +273,7 @@ hsl - C Header file transformation
 
  Startup Options:
    --help                Brief help message.
+   --module <argument>   Module name.
    --cpprun <argument>   Preprocessor run command.
    --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after preprocessing.
@@ -304,6 +308,10 @@ hsl - C Header file transformation
 =item B<--help>
 
 This help
+
+=item B<--module <argument>>
+
+Module name. Default is the input's basename without extension if input is not "-".
 
 =item B<--cpprun <argument>>
 
