@@ -154,25 +154,76 @@ typedef <xsl:value-of select="$structOrUnion" /> {
   </xsl:template>
 
   <xsl:template name="decypherDirectDeclarator">
+    <xsl:param name="mode" />
     <xsl:param name="identifier" />
     <!-- Look for the next lexeme on the right -->
     <xsl:variable name="nextLexeme" select="./following-sibling::*[1]" />
     <xsl:choose>
-      <xsl:when test="$nextLexeme[local-name()='RPAREN']">
-        RPAREN DETECTED
-      </xsl:when>
       <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
         /* Array */
-        LBRACKET DETECTED
       </xsl:when>
       <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
         /* Function */
-        LPAREN_SCOPE DETECTED
       </xsl:when>
-      <xsl:otherwise>
-        NO LEXEME ON THE RIGHT
-      </xsl:otherwise>
     </xsl:choose>
+    <!--
+        Look to parent of directDeclarator. This can only be:
+        * declarator
+        * directDeclarator
+    -->
+    <xsl:for-each select="..">
+      <xsl:choose>
+        <xsl:when test="local-name()='declarator'">
+          <xsl:call-template name="decypherDeclarator">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='directDeclarator'">
+          <xsl:call-template name="decypherDirectDeclarator">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherDeclarator">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <!--
+        The only important thing is to know if there is a pointer, which can
+        only be the very first child of declarator
+    -->
+    <xsl:if test="./child::*[1][local-name()='pointer']">
+      /* Pointer */
+    </xsl:if>
+    <!--
+        Look to parent of declarator. This can only be:
+        * initDeclarator                       : cannot happen in a context of a structure declaration
+        * structDeclarator                     : we are interested in specifierQualifierList
+        * directDeclarator
+        * parameterDeclarationCheckDeclarator  : we are not in the context of a parameter declaration
+        * fileScopeDeclarator                  : end of the story
+    -->
+    <xsl:for-each select="..">
+      <xsl:choose>
+        <xsl:when test="local-name()='structDeclarator'">
+          <!-- structDeclaratorList/structDeclarator -->
+          <xsl:variable name="structDeclaratorList" select=".." />
+          <xsl:variable name="specifierQualifierList" select="../preceding-sibling::*[1]" />
+          <!-- specifierQualifierList can go recursive into struct or union -->
+          /* <xsl:value-of select="$specifierQualifierList/@text" /> */
+        </xsl:when>
+        <xsl:when test="local-name()='directDeclarator'">
+          <xsl:call-template name="decypherDirectDeclarator">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
   </xsl:template>
 
 </xsl:stylesheet>
