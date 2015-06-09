@@ -279,7 +279,10 @@ TODO
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier1'">
-TODO
+          <xsl:call-template name="decypherTypeSpecifier1">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='typeQualifier'">
 TODO
@@ -322,6 +325,27 @@ TODO
             <xsl:with-param name="mode" select="$mode" />
             <xsl:with-param name="identifier" select="$identifier" />
           </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherTypeSpecifier1">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='VOID'">
+          /* void */
+        </xsl:when>
+        <xsl:when test="local-name()='FLOAT'">
+          /* float */
+        </xsl:when>
+        <xsl:when test="local-name()='structOrUnionSpecifier'">
+          /* structOrUnionSpecifier <xsl:value-of select="@text" /> */
+        </xsl:when>
+        <xsl:when test="local-name()='TYPEDEF_NAME'">
+          /* TYPEDEF_NAME <xsl:value-of select="@text" /> */
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
