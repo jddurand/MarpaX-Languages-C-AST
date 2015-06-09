@@ -211,13 +211,114 @@ typedef <xsl:value-of select="$structOrUnion" /> {
       <xsl:choose>
         <xsl:when test="local-name()='structDeclarator'">
           <!-- structDeclaratorList/structDeclarator -->
-          <xsl:variable name="structDeclaratorList" select=".." />
-          <xsl:variable name="specifierQualifierList" select="../preceding-sibling::*[1]" />
-          <!-- specifierQualifierList can go recursive into struct or union -->
-          /* <xsl:value-of select="$specifierQualifierList/@text" /> */
+          <xsl:for-each select="../preceding-sibling::*[1]">
+            <xsl:call-template name="decypherSpecifierQualifierList">
+              <xsl:with-param name="mode" select="$mode" />
+              <xsl:with-param name="identifier" select="$identifier" />
+            </xsl:call-template>
+          </xsl:for-each>
         </xsl:when>
         <xsl:when test="local-name()='directDeclarator'">
           <xsl:call-template name="decypherDirectDeclarator">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherSpecifierQualifierList">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='specifierQualifierList0'">
+          <xsl:call-template name="decypherSpecifierQualifierList0">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList1'">
+          <xsl:call-template name="decypherSpecifierQualifierList1">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList2'">
+          <xsl:call-template name="decypherSpecifierQualifierList2">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherSpecifierQualifierList0">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='typeQualifier'">
+TODO
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'">
+          <xsl:call-template name="decypherSpecifierQualifierList0">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherSpecifierQualifierList1">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier1'">
+TODO
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'">
+TODO
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'">
+          <xsl:call-template name="decypherSpecifierQualifierList0">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList1'">
+          <xsl:call-template name="decypherSpecifierQualifierList1">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherSpecifierQualifierList2">
+    <xsl:param name="mode" />
+    <xsl:param name="identifier" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier2'">
+TODO
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'">
+TODO
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'">
+          <xsl:call-template name="decypherSpecifierQualifierList0">
+            <xsl:with-param name="mode" select="$mode" />
+            <xsl:with-param name="identifier" select="$identifier" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList2'">
+          <xsl:call-template name="decypherSpecifierQualifierList2">
             <xsl:with-param name="mode" select="$mode" />
             <xsl:with-param name="identifier" select="$identifier" />
           </xsl:call-template>
