@@ -25,9 +25,10 @@ my $cpprun = undef;
 my @cppflags = ();
 my $filter = undef;
 my $prefix = 'hsl_';
+my $anon = '__ANON__';
+my $ast = 0;
 my @target = ();
 my %targetopt = ();
-my $get = 0;
 my $out = '';
 my $err = '';
 my $loglevel = 'WARN';
@@ -45,11 +46,13 @@ GetOptions ('help!' => \$help,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'lazy!' => \$lazy,
+            'ast!' => \$ast,
             'typedef=s' => \@typedef,
             'enum=s' => \@enum,
             'xsltdir=s' => \@xsltDirectories,
             'filter=s' => \$filter,
             'prefix=s' => \$prefix,
+            'anon=s' => \$anon,
             'target=s' => \@target,
             'targetopt=s' => \%targetopt,
             'loglevel=s' => \$loglevel,
@@ -62,8 +65,7 @@ GetOptions ('help!' => \$help,
             'logstderr!' => \$logstderr,
             'enumType=s' => \$enumType,
             'out=s' => \$out,
-            'err=s' => \$err,
-            'get=s' => \$get);
+            'err=s' => \$err);
 
 @xsltDirectories = grep {$_ && "$_"} split(/,/, join(',', @xsltDirectories));
 @typedef = grep {$_ && "$_"} split(/,/, join(',', @typedef));
@@ -178,7 +180,9 @@ if (defined($tmp)) {
 if (! defined($c)) {
   exit(EXIT_FAILURE);
 }
-# print $c->astToString;
+if ($ast) {
+    print $c->astToString;
+}
 
 # ----------
 # Apply XSLT
@@ -187,12 +191,76 @@ if (! defined($c)) {
 # Register XSL callbacks
 #
 {
-  XML::LibXSLT->register_function("urn:hsl", "input", sub { return $input; });
-  XML::LibXSLT->register_function("urn:hsl", "module", sub { return $module; });
-  XML::LibXSLT->register_function("urn:hsl", "localtime", sub { return localtime; });
-  XML::LibXSLT->register_function("urn:hsl", "prefix", sub { return $prefix; });
-  XML::LibXSLT->register_function("urn:hsl", "content", sub { return $c->content; });
-  XML::LibXSLT->register_function("urn:hsl", "opt", sub { my $opt = shift; return $targetopt{$opt}; });
+  my $anonCounter = 0;
+  my %contentToAnonIdentifier = ();
+  my %doneIdentifierPerMode = ();
+  XML::LibXSLT->register_function("urn:hsl", "input",
+                                  sub {
+                                      return $input;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "module",
+                                  sub {
+                                      return $module;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "localtime",
+                                  sub {
+                                      return localtime;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "prefix",
+                                  sub {
+                                      return $prefix;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "anon",
+                                  sub {
+                                      return $anon;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "nextAnonCounter",
+                                  sub {
+                                      ++$anonCounter;
+                                      return "$anonCounter";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "getContentToAnonIdentifier",
+                                  sub {
+                                      my $content = shift;
+                                      $contentToAnonIdentifier{$content} //= '';
+                                      return "$contentToAnonIdentifier{$content}";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "getDoneIdentifierPerMode",
+                                  sub {
+                                      my ($modeSlashIdentifier) = @_;
+                                      $doneIdentifierPerMode{$modeSlashIdentifier} //= '';
+                                      print STDERR "\$doneIdentifierPerMode{$modeSlashIdentifier}=$modeSlashIdentifier\n";
+                                      return "$doneIdentifierPerMode{$modeSlashIdentifier}";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifierPerMode",
+                                  sub {
+                                      use Data::Dumper;
+                                      print STDERR Dumper(\@_);
+                                      my ($modeSlashIdentifier) = shift;
+                                      $doneIdentifierPerMode{$modeSlashIdentifier} = 1;
+                                      print STDERR "\$doneIdentifierPerMode{$modeSlashIdentifier}=$doneIdentifierPerMode{$modeSlashIdentifier}\n";
+                                      return "$doneIdentifierPerMode{$modeSlashIdentifier}";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "setContentToAnonIdentifier",
+                                  sub {
+                                      my ($content, $anonIdentifier) = @_;
+                                      $contentToAnonIdentifier{$content} = $anonIdentifier;
+                                      return "$anonIdentifier";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "resetAnonCounter",
+                                  sub {
+                                      $anonCounter = 0;
+                                      return "$anonCounter";
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "content",
+                                  sub {
+                                      return $c->content;
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "opt",
+                                  sub {
+                                      my $opt = shift;
+                                      return $targetopt{$opt};
+                                  });
   my $stylesheet = eval {$c->xslt("generatePseudoIfceCode.xsl")};
   if ($@) {
     $log->fatalf('%s', $@);
@@ -278,9 +346,9 @@ hsl - C Header file transformation
    --cppflags <argument> Preprocessor flags.
    --filter <argument>   File to look at after preprocessing.
    --prefix <argument>   Prefix added to target language declarations.
+   --anon <argument>     String prepended to anonymous structures or unions.
    --target <language>   Target language.
    --targetopt <options> Target language specific options.
-   --get <argument,...>  Dump the result of getting <argument>.
    --out <argument>      Redirect any output to this filename.
    --err <argument>      Redirect any error to this filename.
    --loglevel <level>    A level that has to be meaningful for Log::Log4perl, typically DEBUG, INFO, WARN, ERROR, FATAL or TRACE.
@@ -297,6 +365,7 @@ hsl - C Header file transformation
    --trace              Alias to --loglevel TRACE
 
  Advanced options:
+   --ast                Show the AST of input
    --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
    --typedef <typedef>  Comma separated list of known typedefs
    --enum <enums>       Comma separated list of known enums
@@ -342,6 +411,10 @@ In case the file you parse I<already> contains preprocessing information, for ex
 =item B<--prefix <argument>>
 
 Prefix added to target declarations. Default is "hsl_".
+
+=item B<--anon <argument>>
+
+String prepended to anonymous structures or unions. Default is "__ANON__".
 
 =item B<--target <targetLanguage>>
 
