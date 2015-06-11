@@ -192,7 +192,7 @@ if ($ast) {
 #
 {
   my $anonCounter = 0;
-  my %contentToAnonIdentifier = ();
+  my %contentToIdentifier = ();
   my %doneIdentifierPerMode = ();
   XML::LibXSLT->register_function("urn:hsl", "input",
                                   sub {
@@ -219,33 +219,29 @@ if ($ast) {
                                       ++$anonCounter;
                                       return "$anonCounter";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "getContentToAnonIdentifier",
+  XML::LibXSLT->register_function("urn:hsl", "getContentToIdentifier",
                                   sub {
-                                      my $content = shift;
-                                      $contentToAnonIdentifier{$content} //= '';
-                                      return "$contentToAnonIdentifier{$content}";
+                                      my ($content) = @_;
+                                      $contentToIdentifier{$content} //= '';
+                                      return "$contentToIdentifier{$content}";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "getDoneIdentifierPerMode",
                                   sub {
-                                      my ($modeSlashIdentifier) = @_;
-                                      $doneIdentifierPerMode{$modeSlashIdentifier} //= '';
-                                      print STDERR "\$doneIdentifierPerMode{$modeSlashIdentifier}=$modeSlashIdentifier\n";
-                                      return "$doneIdentifierPerMode{$modeSlashIdentifier}";
+                                      my ($mode, $identifier) = @_;
+                                      $doneIdentifierPerMode{$mode}{$identifier} //= '';
+                                      return "$doneIdentifierPerMode{$mode}{$identifier}";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifierPerMode",
                                   sub {
-                                      use Data::Dumper;
-                                      print STDERR Dumper(\@_);
-                                      my ($modeSlashIdentifier) = shift;
-                                      $doneIdentifierPerMode{$modeSlashIdentifier} = 1;
-                                      print STDERR "\$doneIdentifierPerMode{$modeSlashIdentifier}=$doneIdentifierPerMode{$modeSlashIdentifier}\n";
-                                      return "$doneIdentifierPerMode{$modeSlashIdentifier}";
+                                      my ($mode, $identifier) = @_;
+                                      $doneIdentifierPerMode{$mode}{$identifier} = 1;
+                                      return "$doneIdentifierPerMode{$mode}{$identifier}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "setContentToAnonIdentifier",
+  XML::LibXSLT->register_function("urn:hsl", "setContentToIdentifier",
                                   sub {
-                                      my ($content, $anonIdentifier) = @_;
-                                      $contentToAnonIdentifier{$content} = $anonIdentifier;
-                                      return "$anonIdentifier";
+                                      my ($content, $identifier) = @_;
+                                      $contentToIdentifier{$content} = $identifier;
+                                      return "$identifier";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "resetAnonCounter",
                                   sub {

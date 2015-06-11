@@ -81,33 +81,31 @@
     <xsl:param name="mode" />
     <!-- Get the identifier, eventually anonymous -->
     <xsl:variable name="identifierUnambiguous" select="./IDENTIFIER_UNAMBIGUOUS" />
+    <xsl:variable name="content" select="./structDeclarationList/@text" />
     <xsl:variable name="identifier">
       <xsl:choose>
         <xsl:when test="$identifierUnambiguous">
           <xsl:value-of select="$identifierUnambiguous/@text" />
         </xsl:when>
         <xsl:otherwise>
-          <xsl:if test="hsl:getContentToAnonIdentifier(./structDeclarationList/@text)!=''">
-            <xsl:value-of select="hsl:getContentToAnonIdentifier(./structDeclarationList/@text)" />
+          <!-- We do our best to not repeat generated anonymous identifiers -->
+          <xsl:if test="hsl:getContentToIdentifier($content)!=''">
+            <xsl:value-of select="hsl:getContentToIdentifier($content)" />
           </xsl:if>
-          <xsl:if test="hsl:getContentToAnonIdentifier(./structDeclarationList/@text)=''">
+          <xsl:if test="hsl:getContentToIdentifier($content)=''">
             <xsl:value-of select="concat(hsl:anon(), hsl:nextAnonCounter())"/>
           </xsl:if>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
     <!-- If first time for this anonymous, do a declaration -->
-    <xsl:if test="$mode='decl'">
-      <xsl:if test="hsl:getContentToAnonIdentifier(./structDeclarationList/@text)=''">
-        <xsl:variable name="content" select="./structDeclarationList/@text" />
+    <xsl:if test="($mode='decl') and (not($identifierUnambiguous)) and (hsl:getContentToIdentifier($content)='')">
 typedef <xsl:value-of select="./structOrUnion/@text" /> {
   <xsl:value-of select="$content" />
 } <xsl:value-of select="$identifier"/>;
-        <xsl:variable name="dummySetContentToAnonIdentifier" select="hsl:setContentToAnonIdentifier($content, $identifier)"/>
-      </xsl:if>
+      <xsl:variable name="dummySetContentToIdentifier" select="hsl:setContentToIdentifier($content, $identifier)"/>
     </xsl:if>
-    <xsl:variable name="modeSlashIdentifier" select="concat($mode, '/', $identifier)" />
-    <xsl:if test="hsl:getDoneIdentifierPerMode($modeSlashIdentifier)=''">
+    <xsl:if test="hsl:getDoneIdentifierPerMode($mode, $identifier)=''">
       <xsl:if test="($top='1')">
         <xsl:choose>
           <!--  Structure Or Union: Declarations   -->
@@ -135,7 +133,7 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
           <xsl:with-param name="identifier" select="$identifier" />
         </xsl:call-template>
       </xsl:for-each>
-      <xsl:variable name="dummySetDoneIdentifierPerMode" select="hsl:setDoneIdentifierPerMode($modeSlashIdentifier)" />
+      <xsl:variable name="dummySetDoneIdentifierPerMode" select="hsl:setDoneIdentifierPerMode($mode,$identifier)" />
     </xsl:if>
   </xsl:template>
 
@@ -150,14 +148,6 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
     <!-- by definition the first found identifier is the one we are looking for -->
     <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
     <xsl:variable name="member" select="$IDENTIFIER/@text"/>
-    <!-- Decypher the declarator -->
-    <xsl:for-each select="$IDENTIFIER/../..">
-      <xsl:call-template name="decypherDirectDeclarator">
-        <xsl:with-param name="module" select="$module"/>
-        <xsl:with-param name="mode" select="$mode" />
-        <xsl:with-param name="identifier" select="$identifier" />
-      </xsl:call-template>
-    </xsl:for-each>
     <xsl:choose>
       <xsl:when test="$mode = 'decl'">
 [% DECL_ACCESSOR identifier='<xsl:value-of select="$identifier"/>' member='<xsl:value-of select="$member"/>' %]
@@ -169,6 +159,14 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
 [% IFCE_ACCESSOR identifier='<xsl:value-of select="$identifier"/>' member='<xsl:value-of select="$member"/>' %]
       </xsl:when>
     </xsl:choose>
+    <!-- Decypher the declarator -->
+    <xsl:for-each select="$IDENTIFIER/../..">
+      <xsl:call-template name="decypherDirectDeclarator">
+        <xsl:with-param name="module" select="$module"/>
+        <xsl:with-param name="mode" select="$mode" />
+        <xsl:with-param name="identifier" select="$identifier" />
+      </xsl:call-template>
+    </xsl:for-each>
   </xsl:template>
 
   <xsl:template name="decypherDirectDeclarator">
