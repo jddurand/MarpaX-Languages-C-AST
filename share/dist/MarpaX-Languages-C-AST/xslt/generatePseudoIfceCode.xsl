@@ -63,7 +63,6 @@
       <xsl:with-param name="top" select="1"/>
       <xsl:with-param name="module" select="$module"/>
       <xsl:with-param name="mode" select="$mode"/>
-      <xsl:with-param name="parent" select="''"/>
     </xsl:call-template>
   </xsl:template>
 
@@ -75,76 +74,61 @@
     <xsl:param name="top" />
     <xsl:param name="module" />
     <xsl:param name="mode" />
-    <xsl:param name="parent" />
-    <!-- Get the identifier, eventually anonymous -->
+    <!--
+          We are not interested in the eventual structOrUnion unambiguous
+          identifier, we aways retypedef everything under a name that we
+          control. Ok, If there is such identifier, we use it in the typedef.
+          Otherwise the full structure content is repeated.
+    -->
     <xsl:variable name="identifierUnambiguous" select="./IDENTIFIER_UNAMBIGUOUS" />
     <xsl:variable name="content" select="./structDeclarationList/@text" />
+    <xsl:variable name="cachedIdentifier" select="hsl:getContentToIdentifier($content)" />
     <xsl:variable name="identifier">
       <xsl:choose>
-        <xsl:when test="$identifierUnambiguous">
-          <xsl:choose>
-            <xsl:when test="$parent">
-              <xsl:value-of select="concat($parent, '.', $identifierUnambiguous/@text)" />
-            </xsl:when>
-            <xsl:otherwise>
-              <xsl:value-of select="$identifierUnambiguous/@text" />
-            </xsl:otherwise>
-          </xsl:choose>
+        <xsl:when test="$cachedIdentifier!=''">
+          <xsl:value-of select="$cachedIdentifier" />
         </xsl:when>
         <xsl:otherwise>
-          <!-- We do our best to not repeat generated anonymous identifiers -->
-          <xsl:if test="hsl:getContentToIdentifier($content)!=''">
-            <xsl:choose>
-              <xsl:when test="$parent">
-                <xsl:value-of select="concat($parent, '.', hsl:getContentToIdentifier($content))" />
-              </xsl:when>
-              <xsl:otherwise>
-                <xsl:value-of select="hsl:getContentToIdentifier($content)" />
-              </xsl:otherwise>
-            </xsl:choose>
-          </xsl:if>
-          <xsl:if test="hsl:getContentToIdentifier($content)=''">
-            <xsl:choose>
-              <xsl:when test="$parent">
-                <xsl:value-of select="concat(hsl:anon(), hsl:getContentToIdentifier($content))"/>
-              </xsl:when>
-              <xsl:otherwise>
-                <xsl:value-of select="hsl:getContentToIdentifier($content)" />
-              </xsl:otherwise>
-            </xsl:choose>
-          </xsl:if>
+          <xsl:value-of select="concat(hsl:prefix(), hsl:anon(), hsl:nextAnonCounter())"/>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
-    <!-- If first time for this anonymous, do a declaration -->
-    <xsl:if test="($mode='decl') and (not($identifierUnambiguous)) and (hsl:getContentToIdentifier($content)='')">
+    <!-- If first time for this text, do a declaration -->
+    <xsl:if test="($mode='decl') and ($cachedIdentifier='')">
+      <xsl:choose>
+        <!-- Take care: a eventual existing unambiguous identifier can be taken only if at the top -->
+        <xsl:when test="($top='1') and ($identifierUnambiguous)" >
+          <xsl:variable name="dummyAddStruct" select="hsl:addStructOrUnion(./structOrUnion/@text, $identifier, $identifierUnambiguous/@text)" />
+typedef <xsl:value-of select="concat(./structOrUnion/@text, ' ', $identifierUnambiguous/@text, ' ', $identifier)"/>;
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:variable name="dummyAddStruct" select="hsl:addStructOrUnion(./structOrUnion/@text, $identifier, concat('{', $content, '}'))" />
 typedef <xsl:value-of select="./structOrUnion/@text" /> {
   <xsl:value-of select="$content" />
 } <xsl:value-of select="$identifier"/>;
+        </xsl:otherwise>
+      </xsl:choose>
       <xsl:variable name="dummySetContentToIdentifier" select="hsl:setContentToIdentifier($content, $identifier)"/>
     </xsl:if>
     <xsl:if test="hsl:getDoneIdentifierPerMode($mode, $identifier)=''">
-      <xsl:if test="($top!='NO')">
-/* <xsl:value-of select="$identifier"/> { */
-        <xsl:choose>
-          <!--  Structure Or Union: Declarations   -->
-          <xsl:when test="$mode = 'decl'">
+      <xsl:choose>
+        <!--  Structure Or Union: Declarations   -->
+        <xsl:when test="$mode = 'decl'">
 [% DECL_CONSTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
 [% DECL_DESTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
-          </xsl:when>
-          <!--  Structure Or Union: Definitions    -->
-          <xsl:when test="$mode = 'def'">
+        </xsl:when>
+        <!--  Structure Or Union: Definitions    -->
+        <xsl:when test="$mode = 'def'">
 [% DEF_CONSTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
 [% DEF_DESTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
-          </xsl:when>
-          <!--  Structure Or Union: Interface    -->
-          <xsl:when test="$mode = 'ifce'">
+        </xsl:when>
+        <!--  Structure Or Union: Interface    -->
+        <xsl:when test="$mode = 'ifce'">
 [% IFCE module='<xsl:value-of select="$module"/>' package='<xsl:value-of select="$identifier"/>' %]
 [% IFCE_CONSTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
 [% IFCE_DESTRUCTOR identifier='<xsl:value-of select="$identifier"/>' %]
-          </xsl:when>
-        </xsl:choose>
-      </xsl:if>
+        </xsl:when>
+      </xsl:choose>
       <xsl:for-each select="./structDeclarationList/*/structDeclaratorList/*/declarator">
         <xsl:call-template name="declarator">
           <xsl:with-param name="module" select="$module"/>
@@ -153,7 +137,6 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
         </xsl:call-template>
       </xsl:for-each>
       <xsl:variable name="dummySetDoneIdentifierPerMode" select="hsl:setDoneIdentifierPerMode($mode,$identifier)" />
-/* } */
     </xsl:if>
   </xsl:template>
 
@@ -170,6 +153,7 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
     <xsl:variable name="member" select="$IDENTIFIER/@text"/>
     <xsl:choose>
       <xsl:when test="$mode = 'decl'">
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, $member)" />
 [% DECL_ACCESSOR identifier='<xsl:value-of select="$identifier"/>' member='<xsl:value-of select="$member"/>' %]
       </xsl:when>
       <xsl:when test="$mode = 'def'">
@@ -199,12 +183,14 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
       <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
         <xsl:if test="$mode = 'ifce'">
           <!-- We take all the text as-is up to the RBRACKET -->
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'array')" />
 [% IFCE_DECYPHER_ARRAY %]
             <!-- If you want the size, you could do: <xsl:for-each select="$nextLexeme/following-sibling::*[local-name()!='RBRACKET']"><xsl:value-of select="concat(' ', ./@text)" /></xsl:for-each> -->
         </xsl:if>
       </xsl:when>
       <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
         <xsl:if test="$mode = 'ifce'">
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'function')" />
 [% IFCE_DECYPHER_FUNCTION %]
         </xsl:if>
       </xsl:when>
@@ -247,10 +233,12 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
     -->
     <xsl:if test="./pointerQualifierList/pointerQualifier/typeQualifier/CONST">
       <xsl:if test="$mode = 'ifce'">
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'readonly')" />
 [% IFCE_DECYPHER_READONLY %]
       </xsl:if>
     </xsl:if>
     <xsl:if test="$mode = 'ifce'">
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'pointer')" />
 [% IFCE_DECYPHER_POINTER %]
     </xsl:if>
     <!-- Then take all typeQualifiers except CONST -->
@@ -459,27 +447,27 @@ typedef <xsl:value-of select="./structOrUnion/@text" /> {
       <xsl:choose>
         <xsl:when test="local-name()='VOID'">
           <xsl:if test="$mode = 'ifce'">
+            <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'void')" />
 [% IFCE_DECYPHER_TYPE_SPECIFIER type='void' %]
           </xsl:if>
         </xsl:when>
         <xsl:when test="local-name()='FLOAT'">
           <xsl:if test="$mode = 'ifce'">
+            <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', 'float')" />
 [% IFCE_DECYPHER_TYPE_SPECIFIER type='float' %]
           </xsl:if>
         </xsl:when>
         <xsl:when test="local-name()='structOrUnionSpecifier'">
           <xsl:if test="$mode = 'ifce'">
-[% IFCE_DECYPHER_TYPE_INNER_STRUCTORUNION_START %]
           </xsl:if>
           <!-- Decypher the structure or union -->
           <xsl:call-template name="structOrUnionSpecifier">
             <xsl:with-param name="top" select="0"/>
             <xsl:with-param name="module" select="$module"/>
             <xsl:with-param name="mode" select="$mode"/>
-            <xsl:with-param name="parent" select="$identifier"/>
           </xsl:call-template>
           <xsl:if test="$mode = 'ifce'">
-[% IFCE_DECYPHER_TYPE_INNER_STRUCTORUNION_END %]
+            <xsl:variable name="dummyCdecl" select="hsl:cdecl($identifier, '', hsl:getContentToIdentifier(./structDeclarationList/@text))" />
           </xsl:if>
         </xsl:when>
         <xsl:when test="local-name()='TYPEDEF_NAME'">

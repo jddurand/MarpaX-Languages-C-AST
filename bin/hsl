@@ -13,6 +13,7 @@ use File::Temp;
 use Log::Any qw/$log/;
 use Log::Any::Adapter;
 use Log::Log4perl qw/:easy/;
+use XML::LibXML;
 
 # ABSTRACT: C Header file transformation
 
@@ -190,10 +191,14 @@ if ($ast) {
 #
 # Register XSL callbacks
 #
+my $dom;
 {
   my $anonCounter = 0;
   my %contentToIdentifier = ();
   my %doneIdentifierPerMode = ();
+  my %cdecl = ();
+  my @structOrUnions = ();
+  my $lastMember;
   XML::LibXSLT->register_function("urn:hsl", "input",
                                   sub {
                                       return $input;
@@ -234,7 +239,7 @@ if ($ast) {
   XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifierPerMode",
                                   sub {
                                       my ($mode, $identifier) = @_;
-                                      $doneIdentifierPerMode{$mode}{$identifier} = 1;
+                                      $doneIdentifierPerMode{$mode}{$identifier} = "$mode/$identifier";
                                       return "$doneIdentifierPerMode{$mode}{$identifier}";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "setContentToIdentifier",
@@ -254,8 +259,30 @@ if ($ast) {
                                   });
   XML::LibXSLT->register_function("urn:hsl", "opt",
                                   sub {
-                                      my $opt = shift;
+                                      my ($opt) = @_;
                                       return $targetopt{$opt};
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "cdecl",
+                                  sub {
+                                      my $identifier = shift;
+                                      $cdecl{$identifier} //= [];
+                                      if (@_) {
+                                          my $member = shift;
+                                          if (length($member) > 0) {
+                                              push(@{$cdecl{$identifier}}, {$member => [] });
+                                              $lastMember = $cdecl{$identifier}->[-1]->{$member};
+                                          }
+                                          if (@_) {
+                                              push(@{$lastMember}, @_);
+                                          }
+                                      }
+                                      return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "addStructOrUnion",
+                                  sub {
+                                      my ($type, $name, $typedef) = @_;
+                                      push(@structOrUnions, {name => $name, type => $type, typedef => $typedef});
+                                      return '';
                                   });
   my $stylesheet = eval {$c->xslt("generatePseudoIfceCode.xsl")};
   if ($@) {
@@ -268,6 +295,38 @@ if ($ast) {
     exit(EXIT_FAILURE);
   }
   print $stylesheet->output_as_chars($result);
+  #
+  # Do an XML representation of cdecl and targetopt
+  #
+  $dom = XML::LibXML::Document->new();
+  my $structOrUnions = XML::LibXML::Element->new('structOrUnions');
+  $dom->addChild($structOrUnions);
+  foreach (@structOrUnions) {
+      my $structOrUnion = XML::LibXML::Element->new('structOrUnion');
+      $structOrUnion->setAttribute('name', $_->{name});
+      $structOrUnion->setAttribute('type', $_->{type});
+      $structOrUnion->setAttribute('typedef', $_->{typedef});
+      $structOrUnions->addChild($structOrUnion);
+  }
+  my $cdecl = XML::LibXML::Element->new('cdecl');
+  $dom->addChild($cdecl);
+  foreach (sort keys %cdecl) {
+      my $identifier = XML::LibXML::Element->new('identifier');
+      $identifier->setAttribute('name', $_);
+      $cdecl->addChild($identifier);
+      foreach (@{$cdecl{$_}}) {
+          my $member = XML::LibXML::Element->new('member');
+          my $name = (keys %{$_})[0];
+          $member->setAttribute('name', $name);
+          $identifier->addChild($member);
+          foreach (@{$_->{$name}}) {
+              my $is = XML::LibXML::Element->new('is');
+              $is->setAttribute('name', $_ );
+              $identifier->addChild($is);
+          }
+      }
+  }
+  print $dom->toString(1);
 }
 #
 # Generate targets
