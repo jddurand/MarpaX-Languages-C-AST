@@ -195,22 +195,12 @@ my $dom;
 {
   my $anonCounter = 0;
   my %contentToIdentifier = ();
-  my %doneIdentifierPerMode = ();
+  my %doneIdentifier = ();
   my %cdecl = ();
   my @structOrUnions = ();
   my $lastMember;
-  XML::LibXSLT->register_function("urn:hsl", "input",
-                                  sub {
-                                      return $input;
-                                  });
-  XML::LibXSLT->register_function("urn:hsl", "module",
-                                  sub {
-                                      return $module;
-                                  });
-  XML::LibXSLT->register_function("urn:hsl", "localtime",
-                                  sub {
-                                      return localtime;
-                                  });
+  my $lastIdentifier;
+  my @cdeclStack = ();
   XML::LibXSLT->register_function("urn:hsl", "prefix",
                                   sub {
                                       return $prefix;
@@ -230,17 +220,17 @@ my $dom;
                                       $contentToIdentifier{$content} //= '';
                                       return "$contentToIdentifier{$content}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "getDoneIdentifierPerMode",
+  XML::LibXSLT->register_function("urn:hsl", "getDoneIdentifier",
                                   sub {
-                                      my ($mode, $identifier) = @_;
-                                      $doneIdentifierPerMode{$mode}{$identifier} //= '';
-                                      return "$doneIdentifierPerMode{$mode}{$identifier}";
+                                      my ($identifier) = @_;
+                                      $doneIdentifier{$identifier} //= '';
+                                      return "$doneIdentifier{$identifier}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifierPerMode",
+  XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifier",
                                   sub {
-                                      my ($mode, $identifier) = @_;
-                                      $doneIdentifierPerMode{$mode}{$identifier} = "$mode/$identifier";
-                                      return "$doneIdentifierPerMode{$mode}{$identifier}";
+                                      my ($identifier, $what) = @_;
+                                      $doneIdentifier{$identifier} = "$what";
+                                      return "$doneIdentifier{$identifier}";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "setContentToIdentifier",
                                   sub {
@@ -248,32 +238,41 @@ my $dom;
                                       $contentToIdentifier{$content} = $identifier;
                                       return "$identifier";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "resetAnonCounter",
+  XML::LibXSLT->register_function("urn:hsl", "cdeclPush",
                                   sub {
-                                      $anonCounter = 0;
-                                      return "$anonCounter";
+                                      my ($identifier) = @_;
+                                      $cdecl{$identifier} //= [];
+                                      push(@cdeclStack, $lastIdentifier = $identifier);
+                                      $lastMember = undef;
+                                      $log->tracef('Pushed %s.undef', "$lastIdentifier");
+                                      return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "content",
+  XML::LibXSLT->register_function("urn:hsl", "cdeclPop",
                                   sub {
-                                      return $c->content;
-                                  });
-  XML::LibXSLT->register_function("urn:hsl", "opt",
-                                  sub {
-                                      my ($opt) = @_;
-                                      return $targetopt{$opt};
+                                      pop(@cdeclStack);
+                                      $lastIdentifier = @cdeclStack ? $cdeclStack[-1] : undef;
+                                      if (defined($lastIdentifier) && @{$cdecl{$lastIdentifier}}) {
+                                        $lastMember = (keys %{$cdecl{$lastIdentifier}->[-1]})[0];
+                                        $log->tracef('Popped %s.%s', "$lastIdentifier", "$lastMember");
+                                      } else {
+                                        $log->tracef('Popped undef');
+                                        $lastMember = undef;
+                                      }
+                                      return '';
                                   });
   XML::LibXSLT->register_function("urn:hsl", "cdecl",
                                   sub {
-                                      my $identifier = shift;
-                                      $cdecl{$identifier} //= [];
                                       if (@_) {
                                           my $member = shift;
                                           if (length($member) > 0) {
-                                              push(@{$cdecl{$identifier}}, {$member => [] });
-                                              $lastMember = $cdecl{$identifier}->[-1]->{$member};
+                                              push(@{$cdecl{$lastIdentifier}}, {$member => [] });
+                                              $lastMember = $member;
+                                              $log->tracef('Added  %s.%s', "$lastIdentifier", "$lastMember");
                                           }
                                           if (@_) {
-                                              push(@{$lastMember}, @_);
+                                              $log->tracef('Detail %s.%s: %s', "$lastIdentifier", "$lastMember", join(' ', @_));
+                                              my %attributes = @_;
+                                              push(@{$cdecl{$lastIdentifier}->[-1]->{$lastMember}}, \%attributes);
                                           }
                                       }
                                       return '';
@@ -313,6 +312,7 @@ my $dom;
   foreach (sort keys %cdecl) {
       my $identifier = XML::LibXML::Element->new('identifier');
       $identifier->setAttribute('name', $_);
+      $identifier->setAttribute('type', $doneIdentifier{$_});
       $cdecl->addChild($identifier);
       foreach (@{$cdecl{$_}}) {
           my $member = XML::LibXML::Element->new('member');
@@ -321,8 +321,11 @@ my $dom;
           $identifier->addChild($member);
           foreach (@{$_->{$name}}) {
               my $is = XML::LibXML::Element->new('is');
-              $is->setAttribute('name', $_ );
-              $identifier->addChild($is);
+              my %attributes = %{$_};
+              foreach (keys %attributes) {
+                $is->setAttribute($_, $attributes{$_});
+              }
+              $member->addChild($is);
           }
       }
   }
