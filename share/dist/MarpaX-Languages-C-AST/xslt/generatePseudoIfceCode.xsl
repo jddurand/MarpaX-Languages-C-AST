@@ -9,8 +9,13 @@
   <!-- =================================================================== -->
 
   <xsl:template match="/">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
       <xsl:call-template name="topStructOrUnionSpecifier" />
+    </xsl:for-each>
+    <!-- In theory this is not possible to have a typedef ancestor of typedef -; -->
+    <xsl:for-each select=".//TYPEDEF">
+      <xsl:call-template name="typedef" />
     </xsl:for-each>
   </xsl:template>
 
@@ -19,7 +24,8 @@
   <!-- =================================================================== -->
 
   <xsl:template name="topStructOrUnionSpecifier">
-    <!-- Decypher the structure or union -->
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <!-- Decypher the structures or unions -->
     <xsl:call-template name="structOrUnionSpecifier">
       <xsl:with-param name="top" select="1"/>
     </xsl:call-template>
@@ -31,6 +37,7 @@
 
   <xsl:template name="structOrUnionSpecifier">
     <xsl:param name="top" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <!--
           We are not interested in the eventual structOrUnion unambiguous
           identifier, we aways retypedef everything under a name that we
@@ -56,23 +63,39 @@
         <xsl:choose>
           <!-- Take care: a eventual existing unambiguous identifier can be taken only if at the top -->
           <xsl:when test="($top='1') and ($identifierUnambiguous)" >
-            <xsl:variable name="dummyAddStruct" select="hsl:addStructOrUnion(./structOrUnion/@text, $identifier, $identifierUnambiguous/@text)" />
+            <xsl:variable name="dummyAddStruct" select="hsl:addTypedef(./structOrUnion/@text, $identifier, $identifierUnambiguous/@text)" />
           </xsl:when>
           <xsl:otherwise>
-            <xsl:variable name="dummyAddStruct" select="hsl:addStructOrUnion(./structOrUnion/@text, $identifier, concat('{', $content, '}'))" />
+            <xsl:variable name="dummyAddStruct" select="hsl:addTypedef(./structOrUnion/@text, $identifier, concat('{', $content, '}'))" />
           </xsl:otherwise>
         </xsl:choose>
         <xsl:variable name="dummySetContentToIdentifier" select="hsl:setContentToIdentifier($content, $identifier)"/>
       </xsl:if>
       <xsl:if test="hsl:getDoneIdentifier($identifier)=''">
-        <xsl:variable name="dummyCdeclPush" select="hsl:cdeclPush($identifier)" />
+        <xsl:variable name="dummyCdeclPush" select="hsl:cdeclPush($identifier, ./structOrUnion/@text)" />
         <xsl:for-each select="./structDeclarationList/*/structDeclaratorList/*/declarator">
           <xsl:call-template name="declarator" />
         </xsl:for-each>
-        <xsl:variable name="dummySetDoneIdentifier" select="hsl:setDoneIdentifier($identifier, ./structOrUnion/@text)" />
+        <xsl:variable name="dummySetDoneIdentifier" select="hsl:setDoneIdentifier($identifier)" />
         <xsl:variable name="dummyCdeclPop" select="hsl:cdeclPop()" />
       </xsl:if>
     </xsl:if>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                            typedef                                  -->
+  <!-- =================================================================== -->
+  <xsl:template name="typedef">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <!-- Move to the nearest initDeclaratorList -->
+    <xsl:for-each select="./following::*[self::initDeclaratorList][1]" >
+      <xsl:for-each select="./initDeclarator/declarator" >
+        <xsl:call-template name="declarator">
+          <xsl:with-param name="aliasMode" select="1" />
+          <xsl:with-param name="withTypedef" select="0" />
+        </xsl:call-template>
+      </xsl:for-each>
+    </xsl:for-each>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -80,19 +103,70 @@
   <!-- =================================================================== -->
 
   <xsl:template name="declarator">
+    <xsl:param name="aliasMode" />
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+
     <!-- by definition the first found identifier is the one we are looking for -->
     <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
     <xsl:variable name="member" select="$IDENTIFIER/@text"/>
-    <xsl:variable name="dummyCdecl" select="hsl:cdecl($member)" />
+    <xsl:choose>
+      <xsl:when test="$aliasMode">
+        <xsl:variable name="dummyAliasPush" select="hsl:aliasPush($member)" />
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl($member)" />
+      </xsl:otherwise>
+    </xsl:choose>
     <!-- Decypher the declarator -->
     <xsl:for-each select="$IDENTIFIER/../..">
       <xsl:call-template name="decypherDirectDeclarator" />
+    </xsl:for-each>
+    <xsl:choose>
+      <xsl:when test="$aliasMode">
+        <!--
+            Decypher the declaration specifiers. Tree is:
+            declarationCheck/declarationCheckinitDeclaratorList/initDeclaratorList/initDeclarator/declarator
+            declarationCheck/declarationCheckdeclarationSpecifiers/declarationSpecifiers
+        -->
+        <xsl:for-each select="../../../../declarationCheckdeclarationSpecifiers/declarationSpecifiers">
+          <xsl:call-template name="decypherDeclarationSpecifiers">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:for-each>
+        <xsl:variable name="dummyAliasPop" select="hsl:aliasPop()" />
+      </xsl:when>
+    </xsl:choose>
+  </xsl:template>
+
+  <xsl:template name="decypherDeclarationSpecifiers">
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='declarationSpecifiers0'">
+          <xsl:call-template name="decypherDeclarationSpecifiers0">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers1'">
+          <xsl:call-template name="decypherDeclarationSpecifiers1">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers2'">
+          <xsl:call-template name="decypherDeclarationSpecifiers2">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
     </xsl:for-each>
   </xsl:template>
 
   <xsl:template name="decypherDirectDeclarator">
     <!-- Look for the next lexeme on the right -->
     <xsl:variable name="nextLexeme" select="./following-sibling::*[1]" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:choose>
       <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
         <!-- We take all the text as-is up to the RBRACKET -->
@@ -121,6 +195,7 @@
   </xsl:template>
 
   <xsl:template name="decypherPointer">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <!--
         A pointer may have a pointerQualifierList that is nothing else but
         a typeQualifier, or again a pointer. Nevertheless there is the
@@ -144,6 +219,7 @@
   </xsl:template>
 
   <xsl:template name="decypherDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <!--
         The only important thing is to know if there is a pointer, which can
         only be the very first child of declarator
@@ -175,6 +251,7 @@
   </xsl:template>
 
   <xsl:template name="decypherSpecifierQualifierList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='specifierQualifierList0'">
@@ -191,6 +268,7 @@
   </xsl:template>
 
   <xsl:template name="decypherSpecifierQualifierList0">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='typeQualifier'">
@@ -206,6 +284,7 @@
   </xsl:template>
 
   <xsl:template name="decypherSpecifierQualifierList1">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier1'">
@@ -227,6 +306,7 @@
   </xsl:template>
 
   <xsl:template name="decypherSpecifierQualifierList2">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier2'">
@@ -248,6 +328,7 @@
   </xsl:template>
 
   <xsl:template name="decypherTypeSpecifier1">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='VOID'">
@@ -274,7 +355,7 @@
           </xsl:variable>
         </xsl:when>
         <xsl:when test="local-name()='TYPEDEF_NAME'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'alias', 'name', ./@text)" />
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
@@ -282,6 +363,7 @@
 
   <xsl:template name="decypherTypeQualifier">
     <xsl:param name="withConst" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:if test="($withConst='1' and local-name()='CONST') or ($withConst='0' and local-name()!='CONST')" >
         <xsl:if test="local-name()='CONST'">
@@ -295,10 +377,156 @@
   </xsl:template>
 
   <xsl:template name="decypherTypeSpecifier2">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
     </xsl:for-each>
   </xsl:template>
 
-</xsl:stylesheet>
+  <xsl:template name="decypherDeclarationSpecifiers0">
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='storageClassSpecifier'">
+          <xsl:call-template name="decypherStorageClassSpecifier">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers0'">
+          <xsl:call-template name="decypherDeclarationSpecifiers0">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'">
+          <xsl:call-template name="decypherTypeQualifier">
+            <xsl:with-param name="withConst" select="1" />
+            <!-- typedef is not in typeQualifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='functionSpecifier'">
+          <xsl:call-template name="decypherFunctionSpecifier">
+            <!-- typedef is not in functionSpecifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='alignmentSpecifier'">
+          <!-- alignmentSpecifier is explicitely ignored -->
+        </xsl:when>
+        <xsl:when test="local-name()='gccExtension'">
+          <!-- gccExtension is explicitely ignored -->
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
 
+  <xsl:template name="decypherDeclarationSpecifiers1">
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier1'">
+          <xsl:call-template name="decypherTypeSpecifier1" />
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers0'">
+          <xsl:call-template name="decypherDeclarationSpecifiers0">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers1'">
+          <xsl:call-template name="decypherDeclarationSpecifiers1">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='storageClassSpecifier'">
+          <xsl:call-template name="decypherStorageClassSpecifier">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'">
+          <xsl:call-template name="decypherTypeQualifier">
+            <xsl:with-param name="withConst" select="1" />
+            <!-- typedef is not in typeQualifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='functionSpecifier'">
+          <xsl:call-template name="decypherFunctionSpecifier">
+            <!-- typedef is not in functionSpecifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='alignmentSpecifier'">
+          <!-- alignmentSpecifier is explicitely ignored -->
+        </xsl:when>
+        <xsl:when test="local-name()='gccExtension'">
+          <!-- gccExtension is explicitely ignored -->
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherDeclarationSpecifiers2">
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier2'">
+          <xsl:call-template name="decypherTypeSpecifier2" />
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers0'">
+          <xsl:call-template name="decypherDeclarationSpecifiers0">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers2'">
+          <xsl:call-template name="decypherDeclarationSpecifiers2">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='storageClassSpecifier'">
+          <xsl:call-template name="decypherStorageClassSpecifier">
+            <xsl:with-param name="withTypedef" select="$withTypedef" />
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'">
+          <xsl:call-template name="decypherTypeQualifier">
+            <xsl:with-param name="withConst" select="1" />
+            <!-- typedef is not in typeQualifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='functionSpecifier'">
+          <xsl:call-template name="decypherFunctionSpecifier">
+            <!-- typedef is not in functionSpecifier -->
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="local-name()='alignmentSpecifier'">
+          <!-- alignmentSpecifier is explicitely ignored -->
+        </xsl:when>
+        <xsl:when test="local-name()='gccExtension'">
+          <!-- gccExtension is explicitely ignored -->
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherFunctionSpecifier">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherStorageClassSpecifier">
+    <xsl:param name="withTypedef" />
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:if test="($withTypedef='1' and local-name()='storageClassSpecifierTypedef') or ($withTypedef='0' and local-name()!='storageClassSpecifierTypedef')" >
+        <xsl:if test="local-name()='storageClassSpecifierTypedef'">
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'typedef')" />
+        </xsl:if>
+        <xsl:if test="local-name()!='storageClassSpecifierTypedef'">
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+        </xsl:if>
+      </xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+</xsl:stylesheet>

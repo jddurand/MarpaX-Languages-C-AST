@@ -196,11 +196,23 @@ my $dom;
   my $anonCounter = 0;
   my %contentToIdentifier = ();
   my %doneIdentifier = ();
+  my @alias = ();
   my %cdecl = ();
-  my @structOrUnions = ();
+  my @typedefs = ();
   my $lastMember;
+  my $lastWhat;
   my $lastIdentifier;
+  my $lastAlias;
   my @cdeclStack = ();
+  XML::LibXSLT->register_function("urn:hsl", "tracef",
+                                  sub {
+                                    my $format = shift;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
+                                    return '';
+                                  });
   XML::LibXSLT->register_function("urn:hsl", "prefix",
                                   sub {
                                       return $prefix;
@@ -229,7 +241,7 @@ my $dom;
   XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifier",
                                   sub {
                                       my ($identifier, $what) = @_;
-                                      $doneIdentifier{$identifier} = "$what";
+                                      $doneIdentifier{$identifier} = 1;
                                       return "$doneIdentifier{$identifier}";
                                   });
   XML::LibXSLT->register_function("urn:hsl", "setContentToIdentifier",
@@ -240,47 +252,70 @@ my $dom;
                                   });
   XML::LibXSLT->register_function("urn:hsl", "cdeclPush",
                                   sub {
-                                      my ($identifier) = @_;
-                                      $cdecl{$identifier} //= [];
-                                      push(@cdeclStack, $lastIdentifier = $identifier);
+                                      my ($identifier, $what) = @_;
+                                      $cdecl{$lastWhat = $what}{$lastIdentifier = $identifier} //= [];
+                                      push(@cdeclStack, [$lastWhat, $lastIdentifier]);
                                       $lastMember = undef;
-                                      $log->tracef('Pushed %s.undef', "$lastIdentifier");
+                                      $log->debugf('Id>    %s %s', "$lastWhat", "$lastIdentifier");
+                                      return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "aliasPush",
+                                  sub {
+                                      my ($identifier) = @_;
+                                      push(@alias, {$identifier => []});
+                                      $lastAlias = $alias[-1]->{$identifier};
+                                      $log->debugf('Alias> %s', "$identifier");
                                       return '';
                                   });
   XML::LibXSLT->register_function("urn:hsl", "cdeclPop",
                                   sub {
                                       pop(@cdeclStack);
-                                      $lastIdentifier = @cdeclStack ? $cdeclStack[-1] : undef;
-                                      if (defined($lastIdentifier) && @{$cdecl{$lastIdentifier}}) {
-                                        $lastMember = (keys %{$cdecl{$lastIdentifier}->[-1]})[0];
-                                        $log->tracef('Popped %s.%s', "$lastIdentifier", "$lastMember");
+                                      ($lastIdentifier, $lastWhat) = @cdeclStack ? @{$cdeclStack[-1]} : undef;
+                                      if (defined($lastIdentifier) && defined($lastWhat) && @{$cdecl{$lastWhat}{$lastIdentifier}}) {
+                                        $lastMember = (keys %{$cdecl{$lastWhat}{$lastIdentifier}->[-1]})[0];
+                                        $log->debugf('Id<    %s %s.%s', "$lastWhat", "$lastIdentifier", "$lastMember");
                                       } else {
-                                        $log->tracef('Popped undef');
+                                        $log->debugf('Id<    undef');
                                         $lastMember = undef;
                                       }
+                                      return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "aliasPop",
+                                  sub {
+                                      $lastAlias = undef;
+                                      $log->debugf('Alias< undef');
                                       return '';
                                   });
   XML::LibXSLT->register_function("urn:hsl", "cdecl",
                                   sub {
                                       if (@_) {
                                           my $member = shift;
+                                          #
+                                          # In alias mode, the first argument is always empty
+                                          #
                                           if (length($member) > 0) {
-                                              push(@{$cdecl{$lastIdentifier}}, {$member => [] });
+                                              push(@{$cdecl{$lastWhat}{$lastIdentifier}}, {$member => [] });
                                               $lastMember = $member;
-                                              $log->tracef('Added  %s.%s', "$lastIdentifier", "$lastMember");
+                                              $log->debugf('Member %s %s.%s', "$lastWhat", "$lastIdentifier", "$lastMember");
                                           }
                                           if (@_) {
-                                              $log->tracef('Detail %s.%s: %s', "$lastIdentifier", "$lastMember", join(' ', @_));
-                                              my %attributes = @_;
-                                              push(@{$cdecl{$lastIdentifier}->[-1]->{$lastMember}}, \%attributes);
+                                              if (defined($lastAlias)) {
+                                                $log->debugf('Detail alias: %s', join(' ', @_));
+                                                my %attributes = @_;
+                                                push(@{$lastAlias}, \%attributes);
+                                              } else {
+                                                $log->debugf('Detail %s %s.%s: %s', "$lastWhat", "$lastIdentifier", "$lastMember", join(' ', @_));
+                                                my %attributes = @_;
+                                                push(@{$cdecl{$lastWhat}{$lastIdentifier}->[-1]->{$lastMember}}, \%attributes);
+                                              }
                                           }
                                       }
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "addStructOrUnion",
+  XML::LibXSLT->register_function("urn:hsl", "addTypedef",
                                   sub {
-                                      my ($type, $name, $typedef) = @_;
-                                      push(@structOrUnions, {name => $name, type => $type, typedef => $typedef});
+                                      my ($type, $name, $def) = @_;
+                                      push(@typedefs, {name => $name, type => $type, def => $def});
                                       return '';
                                   });
   my $stylesheet = eval {$c->xslt("generatePseudoIfceCode.xsl")};
@@ -298,35 +333,56 @@ my $dom;
   # Do an XML representation of cdecl and targetopt
   #
   $dom = XML::LibXML::Document->new();
-  my $structOrUnions = XML::LibXML::Element->new('structOrUnions');
-  $dom->addChild($structOrUnions);
-  foreach (@structOrUnions) {
-      my $structOrUnion = XML::LibXML::Element->new('structOrUnion');
-      $structOrUnion->setAttribute('name', $_->{name});
-      $structOrUnion->setAttribute('type', $_->{type});
-      $structOrUnion->setAttribute('typedef', $_->{typedef});
-      $structOrUnions->addChild($structOrUnion);
+  my $typedefs = XML::LibXML::Element->new('typedefs');
+  $dom->addChild($typedefs);
+  foreach (@typedefs) {
+      my $typedef = XML::LibXML::Element->new('typedef');
+      $typedef->setAttribute('name', $_->{name});
+      $typedef->setAttribute('type', $_->{type});
+      $typedef->setAttribute('def', $_->{def});
+      $typedefs->addChild($typedef);
   }
   my $cdecl = XML::LibXML::Element->new('cdecl');
   $dom->addChild($cdecl);
-  foreach (sort keys %cdecl) {
+  foreach (keys %cdecl) {
+    my $what = $_;
+    foreach (keys %{$cdecl{$what}}) {
       my $identifier = XML::LibXML::Element->new('identifier');
       $identifier->setAttribute('name', $_);
-      $identifier->setAttribute('type', $doneIdentifier{$_});
+      $identifier->setAttribute('what', $what);
       $cdecl->addChild($identifier);
-      foreach (@{$cdecl{$_}}) {
-          my $member = XML::LibXML::Element->new('member');
-          my $name = (keys %{$_})[0];
-          $member->setAttribute('name', $name);
-          $identifier->addChild($member);
-          foreach (@{$_->{$name}}) {
-              my $is = XML::LibXML::Element->new('is');
-              my %attributes = %{$_};
-              foreach (keys %attributes) {
-                $is->setAttribute($_, $attributes{$_});
-              }
-              $member->addChild($is);
+      foreach (@{$cdecl{$what}{$_}}) {
+        my $member = XML::LibXML::Element->new('member');
+        my $name = (keys %{$_})[0];
+        $member->setAttribute('name', $name);
+        $identifier->addChild($member);
+        foreach (@{$_->{$name}}) {
+          my $is = XML::LibXML::Element->new('is');
+          my %attributes = %{$_};
+          foreach (keys %attributes) {
+            $is->setAttribute($_, $attributes{$_});
           }
+          $member->addChild($is);
+        }
+      }
+    }
+  }
+  foreach (@alias) {
+      my $alias = XML::LibXML::Element->new('alias');
+      my %hash = %{$_};
+      my @keys = keys %hash;
+      my @values = values %hash;
+      my $name = $keys[0];
+      my $attributes = $values[0];
+      $alias->setAttribute('name', $name);
+      $cdecl->addChild($alias);
+      foreach (@{$attributes}) {
+        my $is = XML::LibXML::Element->new('is');
+        my %attributes = %{$_};
+        foreach (keys %attributes) {
+          $is->setAttribute($_, $attributes{$_});
+        }
+        $alias->addChild($is);
       }
   }
   print $dom->toString(1);
