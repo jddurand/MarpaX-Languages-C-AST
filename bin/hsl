@@ -270,7 +270,7 @@ my $dom;
   XML::LibXSLT->register_function("urn:hsl", "cdeclPop",
                                   sub {
                                       pop(@cdeclStack);
-                                      ($lastIdentifier, $lastWhat) = @cdeclStack ? @{$cdeclStack[-1]} : undef;
+                                      ($lastWhat, $lastIdentifier) = @cdeclStack ? @{$cdeclStack[-1]} : undef;
                                       if (defined($lastIdentifier) && defined($lastWhat) && @{$cdecl{$lastWhat}{$lastIdentifier}}) {
                                         $lastMember = (keys %{$cdecl{$lastWhat}{$lastIdentifier}->[-1]})[0];
                                         $log->debugf('Id<    %s %s.%s', "$lastWhat", "$lastIdentifier", "$lastMember");
