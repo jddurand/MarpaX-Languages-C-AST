@@ -9,12 +9,12 @@
   <!-- =================================================================== -->
 
   <xsl:template match="/">
-    <xsl:variable name="input"     select="hsl:opt('input')" />
-    <xsl:variable name="module"    select="hsl:opt('module')" />
-    <xsl:variable name="localtime" select="hsl:opt('localtime')" />
+    <xsl:variable name="content"   select="hsl:content()" />
+    <xsl:variable name="module"    select="hsl:module()" />
+    <xsl:variable name="localtime" select="hsl:localtime()" />
     <xsl:if test="not($module)">
       <xsl:message terminate="yes">
-Input was: <xsl:value-of select="$input" />
+Input was: <xsl:value-of select="$content" />
 Please specify a module name using --targetopt module=xxx
       </xsl:message>
     </xsl:if>

@@ -193,12 +193,16 @@ if (grep {$_ eq 'dom'} @print) {
     print $dom->toString(1);
 }
 
-#
+# --------------------------------
 # Generate targets
-# ----------------
+# --------------------------------
 foreach (@target) {
+    _generateTarget($c, $dom, $_);
 }
 
+# ================================
+# END
+# ================================
 exit(EXIT_SUCCESS);
 
 sub _redirect {
@@ -447,7 +451,37 @@ sub _getConciseView{
   return $dom;
 }
 
-exit(EXIT_SUCCESS);
+sub _generateTarget {
+    my ($c, $dom, $target) = @_;
+
+    XML::LibXSLT->register_function("urn:hsl", "content",
+                                    sub {
+                                        return $c->content;
+                                    });
+
+
+    XML::LibXSLT->register_function("urn:hsl", "module",
+                                    sub {
+                                        return $module;
+                                    });
+
+
+    XML::LibXSLT->register_function("urn:hsl", "localtime",
+                                    sub {
+                                        return '' . localtime;
+                                    });
+
+
+    my $stylesheet = eval {$c->xslt("$target.xsl")};
+    if ($@) {
+        $log->errorf('%s', $@);
+    } else {
+        my $result = eval {$stylesheet->transform($dom)};
+        if ($@) {
+            $log->errorf('%s', $@);
+        }
+    }
+}
 
 __DATA__
 
