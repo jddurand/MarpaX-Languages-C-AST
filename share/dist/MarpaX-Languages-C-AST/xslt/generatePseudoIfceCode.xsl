@@ -91,7 +91,7 @@
     <xsl:for-each select="./following::*[self::initDeclaratorList][1]" >
       <xsl:for-each select="./initDeclarator/declarator" >
         <xsl:call-template name="declarator">
-          <xsl:with-param name="aliasMode" select="1" />
+          <xsl:with-param name="typedefMode" select="1" />
           <xsl:with-param name="withTypedef" select="0" />
         </xsl:call-template>
       </xsl:for-each>
@@ -103,7 +103,7 @@
   <!-- =================================================================== -->
 
   <xsl:template name="declarator">
-    <xsl:param name="aliasMode" />
+    <xsl:param name="typedefMode" />
     <xsl:param name="withTypedef" />
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
 
@@ -111,8 +111,8 @@
     <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
     <xsl:variable name="member" select="$IDENTIFIER/@text"/>
     <xsl:choose>
-      <xsl:when test="$aliasMode">
-        <xsl:variable name="dummyAliasPush" select="hsl:aliasPush($member)" />
+      <xsl:when test="$typedefMode">
+        <xsl:variable name="dummyTypedefPush" select="hsl:typedefPush($member)" />
       </xsl:when>
       <xsl:otherwise>
         <xsl:variable name="dummyCdecl" select="hsl:cdecl($member)" />
@@ -123,7 +123,7 @@
       <xsl:call-template name="decypherDirectDeclarator" />
     </xsl:for-each>
     <xsl:choose>
-      <xsl:when test="$aliasMode">
+      <xsl:when test="$typedefMode">
         <!--
             Decypher the declaration specifiers. Tree is:
             declarationCheck/declarationCheckinitDeclaratorList/initDeclaratorList/initDeclarator/declarator
@@ -134,7 +134,7 @@
             <xsl:with-param name="withTypedef" select="$withTypedef" />
           </xsl:call-template>
         </xsl:for-each>
-        <xsl:variable name="dummyAliasPop" select="hsl:aliasPop()" />
+        <xsl:variable name="dummyTypedefPop" select="hsl:typedefPop()" />
       </xsl:when>
     </xsl:choose>
   </xsl:template>
@@ -170,11 +170,11 @@
     <xsl:choose>
       <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
         <!-- We take all the text as-is up to the RBRACKET -->
-        <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'array')" />
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'array')" />
         <!-- If you want the size, you could do: <xsl:for-each select="$nextLexeme/following-sibling::*[local-name()!='RBRACKET']"><xsl:value-of select="concat(' ', ./@text)" /></xsl:for-each> -->
       </xsl:when>
       <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
-        <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'function')" />
+        <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'function')" />
       </xsl:when>
     </xsl:choose>
     <!--
@@ -204,9 +204,9 @@
         is read-only.
     -->
     <xsl:if test="./pointerQualifierList/pointerQualifier/typeQualifier/CONST">
-      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'readonly')" />
+      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'readonly')" />
     </xsl:if>
-    <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'pointer')" />
+    <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'pointer')" />
     <!-- Then take all typeQualifiers except CONST -->
     <xsl:for-each select="./pointerQualifierList/pointerQualifier/typeQualifier">
       <xsl:call-template name="decypherTypeQualifier">
@@ -332,10 +332,10 @@
     <xsl:for-each select="./*">
       <xsl:choose>
         <xsl:when test="local-name()='VOID'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'void')" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'void')" />
         </xsl:when>
         <xsl:when test="local-name()='FLOAT'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'float')" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'float')" />
         </xsl:when>
         <xsl:when test="local-name()='structOrUnionSpecifier'">
           <!-- Decypher the structure or union -->
@@ -346,16 +346,16 @@
           <xsl:variable name="type">
             <xsl:choose>
               <xsl:when test="$content">
-                <xsl:value-of select="hsl:cdecl('', 'what', ./structOrUnion/@text, 'name', hsl:getContentToIdentifier(./structDeclarationList/@text))" />
+                <xsl:value-of select="hsl:cdecl('', 'type', ./structOrUnion/@text, 'name', hsl:getContentToIdentifier(./structDeclarationList/@text))" />
               </xsl:when>
               <xsl:otherwise>
-                <xsl:value-of select="hsl:cdecl('', 'what', ./structOrUnion/@text, 'name', ./IDENTIFIER_UNAMBIGUOUS/@text)" />
+                <xsl:value-of select="hsl:cdecl('', 'type', ./structOrUnion/@text, 'name', ./IDENTIFIER_UNAMBIGUOUS/@text)" />
               </xsl:otherwise>
             </xsl:choose>
           </xsl:variable>
         </xsl:when>
         <xsl:when test="local-name()='TYPEDEF_NAME'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'alias', 'name', ./@text)" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'typedef_name', 'name', ./@text)" />
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
@@ -367,10 +367,10 @@
     <xsl:for-each select="./*">
       <xsl:if test="($withConst='1' and local-name()='CONST') or ($withConst='0' and local-name()!='CONST')" >
         <xsl:if test="local-name()='CONST'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'read-only')" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'read-only')" />
         </xsl:if>
         <xsl:if test="local-name()!='CONST'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', ./@text)" />
         </xsl:if>
       </xsl:if>
     </xsl:for-each>
@@ -379,7 +379,7 @@
   <xsl:template name="decypherTypeSpecifier2">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
-      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', ./@text)" />
     </xsl:for-each>
   </xsl:template>
 
@@ -510,7 +510,7 @@
   <xsl:template name="decypherFunctionSpecifier">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
-      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+      <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', ./@text)" />
     </xsl:for-each>
   </xsl:template>
 
@@ -520,10 +520,10 @@
     <xsl:for-each select="./*">
       <xsl:if test="($withTypedef='1' and local-name()='storageClassSpecifierTypedef') or ($withTypedef='0' and local-name()!='storageClassSpecifierTypedef')" >
         <xsl:if test="local-name()='storageClassSpecifierTypedef'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', 'typedef')" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'typedef')" />
         </xsl:if>
         <xsl:if test="local-name()!='storageClassSpecifierTypedef'">
-          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'what', ./@text)" />
+          <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', ./@text)" />
         </xsl:if>
       </xsl:if>
     </xsl:for-each>
