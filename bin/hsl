@@ -27,7 +27,7 @@ my @cppflags = ();
 my $filter = undef;
 my $prefix = 'hsl_';
 my $anon = '__ANON__';
-my $ast = 0;
+my @print = ();
 my @target = ();
 my %targetopt = ();
 my $out = '';
@@ -41,13 +41,16 @@ my @enum = ();
 my @xsltDirectories = ();
 my $module = '';
 
+# --------------------------
+# Parse command-line options
+# --------------------------
 Getopt::Long::Configure("pass_through");
 GetOptions ('help!' => \$help,
             'module=s' => \$module,
             'cpprun=s' => \$cpprun,
             'cppflags=s' => \@cppflags,
             'lazy!' => \$lazy,
-            'ast!' => \$ast,
+            'print=s' => \@print,
             'typedef=s' => \@typedef,
             'enum=s' => \@enum,
             'xsltdir=s' => \@xsltDirectories,
@@ -88,9 +91,9 @@ if (! $help) {
     }
 }
 
-# ----
+# --------------------------
 # Init
-# ----
+# --------------------------
 my $defaultLog4perlConf = <<DEFAULT_LOG4PERL_CONF;
 log4perl.rootLogger              = $loglevel, Screen
 log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
@@ -143,9 +146,9 @@ $config{typedef} = \@typedef if (@typedef);
 $config{enum} = \@enum if (@enum);
 $config{xsltDirectories} = \@xsltDirectories if (@xsltDirectories);
 
-# -------
+# --------------------------
 # Parse C
-# -------
+# --------------------------
 my $c = undef;
 my $input = shift;
 if (! $module) {
@@ -175,24 +178,75 @@ if (defined($tmp)) {
   close($tmp) || $log->warnf('Cannot close %s, %s', $tmp->filename, $!);
 }
 
-# -----------------------
-# Give wanted information
-# -----------------------
 if (! defined($c)) {
   exit(EXIT_FAILURE);
 }
-if ($ast) {
+if (grep {$_ eq 'ast'} @print) {
     print $c->astToString;
 }
 
-# ----------
-# Apply XSLT
-# ----------
+# --------------------------------
+# Get a concise view of the header
+# --------------------------------
+my $dom = _getConciseView();
+if (grep {$_ eq 'dom'} @print) {
+    print $dom->toString(1);
+}
+
 #
-# Register XSL callbacks
-#
-my $dom;
-{
+# Generate targets
+# ----------------
+foreach (@target) {
+}
+
+exit(EXIT_SUCCESS);
+
+sub _redirect {
+    my ($fh, $filename) = @_;
+
+    my $savefh = undef;
+
+    if (defined($filename) && "$filename") {
+        if (! open($savefh, '>&', $fh)) {
+            warn "Cannot save $fh handle, $!";
+        } else {
+            if (! open($fh, '>', $filename)) {
+                warn "Cannot redirect $fh to $filename, $!";
+                if (! open($fh, '>&', $savefh)) {
+                    warn "Cannot restore $fh, $!";
+                }
+                $savefh = undef;
+            } else {
+                #
+                # Unbuffer the redirected filehandle
+                #
+                my $oldfh = select($fh);
+                $| = 1;
+                select($oldfh);
+            }
+        }
+    }
+    return $savefh;
+}
+
+sub _unredirect {
+    my ($fh, $savefh) = @_;
+
+    if (defined($savefh)) {
+        if (! close($fh)) {
+            warn "Cannot close $fh";
+        }
+        #
+        # Unredirect anyway
+        #
+        if (! open($fh, '>&', $savefh)) {
+            warn "Cannot restore $fh, $!";
+        }
+    }
+}
+
+sub _getConciseView{
+  my $dom;
   my $anonCounter = 0;
   my %contentToIdentifier = ();
   my %doneIdentifier = ();
@@ -318,7 +372,7 @@ my $dom;
                                       push(@newTypedefs, {name => $name, type => $type, def => $def});
                                       return '';
                                   });
-  my $stylesheet = eval {$c->xslt("generatePseudoIfceCode.xsl")};
+  my $stylesheet = eval {$c->xslt("h2decl.xsl")};
   if ($@) {
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
@@ -328,7 +382,6 @@ my $dom;
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
   }
-  print $stylesheet->output_as_chars($result);
   #
   # Do an XML representation of cdecl and targetopt
   #
@@ -391,58 +444,7 @@ my $dom;
       }
     }
   }
-  print $dom->toString(1);
-}
-#
-# Generate targets
-# ----------------
-foreach (@target) {
-}
-
-exit(EXIT_SUCCESS);
-
-sub _redirect {
-    my ($fh, $filename) = @_;
-
-    my $savefh = undef;
-
-    if (defined($filename) && "$filename") {
-        if (! open($savefh, '>&', $fh)) {
-            warn "Cannot save $fh handle, $!";
-        } else {
-            if (! open($fh, '>', $filename)) {
-                warn "Cannot redirect $fh to $filename, $!";
-                if (! open($fh, '>&', $savefh)) {
-                    warn "Cannot restore $fh, $!";
-                }
-                $savefh = undef;
-            } else {
-                #
-                # Unbuffer the redirected filehandle
-                #
-                my $oldfh = select($fh);
-                $| = 1;
-                select($oldfh);
-            }
-        }
-    }
-    return $savefh;
-}
-
-sub _unredirect {
-    my ($fh, $savefh) = @_;
-
-    if (defined($savefh)) {
-        if (! close($fh)) {
-            warn "Cannot close $fh";
-        }
-        #
-        # Unredirect anyway
-        #
-        if (! open($fh, '>&', $savefh)) {
-            warn "Cannot restore $fh, $!";
-        }
-    }
+  return $dom;
 }
 
 exit(EXIT_SUCCESS);
@@ -485,7 +487,7 @@ hsl - C Header file transformation
    --trace              Alias to --loglevel TRACE
 
  Advanced options:
-   --ast                Show the AST of input
+   --print              Print out result of intermediate steps.
    --lazy               Instruct the parser to try all alternatives on typedef/enum/identifier
    --typedef <typedef>  Comma separated list of known typedefs
    --enum <enums>       Comma separated list of known enums
@@ -614,6 +616,22 @@ Comma separated list of XSLT search path. Can be repeated. Default is an empty l
 
 Instruct the parser to try all alternatives on typedef/enum/identifier. Default is a false value.
 
+=item B<--print>
+
+Print out result of intermediate steps. Can be repeated. Supported values are:
+
+=over
+
+=item B<ast>
+
+Raw AST, in XML format, of the input.
+
+=item B<dom>
+
+Transformed AST of the input, in XML format, that will be sent to the template engine.
+
+=back
+
 =item B<--typedef typedefs>
 
 Comma separated list of known typedefs. Can be repeated. Default is an empty list.
@@ -628,7 +646,7 @@ Comma separated list of known enums. Can be repeated. Default is an empty list.
 
  hsl                                                                  /tmp/file.c --target lua
  hsl --cppflags "-I/tmp/dir1            -DMYDEFINE"                   /tmp/file.c --target marpa
- hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c --target perl5
+ hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c --target perl5 --print ast --print dom
  hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c --target java
 
 =head1 NOTES
