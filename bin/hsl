@@ -197,7 +197,10 @@ if (grep {$_ eq 'dom'} @print) {
 # Generate targets
 # --------------------------------
 foreach (@target) {
-    _generateTarget($c, $dom, $_);
+    my ($stylesheet, $result) = _generateTarget($c, $dom, $_);
+    if (defined($stylesheet) && defined($result) && grep {$_ eq 'target'} @print) {
+      print $stylesheet->output_as_chars($result);
+    }
 }
 
 # ================================
@@ -479,6 +482,8 @@ sub _generateTarget {
         my $result = eval {$stylesheet->transform($dom)};
         if ($@) {
             $log->errorf('%s', $@);
+        } else {
+          return ($stylesheet, $result);
         }
     }
 }

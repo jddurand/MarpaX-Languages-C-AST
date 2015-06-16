@@ -34,6 +34,15 @@ Please specify a module name using --targetopt module=xxx
 <xsl:value-of select="hsl:content()"/>
 
 /* ==================================================== */
+/*                  INTERNAL TYPEDEFS                   */
+/* ==================================================== */
+<xsl:for-each select="./newTypedefs/*">
+typedef<xsl:text> </xsl:text><xsl:value-of select="./@type"/><xsl:text>
+</xsl:text><xsl:value-of select="./@def" /><xsl:text>
+</xsl:text><xsl:value-of select="./@name" />;
+</xsl:for-each>
+
+/* ==================================================== */
 /*                      MACROS                          */
 /* ==================================================== */
 
@@ -65,25 +74,6 @@ typedef struct hsl_outer {
   short allocated; /* Heuristic tentative to protect against userland error */
 } hsl_outer;
 static IV get_type(pTHX_ SV* sv);
-
-<xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
-  <xsl:call-template name="topStructOrUnionSpecifier">
-    <xsl:with-param name="module" select="$module"/>
-    <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
-    <xsl:with-param name="mode" select="'decl'"/>
-  </xsl:call-template>
-</xsl:for-each>
-
-/* ==================================================== */
-/*                    DEFINITIONS                       */
-/* ==================================================== */
-<xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
-  <xsl:call-template name="topStructOrUnionSpecifier">
-    <xsl:with-param name="module" select="$module"/>
-    <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
-    <xsl:with-param name="mode" select="'def'"/>
-  </xsl:call-template>
-</xsl:for-each>
 
 static
 IV
@@ -147,166 +137,6 @@ get_type(pTHX_ SV* sv) {
   return HSL_TARGET_TYPE_UNKNOWN;
 }
 
-/* ==================================================== */
-/*                     INTERFACE                        */
-/* ==================================================== */
-<xsl:for-each select=".//structOrUnionSpecifier[not (ancestor::*[self::structDeclarationList])]">
-  <xsl:call-template name="topStructOrUnionSpecifier">
-    <xsl:with-param name="module" select="$module"/>
-    <xsl:with-param name="topStructOrUnionSpecifierCounter" select="position()"/>
-    <xsl:with-param name="mode" select="'ifce'"/>
-  </xsl:call-template>
-</xsl:for-each>
-</xsl:template>
-
-  <!-- =================================================================== -->
-  <!--               . = Top Level Structure Or Union                      -->
-  <!-- =================================================================== -->
-
-  <xsl:template name="topStructOrUnionSpecifier">
-    <xsl:param name="module" />
-    <xsl:param name="topStructOrUnionSpecifierCounter" />
-    <xsl:param name="mode" />
-    <!-- Get the identifier, eventually anonymous -->
-    <xsl:variable name="identifier">
-      <xsl:choose>
-        <xsl:when test="./*[local-name()='IDENTIFIER_UNAMBIGUOUS']">
-          <xsl:value-of select="./*[local-name()='IDENTIFIER_UNAMBIGUOUS']/@text"/>
-        </xsl:when>
-        <xsl:otherwise>
-          <xsl:value-of select="concat('__ANON__', $topStructOrUnionSpecifierCounter)"/>
-        </xsl:otherwise>
-      </xsl:choose>
-    </xsl:variable>
-    <!-- Decypher the structure or union -->
-    <xsl:call-template name="structOrUnionSpecifier">
-      <xsl:with-param name="module" select="$module"/>
-      <xsl:with-param name="identifier" select="$identifier"/>
-      <xsl:with-param name="mode" select="$mode"/>
-    </xsl:call-template>
   </xsl:template>
-
-  <!-- =================================================================== -->
-  <!--                   structOrUnionSpecifier                            -->
-  <!-- =================================================================== -->
-
-  <xsl:template name="structOrUnionSpecifier">
-    <xsl:param name="module" />
-    <xsl:param name="identifier" />
-    <xsl:param name="mode" />
-    <xsl:variable name="hslIdentifier" select="concat(hsl:prefix(), $identifier)"/>
-/* ---------------------------------------------------- */
-    <xsl:choose>
-      <!--  Structure Or Union: Declarations   -->
-      <xsl:when test="$mode = 'decl'">
-typedef struct <xsl:value-of select="$hslIdentifier"/> {
-  <xsl:value-of select="./@text"/> inner;
-  hsl_outer outer;
-} <xsl:value-of select="$hslIdentifier"/>;
-void *<xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString);
-void <xsl:value-of select="$hslIdentifier"/>_DESTROY(pTHX_ void *self);
-      </xsl:when>
-      <!--  Structure Or Union: Definitions    -->
-      <xsl:when test="$mode = 'def'">
-int <xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString, <xsl:value-of select="$hslIdentifier"/> **selfPtrPtr) {
-  Newx(*selfPtrPtr, 1, <xsl:value-of select="$hslIdentifier"/>);
-  return 1;
-}
-int <xsl:value-of select="$hslIdentifier"/>_DESTROY(pTHX_ void **selfPtrPtr) {
-  Safefree(*selfPtrPtr);
-  return 1;
-}
-      </xsl:when>
-      <!--  Structure Or Union: Interface    -->
-      <xsl:when test="$mode = 'ifce'">
-MODULE = <xsl:value-of select="$module"/>	PACKAGE = <xsl:value-of select="concat($module, '::', $identifier)"/>
-
-PROTOTYPES: ENABLE
-        <!-- Generate creator, destructor -->
-void *
-<xsl:value-of select="$hslIdentifier"/>_new(pTHX_ char *classString)
-PREINIT:
-  <xsl:value-of select="$hslIdentifier"/> *selfPtr;
-CODE:
-  if (! <xsl:value-of select="$hslIdentifier"/>_new(aTHX_ classString, &amp;selfPtr)) {
-    RETVAL = PL_undef;
-  } else {
-    RETVAL = selfPtr;
-  }
-OUTPUT: 
-  RETVAL 
-
-void 
-DESTROY(pTHX_ void *self)
-PREINIT:
-CODE: 
-  Safefree(self); 
-        <!-- Generate accessors -->
-        <!-- we are only interested by declarations that declare something -->
-        <xsl:for-each select="./structDeclarationList/*/structDeclaratorList/*/declarator">
-          <!-- In addition we are absolutely NOT interested by the type of what
-               we return: we always return the address of the element. Full point. -->
-          <xsl:call-template name="declarator">
-            <xsl:with-param name="module" select="$module"/>
-            <xsl:with-param name="mode" select="$mode" />
-            <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
-          </xsl:call-template>
-        </xsl:for-each>
-      </xsl:when>
-    </xsl:choose>
-  </xsl:template>
-
-  <!-- =================================================================== -->
-  <!--                       Decypher declarators                          -->
-  <!-- =================================================================== -->
-
-  <xsl:template name="declarator">
-    <xsl:param name="module" />
-    <xsl:param name="mode" />
-    <xsl:param name="hslIdentifier" />
-    <!-- by definition the first found identifier is the one we are looking for -->
-    <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
-void *
-<xsl:value-of select="$IDENTIFIER/@text"/>_get(pTHX_ void *self)
-PREINIT:
-  void *rc;
-CODE:
-  rc = &amp;(((<xsl:value-of select="$hslIdentifier"/> *) self)-><xsl:value-of select="$IDENTIFIER/@text"/>);
-  { /* Decypher of <xsl:value-of select="./@text" /> */
-  <xsl:for-each select="$IDENTIFIER/../..">
-    <!-- Looping just to have directDeclarator in "." -->
-    <xsl:call-template name="decypherDirectDeclarator">
-      <xsl:with-param name="mode" select="$mode" />
-      <xsl:with-param name="hslIdentifier" select="$hslIdentifier" />
-    </xsl:call-template>
-  </xsl:for-each>
-  }
-  RETVAL = rc;
-OUTPUT:
-  RETVAL
-  </xsl:template>
-
-  <xsl:template name="decypherDirectDeclarator">
-    <xsl:param name="hslIdentifier" />
-    <!-- Look for the next lexeme on the right -->
-    <xsl:variable name="nextLexeme" select="./following-sibling::*[1]" />
-    <xsl:choose>
-      <xsl:when test="$nextLexeme[local-name()='RPAREN']">
-        RPAREN DETECTED
-      </xsl:when>
-      <xsl:when test="$nextLexeme[local-name()='LBRACKET']">
-        /* Array */
-        LBRACKET DETECTED
-      </xsl:when>
-      <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
-        /* Function */
-        LPAREN_SCOPE DETECTED
-      </xsl:when>
-      <xsl:otherwise>
-        NO LEXEME ON THE RIGHT
-      </xsl:otherwise>
-    </xsl:choose>
-  </xsl:template>
-
 </xsl:stylesheet>
 
