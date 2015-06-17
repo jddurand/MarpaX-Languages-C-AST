@@ -19,8 +19,8 @@ Please specify a module name using --targetopt module=xxx
       </xsl:message>
     </xsl:if>
 /*
- * Perl5 binding of module: <xsl:value-of select="$module"/>.
- * Generated: <xsl:value-of select="$localtime"/>.
+ * Perl5 bindings of module <xsl:value-of select="$module"/>.
+ * Generated <xsl:value-of select="$localtime"/>.
  */
 #define PERL_NO_GET_CONTEXT 1
 #include "EXTERN.h"
@@ -45,27 +45,45 @@ typedef<xsl:text> </xsl:text><xsl:value-of select="./@type"/><xsl:text>
 /* ==================================================== */
 /*                      MACROS                          */
 /* ==================================================== */
-
-/* Target type constants */
+/*
+ * C and target type definitions
+ * -----------------------------
+ */
+#define HSL_C_TYPE_BOOLEAN          short
 
 /* C.f. DROLSKY/Params-Validate-1.18/lib/Params/Validate/XS.xs */
-#define HSL_TARGET_TYPE_SCALAR    0x001
-#define HSL_TARGET_TYPE_ARRAYREF  0x002
-#define HSL_TARGET_TYPE_HASHREF   0x004
-#define HSL_TARGET_TYPE_CODEREF   0x008
-#define HSL_TARGET_TYPE_GLOB      0x010
-#define HSL_TARGET_TYPE_GLOBREF   0x020
-#define HSL_TARGET_TYPE_SCALARREF 0x040
-#define HSL_TARGET_TYPE_UNKNOWN   0x080
-#define HSL_TARGET_TYPE_UNDEF     0x100
-#define HSL_TARGET_TYPE_OBJECT    0x200
-#define HSL_TARGET_TYPE_HANDLE    (HSL_TARGET_TYPE_GLOB   | HSL_TARGET_TYPE_GLOBREF)
-#define HSL_TARGET_TYPE_BOOLEAN   (HSL_TARGET_TYPE_SCALAR | HSL_TARGET_TYPE_UNDEF)
+#define HSL_TARGET_TYPE_SCALAR      0x001
+#define HSL_TARGET_TYPE_ARRAYREF    0x002
+#define HSL_TARGET_TYPE_HASHREF     0x004
+#define HSL_TARGET_TYPE_CODEREF     0x008
+#define HSL_TARGET_TYPE_GLOB        0x010
+#define HSL_TARGET_TYPE_GLOBREF     0x020
+#define HSL_TARGET_TYPE_SCALARREF   0x040
+#define HSL_TARGET_TYPE_UNKNOWN     0x080
+#define HSL_TARGET_TYPE_UNDEF       0x100
+#define HSL_TARGET_TYPE_OBJECT      0x200
+#define HSL_TARGET_TYPE_HANDLE      (HSL_TARGET_TYPE_GLOB   | HSL_TARGET_TYPE_GLOBREF)
+#define HSL_TARGET_TYPE_BOOLEAN     (HSL_TARGET_TYPE_SCALAR | HSL_TARGET_TYPE_UNDEF)
 
-/* Target type management */
-#define HSL_TARGET_NEW_ARRAY(dst)     do { dst = newAV(); } while (0)
-#define HSL_TARGET_DEL_ARRAY(src)     do { av_undef((AV *)src); src = NULL; } while (0)
-#define HSL_TARGET_IS_ARRAY(dst, src) do { dst = ((get_type(aTHX_ (SV *)pattern) &amp; HSL_TARGET_TYPE_ARRAYREF) == HSL_TARGET_TYPE_ARRAYREF) ? 1 : 0 } while (0)
+/*
+ * C and target type boolean tests
+ * -------------------------------
+ */
+#define HSL_C_IS_TRUE(x)          ((x) != 0)
+#define HSL_C_IS_FALSE(x)         ((x) == 0)
+
+#define HSL_TARGET_IS_TYPE(x, t) ((get_type(aTHX_ (SV *)(x)) &amp; (t)) == (t))
+#define HSL_TARGET_IS_BOOLEAN(x)  HSL_TARGET_IS_TYPE((x), HSL_TARGET_TYPE_BOOLEAN)
+#define HSL_TARGET_IS_ARRAY(x)    HSL_TARGET_IS_TYPE((x), HSL_TARGET_TYPE_ARRAYREF)
+#define HSL_TARGET_IS_STRUCT(x)   HSL_TARGET_IS_TYPE((x), HSL_TARGET_TYPE_HASHREF)
+#define HSL_TARGET_IS_FUNC(x)     HSL_TARGET_IS_TYPE((x), HSL_TARGET_TYPE_CODEREF)
+
+/*
+ * C and target type macros as functions
+ * -------------------------------------
+ */
+#define HSL_TARGET_NEW_ARRAY(dst)     do { (dst) = newAV(); } while (0)
+#define HSL_TARGET_DEL_ARRAY(src)     do { av_undef((AV *)(src)); (src) = NULL; } while (0)
 
 /* ==================================================== */
 /*                    DECLARATIONS                      */
@@ -74,7 +92,22 @@ typedef struct hsl_outer {
   short allocated; /* Heuristic tentative to protect against userland error */
 } hsl_outer;
 static IV get_type(pTHX_ SV* sv);
+<xsl:for-each select="./newTypedefs/*">
+static HSL_C_TYPE_BOOLEAN <xsl:value-of select="./@name" />_new(aTHX_ <xsl:value-of select="./@name" /> **thispp);
+static HSL_C_TYPE_BOOLEAN <xsl:value-of select="./@name" />_free(aTHX_ <xsl:value-of select="./@name" /> *thisp);
+</xsl:for-each>
+<xsl:for-each select="./cdecl/identifiers/*">
+  <xsl:variable name="identifier" select="." />
+  <xsl:for-each select="$identifier/*">
+    <xsl:variable name="member" select="." />
+static HSL_C_TYPE_BOOLEAN <xsl:value-of select="$identifier/@name" />_<xsl:value-of select="$member/@name" />_get(aTHX_ <xsl:value-of select="$identifier/@name" /> *thisp, void **rcpp);
+static HSL_C_TYPE_BOOLEAN <xsl:value-of select="$identifier/@name" />_<xsl:value-of select="$member/@name" />_set(aTHX_ <xsl:value-of select="$identifier/@name" /> *thisp, void *rcp);
+  </xsl:for-each>
+</xsl:for-each>
 
+/* ==================================================== */
+/*                    DEFINITIONS                       */
+/* ==================================================== */
 static
 IV
 get_type(pTHX_ SV* sv) {
