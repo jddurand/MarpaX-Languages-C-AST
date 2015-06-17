@@ -88,9 +88,6 @@ typedef<xsl:text> </xsl:text><xsl:value-of select="./@type"/><xsl:text>
 /* ==================================================== */
 /*                    DECLARATIONS                      */
 /* ==================================================== */
-typedef struct hsl_outer {
-  short allocated; /* Heuristic tentative to protect against userland error */
-} hsl_outer;
 static IV get_type(pTHX_ SV* sv);
 <xsl:for-each select="./newTypedefs/*">
 static HSL_C_TYPE_BOOLEAN <xsl:value-of select="./@name" />_new(aTHX_ <xsl:value-of select="./@name" /> **thispp);
@@ -170,6 +167,32 @@ get_type(pTHX_ SV* sv) {
   return HSL_TARGET_TYPE_UNKNOWN;
 }
 
+/* ==================================================== */
+/*                     INTERFACE                        */
+/* ==================================================== */
+<xsl:for-each select="./newTypedefs/*">
+MODULE = <xsl:value-of select="$module" /> PACKAGE = <xsl:value-of select="concat($module, '::', ./@name)" />
+
+PROTOTYPES: ENABLE
+
+void
+new(char *class)
+  PREINIT:
+    <xsl:value-of select="./@name" /> *thisp;
+  CODE:
+    <xsl:value-of select="./@name" />_new(&amp;thisp);
+    RETVAL = thisp;
+  OUTPUT:
+    RETVAL
+
+void
+free(void *selfp)
+  PREINIT:
+    <xsl:value-of select="./@name" /> *thisp = (<xsl:value-of select="./@name" /> *) selfp;
+  CODE:
+    <xsl:value-of select="./@name" />_free(thisp);
+
+</xsl:for-each>
   </xsl:template>
 </xsl:stylesheet>
 
