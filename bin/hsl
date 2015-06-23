@@ -188,10 +188,11 @@ if (grep {$_ eq 'ast'} @print) {
 # --------------------------------
 # Get a concise view of the header
 # --------------------------------
-my $dom = _getConciseView();
+my $dom = _getConciseView2();
 if (grep {$_ eq 'dom'} @print) {
     print $dom->toString(1);
 }
+exit 0;
 
 # --------------------------------
 # Generate targets
@@ -265,6 +266,26 @@ sub _getConciseView{
   my $lastIdentifier;
   my $lastTypedef;
   my @cdeclStack = ();
+  XML::LibXSLT->register_function("urn:hsl", "toStringTracef",
+                                  sub {
+                                    my ($this) = @_;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->tracef('==> %s',
+                                                 defined($this) ?
+                                                 ((ref($this) eq 'XML::LibXML::NodeList') ?
+                                                  join("\n", map {$_->toString(1)} $this->get_nodelist)
+                                                  :
+                                                  (ref($this) eq 'XML::LibXML::Node') ?
+                                                  $this->toString(1)
+                                                  :
+                                                  '<not supported>: ' . ref($this)
+                                                 )
+                                                 :
+                                                 '<undef>');
+                                    return '';
+                                  });
   XML::LibXSLT->register_function("urn:hsl", "tracef",
                                   sub {
                                     my $format = shift;
@@ -272,6 +293,15 @@ sub _getConciseView{
                                     # Force stringification in case of an XML object
                                     #
                                     $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
+                                    return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "warnf",
+                                  sub {
+                                    my $format = shift;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->warnf($format, map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
   XML::LibXSLT->register_function("urn:hsl", "prefix",
@@ -452,6 +482,67 @@ sub _getConciseView{
     }
   }
   return $dom;
+}
+
+sub _getConciseView2 {
+  my $anonCounter = 0;
+  my %cdecl = ();
+  XML::LibXSLT->register_function("urn:hsl", "toStringTracef",
+                                  sub {
+                                    my ($this) = @_;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->tracef('==> %s',
+                                                 defined($this) ?
+                                                 ((ref($this) eq 'XML::LibXML::NodeList') ?
+                                                  join("\n", map {$_->toString(1)} $this->get_nodelist)
+                                                  :
+                                                  (ref($this) eq 'XML::LibXML::Node') ?
+                                                  $this->toString(1)
+                                                  :
+                                                  '<not supported>: ' . ref($this)
+                                                 )
+                                                 :
+                                                 '<undef>');
+                                    return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "tracef",
+                                  sub {
+                                    my $format = shift;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
+                                    return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "warnf",
+                                  sub {
+                                    my $format = shift;
+                                    #
+                                    # Force stringification in case of an XML object
+                                    #
+                                    $log->warnf($format, map { defined($_) ? "$_" : ''} @_);
+                                    return '';
+                                  });
+  XML::LibXSLT->register_function("urn:hsl", "getAnonIdentifier",
+                                  sub {
+                                    ++$anonCounter;
+                                    return "$anon$anonCounter";
+                                  });
+  my $stylesheet = eval {$c->xslt("h2decl2.xsl")};
+  if ($@) {
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
+  }
+  my $result = eval {$stylesheet->transform($c->ast)};
+  if ($@) {
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
+  }
+  print STDERR $stylesheet->output_as_bytes($result);
+  use Data::Dumper;
+  print Dumper(\%cdecl);
 }
 
 sub _generateTarget {
