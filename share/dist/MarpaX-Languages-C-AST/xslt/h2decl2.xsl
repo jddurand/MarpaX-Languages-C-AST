@@ -132,6 +132,7 @@
   <!-- =================================================================== -->
   <xsl:template name="TYPEDEF">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <TYPEDEF/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -139,6 +140,7 @@
   <!-- =================================================================== -->
   <xsl:template name="EXTERN">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <EXTERN/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -146,6 +148,7 @@
   <!-- =================================================================== -->
   <xsl:template name="STATIC">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <STATIC/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -167,6 +170,7 @@
   <!-- =================================================================== -->
   <xsl:template name="CONST">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <CONST/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -200,6 +204,7 @@
   <!-- =================================================================== -->
   <xsl:template name="VOID">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <VOID/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -207,6 +212,7 @@
   <!-- =================================================================== -->
   <xsl:template name="FLOAT">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <FLOAT/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -220,7 +226,9 @@
           <xsl:call-template name="structOrUnion" />
         </xsl:when>
         <xsl:when test="local-name()='structDeclarationList'" >
-          <xsl:call-template name="structDeclarationList" />
+          <LIST>
+            <xsl:call-template name="structDeclarationList" />
+          </LIST>
         </xsl:when>
         <xsl:when test="local-name()='IDENTIFIER_UNAMBIGUOUS'" >
           <xsl:call-template name="IDENTIFIER_UNAMBIGUOUS" />
@@ -251,6 +259,7 @@
   <!-- =================================================================== -->
   <xsl:template name="STRUCT">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <STRUCT/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -258,6 +267,7 @@
   <!-- =================================================================== -->
   <xsl:template name="UNION">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <UNION/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -452,7 +462,9 @@
           <xsl:call-template name="RPAREN_SCOPE" />
         </xsl:when>
         <xsl:when test="local-name()='parameterTypeList'" >
-          <xsl:call-template name="parameterTypeList" />
+          <LIST>
+            <xsl:call-template name="parameterTypeList" />
+          </LIST>
         </xsl:when>
         <xsl:when test="local-name()='identifierList'" >
           <xsl:call-template name="identifierList" />
@@ -700,7 +712,9 @@
           <xsl:call-template name="ENUM" />
         </xsl:when>
         <xsl:when test="local-name()='enumeratorList'" >
-          <xsl:call-template name="enumeratorList" />
+          <LIST>
+            <xsl:call-template name="enumeratorList" />
+          </LIST>
         </xsl:when>
         <xsl:when test="local-name()='IDENTIFIER_UNAMBIGUOUS'" >
           <xsl:call-template name="IDENTIFIER_UNAMBIGUOUS" />
@@ -770,6 +784,7 @@
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER_UNAMBIGUOUS">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -777,6 +792,7 @@
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -784,6 +800,7 @@
   <!-- =================================================================== -->
   <xsl:template name="LBRACKET">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -791,6 +808,7 @@
   <!-- =================================================================== -->
   <xsl:template name="RBRACKET">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:text disable-output-escaping="yes">&lt;&#47;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -826,6 +844,7 @@
   <!-- =================================================================== -->
   <xsl:template name="STAR">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <STAR/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -833,6 +852,7 @@
   <!-- =================================================================== -->
   <xsl:template name="TYPEDEF_NAME">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>TYPEDEF_NAME name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -840,6 +860,7 @@
   <!-- =================================================================== -->
   <xsl:template name="ENUM">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <ENUM/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -996,6 +1017,7 @@
   <!-- =================================================================== -->
   <xsl:template name="CHAR">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <CHAR/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1003,6 +1025,7 @@
   <!-- =================================================================== -->
   <xsl:template name="SHORT">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <SHORT/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1010,6 +1033,7 @@
   <!-- =================================================================== -->
   <xsl:template name="INT">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <INT/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1017,6 +1041,7 @@
   <!-- =================================================================== -->
   <xsl:template name="LONG">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <LONG/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1024,6 +1049,7 @@
   <!-- =================================================================== -->
   <xsl:template name="DOUBLE">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <DOUBLE/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1031,6 +1057,7 @@
   <!-- =================================================================== -->
   <xsl:template name="SIGNED">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <SIGNED/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1038,6 +1065,7 @@
   <!-- =================================================================== -->
   <xsl:template name="UNSIGNED">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <UNSIGNED/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1045,6 +1073,7 @@
   <!-- =================================================================== -->
   <xsl:template name="BOOL">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <BOOL/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1052,6 +1081,7 @@
   <!-- =================================================================== -->
   <xsl:template name="LABEL">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <LABEL/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1059,6 +1089,7 @@
   <!-- =================================================================== -->
   <xsl:template name="COMPLEX">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <COMPLEX/>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1066,6 +1097,7 @@
   <!-- =================================================================== -->
   <xsl:template name="IMAGINARY">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <IMAGINARY/>
   </xsl:template>
 
 </xsl:stylesheet>

@@ -540,9 +540,6 @@ sub _getConciseView2 {
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
   }
-  print STDERR $stylesheet->output_as_bytes($result);
-  use Data::Dumper;
-  print Dumper(\%cdecl);
   my $dom = XML::LibXML->load_xml(string => $stylesheet->output_as_bytes($result));
   return $dom;
 }
