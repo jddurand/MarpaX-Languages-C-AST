@@ -403,6 +403,98 @@
   <!-- =================================================================== -->
   <xsl:template name="declarator">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='pointer'" >
+          <xsl:call-template name="pointer" />
+        </xsl:when>
+        <xsl:when test="local-name()='directDeclarator'" >
+          <xsl:call-template name="directDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                             directDeclarator                        -->
+  <!-- =================================================================== -->
+  <xsl:template name="directDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='directDeclaratorIdentifier'" >
+          <xsl:call-template name="directDeclaratorIdentifier" />
+        </xsl:when>
+        <xsl:when test="local-name()='declarator'" >
+          <xsl:call-template name="declarator" />
+        </xsl:when>
+        <xsl:when test="local-name()='directDeclarator'" >
+          <xsl:call-template name="directDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                          directDeclaratorIdentifier                 -->
+  <!-- =================================================================== -->
+  <xsl:template name="directDeclaratorIdentifier">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='IDENTIFIER'" >
+          <xsl:call-template name="IDENTIFIER" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                  pointer                            -->
+  <!-- =================================================================== -->
+  <xsl:template name="pointer">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='STAR'" >
+          <xsl:call-template name="STAR" />
+        </xsl:when>
+        <xsl:when test="local-name()='pointerQualifierList'" >
+          <xsl:call-template name="pointerQualifierList" />
+        </xsl:when>
+        <xsl:when test="local-name()='pointer'" >
+          <xsl:call-template name="pointer" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                         pointerQualifierList                        -->
+  <!-- =================================================================== -->
+  <xsl:template name="pointerQualifierList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='pointerQualifier'" >
+          <xsl:call-template name="pointerQualifier" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                           pointerQualifier                          -->
+  <!-- =================================================================== -->
+  <xsl:template name="pointerQualifier">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='typeQualifier'" >
+          <xsl:call-template name="typeQualifier" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -485,6 +577,20 @@
   <!--                             IDENTIFIER_UNAMBIGUOUS                  -->
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER_UNAMBIGUOUS">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                  IDENTIFIER                         -->
+  <!-- =================================================================== -->
+  <xsl:template name="IDENTIFIER">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                     STAR                            -->
+  <!-- =================================================================== -->
+  <xsl:template name="STAR">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
