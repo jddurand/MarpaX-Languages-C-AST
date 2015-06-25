@@ -2,7 +2,7 @@
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format"
                 xmlns:hsl="urn:hsl">
-  <xsl:output method="text" omit-xml-declaration="yes" />
+  <!-- <xsl:output method="text" omit-xml-declaration="yes" /> -->
 
   <!-- =================================================================== -->
   <!--                                  MAIN                               -->
@@ -10,9 +10,13 @@
 
   <xsl:template match="/">
     <!-- Select only declarations -->
-    <xsl:for-each select="./translationUnit/externalDeclaration/declaration" >
-      <xsl:call-template name="declaration" />
-    </xsl:for-each>
+    <cdecls>
+      <xsl:for-each select="./translationUnit/externalDeclaration/declaration" >
+        <cdecl>
+          <xsl:call-template name="declaration" />
+        </cdecl>
+      </xsl:for-each>
+    </cdecls>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -261,13 +265,17 @@
   <!-- =================================================================== -->
   <xsl:template name="structDeclarationList">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:for-each select="./*" >
-      <xsl:choose>
-        <xsl:when test="local-name()='structDeclaration'" >
-          <xsl:call-template name="structDeclaration" />
-        </xsl:when>
-      </xsl:choose>
-    </xsl:for-each>
+    <cdecls>
+      <xsl:for-each select="./*" >
+        <xsl:choose>
+          <xsl:when test="local-name()='structDeclaration'" >
+            <cdecl>
+              <xsl:call-template name="structDeclaration" />
+            </cdecl>
+          </xsl:when>
+        </xsl:choose>
+      </xsl:for-each>
+    </cdecls>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -472,13 +480,17 @@
   <!-- =================================================================== -->
   <xsl:template name="parameterTypeList">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:for-each select="./*" >
-      <xsl:choose>
-        <xsl:when test="local-name()='parameterList'" >
-          <xsl:call-template name="parameterList" />
-        </xsl:when>
-      </xsl:choose>
-    </xsl:for-each>
+    <cdecls>
+      <xsl:for-each select="./*" >
+        <xsl:choose>
+          <xsl:when test="local-name()='parameterList'" >
+            <cdecl>
+              <xsl:call-template name="parameterList" />
+            </cdecl>
+          </xsl:when>
+        </xsl:choose>
+      </xsl:for-each>
+    </cdecls>
   </xsl:template>
 
   <!-- =================================================================== -->
