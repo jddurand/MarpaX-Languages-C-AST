@@ -431,6 +431,24 @@
         <xsl:when test="local-name()='directDeclarator'" >
           <xsl:call-template name="directDeclarator" />
         </xsl:when>
+        <xsl:when test="local-name()='LBRACKET'" >
+          <xsl:call-template name="LBRACKET" />
+        </xsl:when>
+        <xsl:when test="local-name()='RBRACKET'" >
+          <xsl:call-template name="RBRACKET" />
+        </xsl:when>
+        <xsl:when test="local-name()='LPAREN_SCOPE'" >
+          <xsl:call-template name="LPAREN_SCOPE" />
+        </xsl:when>
+        <xsl:when test="local-name()='RPAREN_SCOPE'" >
+          <xsl:call-template name="RPAREN_SCOPE" />
+        </xsl:when>
+        <xsl:when test="local-name()='parameterTypeList'" >
+          <xsl:call-template name="parameterTypeList" />
+        </xsl:when>
+        <xsl:when test="local-name()='identifierList'" >
+          <xsl:call-template name="identifierList" />
+        </xsl:when>
       </xsl:choose>
     </xsl:for-each>
   </xsl:template>
@@ -444,6 +462,168 @@
       <xsl:choose>
         <xsl:when test="local-name()='IDENTIFIER'" >
           <xsl:call-template name="IDENTIFIER" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                            parameterTypeList                        -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterTypeList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterList'" >
+          <xsl:call-template name="parameterList" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                              parameterList                          -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterDeclaration'" >
+          <xsl:call-template name="parameterDeclaration" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                            parameterDeclaration                     -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterDeclaration">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterDeclarationCheck'" >
+          <xsl:call-template name="parameterDeclarationCheck" />
+        </xsl:when>
+        <xsl:when test="local-name()='declarationSpecifiers'" >
+          <xsl:call-template name="declarationSpecifiers" />
+        </xsl:when>
+        <xsl:when test="local-name()='abstractDeclarator'" >
+          <xsl:call-template name="abstractDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                          parameterDeclarationCheck                  -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterDeclarationCheck">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterDeclarationdeclarationSpecifiers'" >
+          <xsl:call-template name="parameterDeclarationdeclarationSpecifiers" />
+        </xsl:when>
+        <xsl:when test="local-name()='parameterDeclarationCheckDeclarator'" >
+          <xsl:call-template name="parameterDeclarationCheckDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                 parameterDeclarationCheckDeclarator                 -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterDeclarationCheckDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='declarator'" >
+          <xsl:call-template name="declarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--            parameterDeclarationdeclarationSpecifiers                -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterDeclarationdeclarationSpecifiers">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='declarationSpecifiers'" >
+          <xsl:call-template name="declarationSpecifiers" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                              identifierList                         -->
+  <!-- =================================================================== -->
+  <xsl:template name="identifierList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='IDENTIFIER'" >
+          <xsl:call-template name="IDENTIFIER" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                              abstractDeclarator                     -->
+  <!-- =================================================================== -->
+  <xsl:template name="abstractDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='pointer'" >
+          <xsl:call-template name="pointer" />
+        </xsl:when>
+        <xsl:when test="local-name()='directAbstractDeclarator'" >
+          <xsl:call-template name="directAbstractDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                            directAbstractDeclarator                 -->
+  <!-- =================================================================== -->
+  <xsl:template name="directAbstractDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='abstractDeclarator'" >
+          <xsl:call-template name="abstractDeclarator" />
+        </xsl:when>
+        <xsl:when test="local-name()='LPAREN'" >
+          <xsl:call-template name="LPAREN" />
+        </xsl:when>
+        <xsl:when test="local-name()='RPAREN'" >
+          <xsl:call-template name="RPAREN" />
+        </xsl:when>
+        <xsl:when test="local-name()='LBRACKET'" >
+          <xsl:call-template name="LBRACKET" />
+        </xsl:when>
+        <xsl:when test="local-name()='RBRACKET'" >
+          <xsl:call-template name="RBRACKET" />
+        </xsl:when>
+        <xsl:when test="local-name()='directAbstractDeclarator'" >
+          <xsl:call-template name="directAbstractDeclarator" />
+        </xsl:when>
+        <xsl:when test="local-name()='LPAREN_SCOPE'" >
+          <xsl:call-template name="LPAREN_SCOPE" />
+        </xsl:when>
+        <xsl:when test="local-name()='RPAREN_SCOPE'" >
+          <xsl:call-template name="RPAREN_SCOPE" />
+        </xsl:when>
+        <xsl:when test="local-name()='parameterTypeList'" >
+          <xsl:call-template name="parameterTypeList" />
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
@@ -584,6 +764,48 @@
   <!--                                  IDENTIFIER                         -->
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                  LBRACKET                           -->
+  <!-- =================================================================== -->
+  <xsl:template name="LBRACKET">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                  RBRACKET                           -->
+  <!-- =================================================================== -->
+  <xsl:template name="RBRACKET">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                LPAREN_SCOPE                         -->
+  <!-- =================================================================== -->
+  <xsl:template name="LPAREN_SCOPE">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                RPAREN_SCOPE                         -->
+  <!-- =================================================================== -->
+  <xsl:template name="RPAREN_SCOPE">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                  LPAREN                             -->
+  <!-- =================================================================== -->
+  <xsl:template name="LPAREN">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                                 RPAREN                              -->
+  <!-- =================================================================== -->
+  <xsl:template name="RPAREN">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
