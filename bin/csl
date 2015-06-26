@@ -530,7 +530,7 @@ sub _getConciseView2 {
                                     ++$anonCounter;
                                     return "$anon$anonCounter";
                                   });
-  my $stylesheet = eval {$c->xslt("h2decl2.xsl")};
+  my $stylesheet = eval {$c->xslt("csl.xsl")};
   if ($@) {
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
