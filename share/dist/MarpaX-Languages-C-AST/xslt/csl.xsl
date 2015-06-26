@@ -193,7 +193,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <TYPEDEF/>
+    <xsl:if test="$declMode">
+      <TYPEDEF/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -203,7 +205,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <EXTERN/>
+    <xsl:if test="$declMode">
+      <EXTERN/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -213,7 +217,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <STATIC/>
+    <xsl:if test="$declMode">
+      <STATIC/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -242,7 +248,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <CONST/>
+    <xsl:if test="$declMode">
+      <CONST/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -295,7 +303,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <VOID/>
+    <xsl:if test="$declMode">
+      <VOID/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -305,7 +315,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <FLOAT/>
+    <xsl:if test="$declMode">
+      <FLOAT/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -324,12 +336,10 @@
           </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='structDeclarationList'" >
-          <LIST>
-            <xsl:call-template name="structDeclarationList">
-              <xsl:with-param name="anonCounter" select="$anonCounter" />
-              <xsl:with-param name="declMode" select="$declMode" />
-            </xsl:call-template>
-          </LIST>
+          <xsl:call-template name="structDeclarationList">
+            <xsl:with-param name="anonCounter" select="$anonCounter" />
+            <xsl:with-param name="declMode" select="$declMode" />
+          </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='IDENTIFIER_UNAMBIGUOUS'" >
           <xsl:call-template name="IDENTIFIER_UNAMBIGUOUS">
@@ -373,7 +383,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <STRUCT/>
+    <xsl:if test="$declMode">
+      <STRUCT/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -383,7 +395,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <UNION/>
+    <xsl:if test="$declMode">
+      <UNION/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -393,20 +407,16 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <cdecls>
-      <xsl:for-each select="./*" >
-        <xsl:choose>
-          <xsl:when test="local-name()='structDeclaration'" >
-            <cdecl>
-              <xsl:call-template name="structDeclaration">
-                <xsl:with-param name="anonCounter" select="$anonCounter" />
-                <xsl:with-param name="declMode" select="$declMode" />
-              </xsl:call-template>
-            </cdecl>
-          </xsl:when>
-        </xsl:choose>
-      </xsl:for-each>
-    </cdecls>
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='structDeclaration'" >
+          <xsl:call-template name="structDeclaration">
+            <xsl:with-param name="anonCounter" select="$anonCounter" />
+            <xsl:with-param name="declMode" select="$declMode" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -726,12 +736,10 @@
       <xsl:for-each select="./*" >
         <xsl:choose>
           <xsl:when test="local-name()='parameterList'" >
-            <cdecl>
-              <xsl:call-template name="parameterList">
-                <xsl:with-param name="anonCounter" select="$anonCounter" />
-                <xsl:with-param name="declMode" select="$declMode" />
-              </xsl:call-template>
-            </cdecl>
+            <xsl:call-template name="parameterList">
+              <xsl:with-param name="anonCounter" select="$anonCounter" />
+              <xsl:with-param name="declMode" select="$declMode" />
+            </xsl:call-template>
           </xsl:when>
         </xsl:choose>
       </xsl:for-each>
@@ -1147,7 +1155,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    <xsl:if test="$declMode">
+      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1157,7 +1167,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    <xsl:if test="$declMode">
+      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1167,7 +1179,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+    <xsl:if test="$declMode">
+      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1177,7 +1191,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:text disable-output-escaping="yes">&lt;&#47;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+    <xsl:if test="$declMode">
+      <xsl:text disable-output-escaping="yes">&lt;&#47;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1223,7 +1239,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <STAR/>
+    <xsl:if test="$declMode">
+      <STAR/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1243,7 +1261,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <ENUM/>
+    <xsl:if test="$declMode">
+      <ENUM/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1488,7 +1508,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <CHAR/>
+    <xsl:if test="$declMode">
+      <CHAR/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1498,7 +1520,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <SHORT/>
+    <xsl:if test="$declMode">
+      <SHORT/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1508,7 +1532,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <INT/>
+    <xsl:if test="$declMode">
+      <INT/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1518,7 +1544,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <LONG/>
+    <xsl:if test="$declMode">
+      <LONG/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1528,7 +1556,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <DOUBLE/>
+    <xsl:if test="$declMode">
+      <DOUBLE/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1538,7 +1568,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <SIGNED/>
+    <xsl:if test="$declMode">
+      <SIGNED/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1548,7 +1580,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <UNSIGNED/>
+    <xsl:if test="$declMode">
+      <UNSIGNED/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1558,7 +1592,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <BOOL/>
+    <xsl:if test="$declMode">
+      <BOOL/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1568,7 +1604,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <LABEL/>
+    <xsl:if test="$declMode">
+      <LABEL/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1578,7 +1616,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <COMPLEX/>
+    <xsl:if test="$declMode">
+      <COMPLEX/>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -1588,7 +1628,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <IMAGINARY/>
+    <xsl:if test="$declMode">
+      <IMAGINARY/>
+    </xsl:if>
   </xsl:template>
 
 </xsl:stylesheet>
