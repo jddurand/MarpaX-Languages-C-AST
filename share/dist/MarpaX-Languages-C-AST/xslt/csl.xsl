@@ -14,12 +14,10 @@
     <xsl:variable name="declMode" select="false" />
     <cdecls>
       <xsl:for-each select="./translationUnit/externalDeclaration/declaration" >
-        <cdecl>
-          <xsl:call-template name="declaration">
-            <xsl:with-param name="anonCounter" select="$anonCounter" />
-            <xsl:with-param name="declMode" select="$declMode" />
-          </xsl:call-template>
-        </cdecl>
+        <xsl:call-template name="declaration">
+          <xsl:with-param name="anonCounter" select="$anonCounter" />
+          <xsl:with-param name="declMode" select="$declMode" />
+        </xsl:call-template>
       </xsl:for-each>
     </cdecls>
   </xsl:template>
@@ -732,18 +730,16 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <cdecls>
-      <xsl:for-each select="./*" >
-        <xsl:choose>
-          <xsl:when test="local-name()='parameterList'" >
-            <xsl:call-template name="parameterList">
-              <xsl:with-param name="anonCounter" select="$anonCounter" />
-              <xsl:with-param name="declMode" select="$declMode" />
-            </xsl:call-template>
-          </xsl:when>
-        </xsl:choose>
-      </xsl:for-each>
-    </cdecls>
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterList'" >
+          <xsl:call-template name="parameterList">
+            <xsl:with-param name="anonCounter" select="$anonCounter" />
+            <xsl:with-param name="declMode" select="$declMode" />
+          </xsl:call-template>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
   </xsl:template>
 
   <!-- =================================================================== -->
