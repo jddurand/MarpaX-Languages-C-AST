@@ -11,7 +11,7 @@
   <xsl:template match="/">
     <!-- Select only declarations -->
     <xsl:variable name="anonCounter" select="0" />
-    <xsl:variable name="declMode" select="false" />
+    <xsl:variable name="declMode" select="false()" />
     <cdecls>
       <xsl:for-each select="./translationUnit/externalDeclaration/declaration" >
         <xsl:call-template name="declaration">
@@ -687,12 +687,10 @@
           </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='parameterTypeList'" >
-          <LIST>
-            <xsl:call-template name="parameterTypeList">
-              <xsl:with-param name="anonCounter" select="$anonCounter" />
-              <xsl:with-param name="declMode" select="$declMode" />
-            </xsl:call-template>
-          </LIST>
+          <xsl:call-template name="parameterTypeList">
+            <xsl:with-param name="anonCounter" select="$anonCounter" />
+            <xsl:with-param name="declMode" select="$declMode" />
+          </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='identifierList'" >
           <xsl:call-template name="identifierList">
@@ -714,10 +712,51 @@
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='IDENTIFIER'" >
+          <!--
+              When we have a directDeclaratorIdentifier, this is easy:
+              We just have to move upwards until we have a closing scope,
+              i.e. LCURLY (case of structDeclaration for example) or
+              LPAREN_SCOPE
+          -->
           <xsl:call-template name="IDENTIFIER">
             <xsl:with-param name="anonCounter" select="$anonCounter" />
-            <xsl:with-param name="declMode" select="$declMode" />
+            <!-- declMode forced to true -->
+            <xsl:with-param name="declMode" select="true()" />
           </xsl:call-template>
+          <!-- Move upwards -->
+          <xsl:for-each select="..">
+            <xsl:choose>
+              <xsl:when test="local-name()='initDeclarator'">
+                <xsl:call-template name="initDeclarator">
+                  <xsl:with-param name="anonCounter" select="$anonCounter" />
+                  <!-- declMode forced to true -->
+                  <xsl:with-param name="declMode" select="true()" />
+                </xsl:call-template>
+              </xsl:when>
+              <xsl:when test="local-name()='structDeclarator'">
+                <xsl:call-template name="structDeclarator">
+                  <xsl:with-param name="anonCounter" select="$anonCounter" />
+                  <!-- declMode forced to true -->
+                  <xsl:with-param name="declMode" select="true()" />
+                </xsl:call-template>
+              </xsl:when>
+              <xsl:when test="local-name()='directDeclarator'">
+                <xsl:call-template name="directDeclarator">
+                  <xsl:with-param name="anonCounter" select="$anonCounter" />
+                  <!-- declMode forced to true -->
+                  <xsl:with-param name="declMode" select="true()" />
+                </xsl:call-template>
+              </xsl:when>
+              <xsl:when test="local-name()='parameterDeclarationCheckDeclarator'">
+                <xsl:call-template name="parameterDeclarationCheckDeclarator">
+                  <xsl:with-param name="anonCounter" select="$anonCounter" />
+                  <!-- declMode forced to true -->
+                  <xsl:with-param name="declMode" select="true()" />
+                </xsl:call-template>
+              </xsl:when>
+              <!-- fileScopeDeclarator is ignored -->
+            </xsl:choose>
+          </xsl:for-each>
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
@@ -1051,12 +1090,10 @@
           </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='enumeratorList'" >
-          <LIST>
-            <xsl:call-template name="enumeratorList">
-              <xsl:with-param name="anonCounter" select="$anonCounter" />
-              <xsl:with-param name="declMode" select="$declMode" />
-            </xsl:call-template>
-          </LIST>
+          <xsl:call-template name="enumeratorList">
+            <xsl:with-param name="anonCounter" select="$anonCounter" />
+            <xsl:with-param name="declMode" select="$declMode" />
+          </xsl:call-template>
         </xsl:when>
         <xsl:when test="local-name()='IDENTIFIER_UNAMBIGUOUS'" >
           <xsl:call-template name="IDENTIFIER_UNAMBIGUOUS">
@@ -1164,7 +1201,7 @@
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:if test="$declMode">
-      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER value="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
     </xsl:if>
   </xsl:template>
 
@@ -1247,7 +1284,9 @@
     <xsl:param name="anonCounter"/>
     <xsl:param name="declMode"/>
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
-    <xsl:text disable-output-escaping="yes">&lt;</xsl:text>TYPEDEF_NAME name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    <xsl:if test="$declMode">
+      <xsl:text disable-output-escaping="yes">&lt;</xsl:text>TYPEDEF_NAME name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- =================================================================== -->
