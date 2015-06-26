@@ -108,7 +108,7 @@
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
 
     <!-- by definition the first found identifier is the one we are looking for -->
-    <xsl:variable name="IDENTIFIER" select=".//IDENTIFIER[1]" />
+    <xsl:variable name="IDENTIFIER" select="./descendant::IDENTIFIER[1]" />
     <xsl:variable name="member" select="$IDENTIFIER/@text"/>
     <xsl:choose>
       <xsl:when test="$typedefMode">
@@ -174,6 +174,20 @@
         <!-- If you want the size, you could do: <xsl:for-each select="$nextLexeme/following-sibling::*[local-name()!='RBRACKET']"><xsl:value-of select="concat(' ', ./@text)" /></xsl:for-each> -->
       </xsl:when>
       <xsl:when test="$nextLexeme[local-name()='LPAREN_SCOPE']">
+        <xsl:variable name="nextLexeme2" select="$nextLexeme/following-sibling::*[1]" />
+        <xsl:choose>
+          <xsl:when test="$nextLexeme2[local-name()='parameterTypeList']">
+            <xsl:for-each select="$nextLexeme2">
+              <xsl:call-template name="decypherParameterTypeList" />
+            </xsl:for-each>
+          </xsl:when>
+          <xsl:when test="$nextLexeme2[local-name()='RPAREN_SCOPE']">
+            <xsl:variable name="dummyWarnf" select="hsl:warnf('%s: unparameterized function', ../@text)" />
+          </xsl:when>
+          <xsl:when test="$nextLexeme2[local-name()='identifierList']">
+            <xsl:variable name="dummyWarnf" select="hsl:warnf('%s: old style declaration', ../@text)" />
+          </xsl:when>
+        </xsl:choose>
         <xsl:variable name="dummyCdecl" select="hsl:cdecl('', 'type', 'function')" />
       </xsl:when>
     </xsl:choose>
@@ -250,6 +264,36 @@
     </xsl:for-each>
   </xsl:template>
 
+  <xsl:template name="decypherAbstractDeclarator">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <!--
+        The only important thing is to know if there is a pointer, which can
+        only be the very first child of an abstractDeclarator
+    -->
+    <xsl:for-each select="./child::*[1][local-name()='pointer']">
+      <xsl:call-template name="decypherPointer" />
+    </xsl:for-each>
+    <!--
+        Look to parent of abstractDeclarator. This can only be:
+        * parameterDeclaration
+        * typeName
+        * directAbstractDeclarator
+    -->
+    <xsl:for-each select="..">
+      <xsl:choose>
+        <xsl:when test="local-name()='parameterDeclaration'">
+          <!-- structDeclaratorList/structDeclarator -->
+          <xsl:for-each select="../preceding-sibling::*[1]">
+            <xsl:call-template name="decypherSpecifierQualifierList" />
+          </xsl:for-each>
+        </xsl:when>
+        <xsl:when test="local-name()='directDeclarator'">
+          <xsl:call-template name="decypherDirectDeclarator" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
   <xsl:template name="decypherSpecifierQualifierList">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
@@ -267,19 +311,58 @@
     </xsl:for-each>
   </xsl:template>
 
-  <xsl:template name="decypherSpecifierQualifierList0">
+  <xsl:template name="decypherParameterDeclaration">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="parameterDeclarationCheck" select="./*[local-name()='parameterDeclarationCheck']" />
+    <xsl:variable name="abstractDeclarator" select="./*[local-name()='abstractDeclarator']" />
+    <xsl:choose>
+      <xsl:when test="$abstractDeclarator">
+        <!-- If there is an abstractDeclarator, we start from there -->
+        <xsl:for-each select="$abstractDeclarator">
+          <xsl:call-template name="decypherAbstractDeclarator" />
+        </xsl:for-each>
+      </xsl:when>
+      <xsl:when test="$abstractDeclarator">
+        <!-- If there is an parameterDeclarationCheck, then there is a declarator -->
+        <xsl:for-each select="$parameterDeclarationCheck/parameterDeclarationCheckDeclarator/declarator">
+          <xsl:call-template name="decypherDeclarator" />
+        </xsl:for-each>
+      </xsl:when>
+      <xsl:otherwise>
+        <!-- else this is only declarationSpecifiers -->
+        <xsl:for-each select="./declarationSpecifiers">
+          <xsl:call-template name="decypherDeclarationSpecifiers" />
+        </xsl:for-each>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
+  <xsl:template name="decypherParameterDeclarationdeclarationSpecifiers">
     <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*">
       <xsl:choose>
-        <xsl:when test="local-name()='typeQualifier'">
-          <xsl:call-template name="decypherTypeQualifier">
-            <xsl:with-param name="withConst" select="1" />
-          </xsl:call-template>
-        </xsl:when>
-        <xsl:when test="local-name()='specifierQualifierList0'">
-          <xsl:call-template name="decypherSpecifierQualifierList0" />
+        <xsl:when test="local-name()='declarationSpecifiers'">
+          <xsl:call-template name="decypherDeclarationSpecifiers" />
         </xsl:when>
       </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherParameterTypeList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="parameterList" select="./parameterList" />
+    <xsl:if test="./ELLIPSIS">
+      <xsl:variable name="dummyWarnf" select="hsl:warnf('%s: ellipsis parameter', ../@text)" />
+    </xsl:if>
+    <xsl:for-each select="$parameterList" >
+      <xsl:call-template name="decypherParameterList" />
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="decypherParameterList">
+    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*">
+      <xsl:call-template name="decypherParameterDeclaration" />
     </xsl:for-each>
   </xsl:template>
 
