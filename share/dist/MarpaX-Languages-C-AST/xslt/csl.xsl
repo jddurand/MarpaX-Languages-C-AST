@@ -1,7 +1,7 @@
 <xsl:stylesheet version="1.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format"
-                xmlns:hsl="urn:hsl">
+                xmlns:csl="urn:csl">
   <!-- <xsl:output method="text" omit-xml-declaration="yes" /> -->
 
   <!-- =================================================================== -->
@@ -23,7 +23,7 @@
   <!--                              declaration                            -->
   <!-- =================================================================== -->
   <xsl:template name="declaration">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarationSpecifiers'" >
@@ -40,7 +40,7 @@
   <!--                          declarationSpecifiers                      -->
   <!-- =================================================================== -->
   <xsl:template name="declarationSpecifiers">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarationSpecifiers0'" >
@@ -60,7 +60,7 @@
   <!--                             declarationCheck                        -->
   <!-- =================================================================== -->
   <xsl:template name="declarationCheck">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarationCheckdeclarationSpecifiers'" >
@@ -77,7 +77,7 @@
   <!--                           declarationSpecifiers0                    -->
   <!-- =================================================================== -->
   <xsl:template name="declarationSpecifiers0">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='storageClassSpecifier'" >
@@ -97,7 +97,7 @@
   <!--                            storageClassSpecifier                    -->
   <!-- =================================================================== -->
   <xsl:template name="storageClassSpecifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='storageClassSpecifierTypedef'" >
@@ -117,7 +117,7 @@
   <!--                        storageClassSpecifierTypedef                 -->
   <!-- =================================================================== -->
   <xsl:template name="storageClassSpecifierTypedef">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='TYPEDEF'" >
@@ -131,7 +131,7 @@
   <!--                                TYPEDEF                              -->
   <!-- =================================================================== -->
   <xsl:template name="TYPEDEF">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <TYPEDEF/>
   </xsl:template>
 
@@ -139,7 +139,7 @@
   <!--                                 EXTERN                              -->
   <!-- =================================================================== -->
   <xsl:template name="EXTERN">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <EXTERN/>
   </xsl:template>
 
@@ -147,7 +147,7 @@
   <!--                                 STATIC                              -->
   <!-- =================================================================== -->
   <xsl:template name="STATIC">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <STATIC/>
   </xsl:template>
 
@@ -155,7 +155,7 @@
   <!--                                typeQualifier                        -->
   <!-- =================================================================== -->
   <xsl:template name="typeQualifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='CONST'" >
@@ -169,7 +169,7 @@
   <!--                                    CONST                            -->
   <!-- =================================================================== -->
   <xsl:template name="CONST">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <CONST/>
   </xsl:template>
 
@@ -177,7 +177,7 @@
   <!--                               typeSpecifier1                        -->
   <!-- =================================================================== -->
   <xsl:template name="typeSpecifier1">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='VOID'" >
@@ -203,7 +203,7 @@
   <!--                                   VOID                              -->
   <!-- =================================================================== -->
   <xsl:template name="VOID">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <VOID/>
   </xsl:template>
 
@@ -211,7 +211,7 @@
   <!--                                  FLOAT                              -->
   <!-- =================================================================== -->
   <xsl:template name="FLOAT">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <FLOAT/>
   </xsl:template>
 
@@ -219,7 +219,7 @@
   <!--                             structOrUnionSpecifier                  -->
   <!-- =================================================================== -->
   <xsl:template name="structOrUnionSpecifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='structOrUnion'" >
@@ -241,7 +241,7 @@
   <!--                              structOrUnion                          -->
   <!-- =================================================================== -->
   <xsl:template name="structOrUnion">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='STRUCT'" >
@@ -258,7 +258,7 @@
   <!--                                    STRUCT                           -->
   <!-- =================================================================== -->
   <xsl:template name="STRUCT">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <STRUCT/>
   </xsl:template>
 
@@ -266,7 +266,7 @@
   <!--                                    UNION                            -->
   <!-- =================================================================== -->
   <xsl:template name="UNION">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <UNION/>
   </xsl:template>
 
@@ -274,7 +274,7 @@
   <!--                           structDeclarationList                     -->
   <!-- =================================================================== -->
   <xsl:template name="structDeclarationList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <cdecls>
       <xsl:for-each select="./*" >
         <xsl:choose>
@@ -292,7 +292,7 @@
   <!--                             structDeclaration                       -->
   <!-- =================================================================== -->
   <xsl:template name="structDeclaration">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='specifierQualifierList'" >
@@ -309,7 +309,7 @@
   <!--                          specifierQualifierList                     -->
   <!-- =================================================================== -->
   <xsl:template name="specifierQualifierList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='specifierQualifierList0'" >
@@ -329,7 +329,7 @@
   <!--                          specifierQualifierList0                    -->
   <!-- =================================================================== -->
   <xsl:template name="specifierQualifierList0">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeQualifier'" >
@@ -346,7 +346,7 @@
   <!--                          specifierQualifierList1                    -->
   <!-- =================================================================== -->
   <xsl:template name="specifierQualifierList1">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier1'" >
@@ -369,7 +369,7 @@
   <!--                          specifierQualifierList2                    -->
   <!-- =================================================================== -->
   <xsl:template name="specifierQualifierList2">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier2'" >
@@ -392,7 +392,7 @@
   <!--                            structDeclaratorList                     -->
   <!-- =================================================================== -->
   <xsl:template name="structDeclaratorList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='structDeclarator'" >
@@ -406,7 +406,7 @@
   <!--                              structDeclarator                       -->
   <!-- =================================================================== -->
   <xsl:template name="structDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarator'" >
@@ -420,7 +420,7 @@
   <!--                                 declarator                          -->
   <!-- =================================================================== -->
   <xsl:template name="declarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='pointer'" >
@@ -437,7 +437,7 @@
   <!--                             directDeclarator                        -->
   <!-- =================================================================== -->
   <xsl:template name="directDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='directDeclaratorIdentifier'" >
@@ -477,7 +477,7 @@
   <!--                          directDeclaratorIdentifier                 -->
   <!-- =================================================================== -->
   <xsl:template name="directDeclaratorIdentifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='IDENTIFIER'" >
@@ -491,7 +491,7 @@
   <!--                            parameterTypeList                        -->
   <!-- =================================================================== -->
   <xsl:template name="parameterTypeList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <cdecls>
       <xsl:for-each select="./*" >
         <xsl:choose>
@@ -509,7 +509,7 @@
   <!--                              parameterList                          -->
   <!-- =================================================================== -->
   <xsl:template name="parameterList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='parameterDeclaration'" >
@@ -523,7 +523,7 @@
   <!--                            parameterDeclaration                     -->
   <!-- =================================================================== -->
   <xsl:template name="parameterDeclaration">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='parameterDeclarationCheck'" >
@@ -543,7 +543,7 @@
   <!--                          parameterDeclarationCheck                  -->
   <!-- =================================================================== -->
   <xsl:template name="parameterDeclarationCheck">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='parameterDeclarationdeclarationSpecifiers'" >
@@ -560,7 +560,7 @@
   <!--                 parameterDeclarationCheckDeclarator                 -->
   <!-- =================================================================== -->
   <xsl:template name="parameterDeclarationCheckDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarator'" >
@@ -574,7 +574,7 @@
   <!--            parameterDeclarationdeclarationSpecifiers                -->
   <!-- =================================================================== -->
   <xsl:template name="parameterDeclarationdeclarationSpecifiers">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarationSpecifiers'" >
@@ -588,7 +588,7 @@
   <!--                              identifierList                         -->
   <!-- =================================================================== -->
   <xsl:template name="identifierList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='IDENTIFIER'" >
@@ -602,7 +602,7 @@
   <!--                              abstractDeclarator                     -->
   <!-- =================================================================== -->
   <xsl:template name="abstractDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='pointer'" >
@@ -619,7 +619,7 @@
   <!--                            directAbstractDeclarator                 -->
   <!-- =================================================================== -->
   <xsl:template name="directAbstractDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='abstractDeclarator'" >
@@ -657,7 +657,7 @@
   <!--                                  pointer                            -->
   <!-- =================================================================== -->
   <xsl:template name="pointer">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='STAR'" >
@@ -677,7 +677,7 @@
   <!--                         pointerQualifierList                        -->
   <!-- =================================================================== -->
   <xsl:template name="pointerQualifierList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='pointerQualifier'" >
@@ -691,7 +691,7 @@
   <!--                           pointerQualifier                          -->
   <!-- =================================================================== -->
   <xsl:template name="pointerQualifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeQualifier'" >
@@ -705,7 +705,7 @@
   <!--                                  enumSpecifier                      -->
   <!-- =================================================================== -->
   <xsl:template name="enumSpecifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='ENUM'" >
@@ -727,7 +727,7 @@
   <!--                                 enumeratorList                      -->
   <!-- =================================================================== -->
   <xsl:template name="enumeratorList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='enumerator'" >
@@ -741,7 +741,7 @@
   <!--                                   enumerator                        -->
   <!-- =================================================================== -->
   <xsl:template name="enumerator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='enumerationConstant'" >
@@ -755,7 +755,7 @@
   <!--                                enumerationConstant                  -->
   <!-- =================================================================== -->
   <xsl:template name="enumerationConstant">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='enumerationConstantIdentifier'" >
@@ -769,7 +769,7 @@
   <!--                           enumerationConstantIdentifier             -->
   <!-- =================================================================== -->
   <xsl:template name="enumerationConstantIdentifier">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='IDENTIFIER_UNAMBIGUOUS'" >
@@ -783,7 +783,7 @@
   <!--                             IDENTIFIER_UNAMBIGUOUS                  -->
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER_UNAMBIGUOUS">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
@@ -791,7 +791,7 @@
   <!--                                  IDENTIFIER                         -->
   <!-- =================================================================== -->
   <xsl:template name="IDENTIFIER">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:text disable-output-escaping="yes">&lt;</xsl:text>IDENTIFIER name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
@@ -799,7 +799,7 @@
   <!--                                  LBRACKET                           -->
   <!-- =================================================================== -->
   <xsl:template name="LBRACKET">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:text disable-output-escaping="yes">&lt;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
   </xsl:template>
 
@@ -807,7 +807,7 @@
   <!--                                  RBRACKET                           -->
   <!-- =================================================================== -->
   <xsl:template name="RBRACKET">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:text disable-output-escaping="yes">&lt;&#47;</xsl:text>ARRAY<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
   </xsl:template>
 
@@ -815,35 +815,35 @@
   <!--                                LPAREN_SCOPE                         -->
   <!-- =================================================================== -->
   <xsl:template name="LPAREN_SCOPE">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
   <!-- =================================================================== -->
   <!--                                RPAREN_SCOPE                         -->
   <!-- =================================================================== -->
   <xsl:template name="RPAREN_SCOPE">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
   <!-- =================================================================== -->
   <!--                                  LPAREN                             -->
   <!-- =================================================================== -->
   <xsl:template name="LPAREN">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
   <!-- =================================================================== -->
   <!--                                 RPAREN                              -->
   <!-- =================================================================== -->
   <xsl:template name="RPAREN">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
   </xsl:template>
 
   <!-- =================================================================== -->
   <!--                                     STAR                            -->
   <!-- =================================================================== -->
   <xsl:template name="STAR">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <STAR/>
   </xsl:template>
 
@@ -851,7 +851,7 @@
   <!--                                 TYPEDEF_NAME                        -->
   <!-- =================================================================== -->
   <xsl:template name="TYPEDEF_NAME">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:text disable-output-escaping="yes">&lt;</xsl:text>TYPEDEF_NAME name="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&#47;&gt;</xsl:text>
   </xsl:template>
 
@@ -859,7 +859,7 @@
   <!--                                     ENUM                            -->
   <!-- =================================================================== -->
   <xsl:template name="ENUM">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <ENUM/>
   </xsl:template>
 
@@ -867,7 +867,7 @@
   <!--                               typeSpecifier2                        -->
   <!-- =================================================================== -->
   <xsl:template name="typeSpecifier2">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='CHAR'" >
@@ -908,7 +908,7 @@
   <!--                           declarationSpecifiers1                    -->
   <!-- =================================================================== -->
   <xsl:template name="declarationSpecifiers1">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier1'" >
@@ -934,7 +934,7 @@
   <!--                           declarationSpecifiers2                    -->
   <!-- =================================================================== -->
   <xsl:template name="declarationSpecifiers2">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='typeSpecifier2'" >
@@ -960,7 +960,7 @@
   <!--                      declarationCheckdeclarationSpecifiers          -->
   <!-- =================================================================== -->
   <xsl:template name="declarationCheckdeclarationSpecifiers">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarationSpecifiers'" >
@@ -974,7 +974,7 @@
   <!--                        declarationCheckinitDeclaratorList           -->
   <!-- =================================================================== -->
   <xsl:template name="declarationCheckinitDeclaratorList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='initDeclaratorList'" >
@@ -988,7 +988,7 @@
   <!--                             initDeclaratorList                      -->
   <!-- =================================================================== -->
   <xsl:template name="initDeclaratorList">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='initDeclarator'" >
@@ -1002,7 +1002,7 @@
   <!--                               initDeclarator                        -->
   <!-- =================================================================== -->
   <xsl:template name="initDeclarator">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <xsl:when test="local-name()='declarator'" >
@@ -1016,7 +1016,7 @@
   <!--                                   CHAR                              -->
   <!-- =================================================================== -->
   <xsl:template name="CHAR">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <CHAR/>
   </xsl:template>
 
@@ -1024,7 +1024,7 @@
   <!--                                  SHORT                              -->
   <!-- =================================================================== -->
   <xsl:template name="SHORT">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <SHORT/>
   </xsl:template>
 
@@ -1032,7 +1032,7 @@
   <!--                                   INT                               -->
   <!-- =================================================================== -->
   <xsl:template name="INT">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <INT/>
   </xsl:template>
 
@@ -1040,7 +1040,7 @@
   <!--                                  LONG                               -->
   <!-- =================================================================== -->
   <xsl:template name="LONG">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <LONG/>
   </xsl:template>
 
@@ -1048,7 +1048,7 @@
   <!--                                 DOUBLE                              -->
   <!-- =================================================================== -->
   <xsl:template name="DOUBLE">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <DOUBLE/>
   </xsl:template>
 
@@ -1056,7 +1056,7 @@
   <!--                                 SIGNED                              -->
   <!-- =================================================================== -->
   <xsl:template name="SIGNED">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <SIGNED/>
   </xsl:template>
 
@@ -1064,7 +1064,7 @@
   <!--                                UNSIGNED                             -->
   <!-- =================================================================== -->
   <xsl:template name="UNSIGNED">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <UNSIGNED/>
   </xsl:template>
 
@@ -1072,7 +1072,7 @@
   <!--                                  BOOL                               -->
   <!-- =================================================================== -->
   <xsl:template name="BOOL">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <BOOL/>
   </xsl:template>
 
@@ -1080,7 +1080,7 @@
   <!--                                 LABEL                               -->
   <!-- =================================================================== -->
   <xsl:template name="LABEL">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <LABEL/>
   </xsl:template>
 
@@ -1088,7 +1088,7 @@
   <!--                                COMPLEX                              -->
   <!-- =================================================================== -->
   <xsl:template name="COMPLEX">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <COMPLEX/>
   </xsl:template>
 
@@ -1096,7 +1096,7 @@
   <!--                               IMAGINARY                             -->
   <!-- =================================================================== -->
   <xsl:template name="IMAGINARY">
-    <xsl:variable name="dummyTracef" select="hsl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
     <IMAGINARY/>
   </xsl:template>
 

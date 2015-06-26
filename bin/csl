@@ -19,13 +19,13 @@ use XML::LibXML;
 
 # VERSION
 
-# PODNAME: hsl
+# PODNAME: csl
 
 my $help = 0;
 my $cpprun = undef;
 my @cppflags = ();
 my $filter = undef;
-my $prefix = 'hsl_';
+my $prefix = 'csl_';
 my $anon = '__ANON__';
 my @print = ();
 my @target = ();
@@ -266,7 +266,7 @@ sub _getConciseView{
   my $lastIdentifier;
   my $lastTypedef;
   my @cdeclStack = ();
-  XML::LibXSLT->register_function("urn:hsl", "toStringTracef",
+  XML::LibXSLT->register_function("urn:csl", "toStringTracef",
                                   sub {
                                     my ($this) = @_;
                                     #
@@ -286,7 +286,7 @@ sub _getConciseView{
                                                  '<undef>');
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "tracef",
+  XML::LibXSLT->register_function("urn:csl", "tracef",
                                   sub {
                                     my $format = shift;
                                     #
@@ -295,7 +295,7 @@ sub _getConciseView{
                                     $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "warnf",
+  XML::LibXSLT->register_function("urn:csl", "warnf",
                                   sub {
                                     my $format = shift;
                                     #
@@ -304,44 +304,44 @@ sub _getConciseView{
                                     $log->warnf($format, map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "prefix",
+  XML::LibXSLT->register_function("urn:csl", "prefix",
                                   sub {
                                       return $prefix;
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "anon",
+  XML::LibXSLT->register_function("urn:csl", "anon",
                                   sub {
                                       return $anon;
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "nextAnonCounter",
+  XML::LibXSLT->register_function("urn:csl", "nextAnonCounter",
                                   sub {
                                       ++$anonCounter;
                                       return "$anonCounter";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "getContentToIdentifier",
+  XML::LibXSLT->register_function("urn:csl", "getContentToIdentifier",
                                   sub {
                                       my ($content) = @_;
                                       $contentToIdentifier{$content} //= '';
                                       return "$contentToIdentifier{$content}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "getDoneIdentifier",
+  XML::LibXSLT->register_function("urn:csl", "getDoneIdentifier",
                                   sub {
                                       my ($identifier) = @_;
                                       $doneIdentifier{$identifier} //= '';
                                       return "$doneIdentifier{$identifier}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "setDoneIdentifier",
+  XML::LibXSLT->register_function("urn:csl", "setDoneIdentifier",
                                   sub {
                                       my ($identifier, $type) = @_;
                                       $doneIdentifier{$identifier} = 1;
                                       return "$doneIdentifier{$identifier}";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "setContentToIdentifier",
+  XML::LibXSLT->register_function("urn:csl", "setContentToIdentifier",
                                   sub {
                                       my ($content, $identifier) = @_;
                                       $contentToIdentifier{$content} = $identifier;
                                       return "$identifier";
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "cdeclPush",
+  XML::LibXSLT->register_function("urn:csl", "cdeclPush",
                                   sub {
                                       my ($identifier, $type) = @_;
                                       $cdecl{$lastType = $type}{$lastIdentifier = $identifier} //= [];
@@ -350,7 +350,7 @@ sub _getConciseView{
                                       $log->debugf('Id>    %s %s', "$lastType", "$lastIdentifier");
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "typedefPush",
+  XML::LibXSLT->register_function("urn:csl", "typedefPush",
                                   sub {
                                       my ($identifier) = @_;
                                       push(@typedefs, {$identifier => []});
@@ -358,7 +358,7 @@ sub _getConciseView{
                                       $log->debugf('Typedef> %s', "$identifier");
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "cdeclPop",
+  XML::LibXSLT->register_function("urn:csl", "cdeclPop",
                                   sub {
                                       pop(@cdeclStack);
                                       ($lastType, $lastIdentifier) = @cdeclStack ? @{$cdeclStack[-1]} : undef;
@@ -371,13 +371,13 @@ sub _getConciseView{
                                       }
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "typedefPop",
+  XML::LibXSLT->register_function("urn:csl", "typedefPop",
                                   sub {
                                       $lastTypedef = undef;
                                       $log->debugf('Typedef< undef');
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "cdecl",
+  XML::LibXSLT->register_function("urn:csl", "cdecl",
                                   sub {
                                       if (@_) {
                                           my $member = shift;
@@ -403,7 +403,7 @@ sub _getConciseView{
                                       }
                                       return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "addTypedef",
+  XML::LibXSLT->register_function("urn:csl", "addTypedef",
                                   sub {
                                       my ($type, $name, $def) = @_;
                                       push(@newTypedefs, {name => $name, type => $type, def => $def});
@@ -487,7 +487,7 @@ sub _getConciseView{
 sub _getConciseView2 {
   my $anonCounter = 0;
   my %cdecl = ();
-  XML::LibXSLT->register_function("urn:hsl", "toStringTracef",
+  XML::LibXSLT->register_function("urn:csl", "toStringTracef",
                                   sub {
                                     my ($this) = @_;
                                     #
@@ -507,7 +507,7 @@ sub _getConciseView2 {
                                                  '<undef>');
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "tracef",
+  XML::LibXSLT->register_function("urn:csl", "tracef",
                                   sub {
                                     my $format = shift;
                                     #
@@ -516,7 +516,7 @@ sub _getConciseView2 {
                                     $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "warnf",
+  XML::LibXSLT->register_function("urn:csl", "warnf",
                                   sub {
                                     my $format = shift;
                                     #
@@ -525,7 +525,7 @@ sub _getConciseView2 {
                                     $log->warnf($format, map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
-  XML::LibXSLT->register_function("urn:hsl", "getAnonIdentifier",
+  XML::LibXSLT->register_function("urn:csl", "getAnonIdentifier",
                                   sub {
                                     ++$anonCounter;
                                     return "$anon$anonCounter";
@@ -547,19 +547,19 @@ sub _getConciseView2 {
 sub _generateTarget {
     my ($c, $dom, $target) = @_;
 
-    XML::LibXSLT->register_function("urn:hsl", "content",
+    XML::LibXSLT->register_function("urn:csl", "content",
                                     sub {
                                         return $c->content;
                                     });
 
 
-    XML::LibXSLT->register_function("urn:hsl", "module",
+    XML::LibXSLT->register_function("urn:csl", "module",
                                     sub {
                                         return $module;
                                     });
 
 
-    XML::LibXSLT->register_function("urn:hsl", "localtime",
+    XML::LibXSLT->register_function("urn:csl", "localtime",
                                     sub {
                                         return '' . localtime;
                                     });
@@ -584,11 +584,11 @@ __DATA__
 
 =head1 NAME
 
-hsl - C Header file transformation
+csl - C Header file transformation
 
 =head1 SYNOPSIS
 
- hsl [options] [file]
+ csl [options] [file]
 
  Startup Options:
    --help                Brief help message.
@@ -651,7 +651,7 @@ $CPPFLAGS (if you read this message, do not worry: this is replaced by correct v
 
 File to look at after proprocessing. Defaults to basename of file argument.
 
-hsl is using the preprocessor. Every #include statement in your original source code is telling the preprocessor to look at another file, this is marked down by a line like:
+csl is using the preprocessor. Every #include statement in your original source code is telling the preprocessor to look at another file, this is marked down by a line like:
 
  #line ... "information on the file processed"
 
@@ -661,7 +661,7 @@ In case the file you parse I<already> contains preprocessing information, for ex
 
 =item B<--prefix <argument>>
 
-Prefix added to target declarations. Default is "hsl_".
+Prefix added to target declarations. Default is "csl_".
 
 =item B<--anon <argument>>
 
@@ -773,20 +773,20 @@ Comma separated list of known enums. Can be repeated. Default is an empty list.
 
 =head1 EXAMPLES
 
- hsl                                                                  /tmp/file.c --target lua
- hsl --cppflags "-I/tmp/dir1            -DMYDEFINE"                   /tmp/file.c --target marpa
- hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c --target perl5 --print ast --print dom
- hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c --target java
+ csl                                                                  /tmp/file.c --target lua
+ csl --cppflags "-I/tmp/dir1            -DMYDEFINE"                   /tmp/file.c --target marpa
+ csl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE                    /tmp/file.c --target perl5 --print ast --print dom
+ csl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE --filter '/\.H$/i' /tmp/file.c --target java
 
 =head1 NOTES
 
 Any unknown option on the command line is passed through to --cppflags. I.e.:
 
- hsl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE /tmp/file.c
+ csl --cppflags  -I/tmp/dir1 --cppflags -DMYDEFINE /tmp/file.c
 
 and
 
- hsl -I/tmp/dir1 -DMYDEFINE /tmp/file.c
+ csl -I/tmp/dir1 -DMYDEFINE /tmp/file.c
 
 are equivalent. A restriction is that the filename must be the last argument.
 
