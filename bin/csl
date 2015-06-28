@@ -188,7 +188,7 @@ if (grep {$_ eq 'ast'} @print) {
 # --------------------------------
 # Get a concise view of the header
 # --------------------------------
-my $dom = _getConciseView2();
+my $dom = _getConciseView2($c->ast);
 if (grep {$_ eq 'dom'} @print) {
     print $dom->toString(1);
 }
@@ -485,27 +485,19 @@ sub _getConciseView{
 }
 
 sub _getConciseView2 {
+  my ($dom, $stylesheet) = @_;
+
+  $stylesheet //= eval {$c->xslt("csl.xsl")};
+  if ($@) {
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
+  }
+
   my $anonCounter = 0;
   my %cdecl = ();
-  XML::LibXSLT->register_function("urn:csl", "toStringTracef",
+  XML::LibXSLT->register_function("urn:csl", "anon",
                                   sub {
-                                    my ($this) = @_;
-                                    #
-                                    # Force stringification in case of an XML object
-                                    #
-                                    $log->tracef('==> %s',
-                                                 defined($this) ?
-                                                 ((ref($this) eq 'XML::LibXML::NodeList') ?
-                                                  join("\n", map {$_->toString(1)} $this->get_nodelist)
-                                                  :
-                                                  (ref($this) eq 'XML::LibXML::Node') ?
-                                                  $this->toString(1)
-                                                  :
-                                                  '<not supported>: ' . ref($this)
-                                                 )
-                                                 :
-                                                 '<undef>');
-                                    return '';
+                                    return $anon;
                                   });
   XML::LibXSLT->register_function("urn:csl", "tracef",
                                   sub {
@@ -530,19 +522,39 @@ sub _getConciseView2 {
                                     ++$anonCounter;
                                     return "$anon$anonCounter";
                                   });
-  my $stylesheet = eval {$c->xslt("csl.xsl")};
-  if ($@) {
-    $log->fatalf('%s', $@);
-    exit(EXIT_FAILURE);
-  }
-  my $result = eval {$stylesheet->transform($c->ast)};
+  XML::LibXSLT->register_function("urn:csl", "recurse",
+                                  sub {
+                                    my ($this) = @_;
+                                    my $string = defined($this) ?
+                                      ((ref($this) eq 'XML::LibXML::NodeList') ?
+                                       join("\n", map {$_->toString(1)} $this->get_nodelist)
+                                       :
+                                       (ref($this) eq 'XML::LibXML::Node') ?
+                                       $this->toString(1)
+                                       :
+                                       '<not supported>: ' . ref($this)
+                                      )
+                                      :
+                                      '<undef>';
+                                    my $dom = XML::LibXML->load_xml(string => $string);
+                                    #
+                                    # In the recurse move we only want to see inner <DECLARATORS>
+                                    #
+                                    my $toString = _getConciseView2($dom, $stylesheet)
+                                      ->firstChild()          # <CSL>
+                                        ->firstChild()          # <DECLARATORS>
+                                          ->toString(1);
+                                    $log->tracef('recurse output: %s', $toString);
+                                    return $toString;
+                                  });
+  my $result = eval {$stylesheet->transform($dom)};
   if ($@) {
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
   }
   $log->tracef('%s', $stylesheet->output_as_bytes($result));
-  my $dom = XML::LibXML->load_xml(string => $stylesheet->output_as_bytes($result));
-  return $dom;
+  my $rc = XML::LibXML->load_xml(string => $stylesheet->output_as_bytes($result));
+  return $rc;
 }
 
 sub _generateTarget {
