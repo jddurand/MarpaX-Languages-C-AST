@@ -23,38 +23,59 @@
         not a child of a scoped declaration nor array size definition, and
         that is at the end of an eventual () chain of the same declarator
         type.
+        The absence of declarator is possible when we are called recursively
+        for a parameterTypeList content. The signature is then well known:
+        <parameterDeclaration>
+          <declarationSpecifiers>
+          ...
+          </declarationSpecifiers>
+        </parameterDeclaration>
+
         Note that old C-styleI identifierList will never match a declarator.
     -->
-    <xsl:for-each select=".//*[
+    <identifiers>
+      <xsl:for-each select=".//*[
                             (
-                             (local-name()='directDeclarator' and not(descendant::*[self::directDeclarator])) or
-                             (local-name()='abstractDeclarator' and not(descendant::*[self::abstractDeclarator]))
-                            )
-                            and not
-                             (ancestor::*
-                              [
-                              self::structDeclarationList or
-                              self::parameterTypeList     or
-                            
-                              self::typeQualifierList     or
-                              self::assignmentExpression
-                              ]
+                             (
+                              (local-name()='directDeclarator' and not(descendant::*[self::directDeclarator])) or
+                              (local-name()='abstractDeclarator' and not(descendant::*[self::abstractDeclarator]))
+                             )
+                             and not
+                              (ancestor::*
+                               [
+                               self::structDeclarationList or
+                               self::parameterTypeList     or
+                             
+                               self::typeQualifierList     or
+                               self::assignmentExpression
+                               ]
+                              )
+                             )
+                             or
+                             (
+                             local-name()='parameterDeclaration' and not(descendant::*[self::directDeclarator or self::abstractDeclarator])
                              )
                             ]
                             ">
-      <xsl:choose>
-        <xsl:when test="local-name()='directDeclarator'">
-          <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-          <xsl:call-template name="directDeclarator" />
-          <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
-        </xsl:when>
-        <xsl:when test="local-name()='abstractDeclarator'">
-          <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-          <xsl:call-template name="abstractDeclarator" />
-          <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
-        </xsl:when>
-      </xsl:choose>
-    </xsl:for-each>
+        <xsl:choose>
+          <xsl:when test="local-name()='directDeclarator'">
+            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+            <xsl:call-template name="directDeclarator" />
+            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+          </xsl:when>
+          <xsl:when test="local-name()='abstractDeclarator'">
+            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+            <xsl:call-template name="abstractDeclarator" />
+            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+          </xsl:when>
+          <xsl:when test="local-name()='parameterDeclaration'">
+            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+            <xsl:call-template name="parameterDeclaration" />
+            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+          </xsl:when>
+        </xsl:choose>
+      </xsl:for-each>
+    </identifiers>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -70,7 +91,49 @@
   <!-- =================================================================== -->
   <xsl:template name="abstractDeclarator">
     <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
+    <!--
+        Before moving upward, the abstractDeclarator has a special case:
+        it can refer to a pointer.
+        Please note that this template is called only when no more
+        abstractDeclarator exist below, so there is no risk of recursion
+    -->
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='pointer'" >
+          <xsl:call-template name="pointer" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
     <xsl:call-template name="parent" />
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                           parameterDeclaration                      -->
+  <!-- =================================================================== -->
+  <xsl:template name="parameterDeclaration">
+    <!--
+        This template is called in the specific case of parameterTypeList
+        without abstractDeclarator or directDeclarator.
+        So the following test will match only declarationSpecifiers.
+    -->
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <!--
+        <xsl:when test="local-name()='parameterDeclarationCheck'" >
+          <xsl:call-template name="parameterDeclarationCheck" />
+        </xsl:when>
+        -->
+        <xsl:when test="local-name()='declarationSpecifiers'" >
+          <xsl:call-template name="declarationSpecifiers" />
+        </xsl:when>
+        <!--
+        <xsl:when test="local-name()='abstractDeclarator'" >
+          <xsl:call-template name="abstractDeclarator" />
+        </xsl:when>
+        -->
+      </xsl:choose>
+    </xsl:for-each>
   </xsl:template>
 
   <!-- =================================================================== -->
@@ -79,7 +142,7 @@
   <xsl:template name="parent">
     <xsl:variable name="dummyTracef" select="csl:tracef('.. %s: %s', local-name(), ./@text)" />
     <!--
-        Look to the perceeding siblings.
+        Look to the preceding siblings.
     -->
     <xsl:for-each select="./preceding-sibling::*" >
       <xsl:variable name="dummyTracef2" select="csl:tracef('&lt;. %s: %s', local-name(), ./@text)" />
@@ -106,7 +169,7 @@
       <xsl:choose>
         <xsl:when test="local-name() = 'LBRACKET'" >
           <array text="array">
-            <size text="of size:">
+            <size text="size">
               <xsl:for-each select="./following-sibling::*[1]">
                 <xsl:choose>
                   <xsl:when test="local-name() != 'RBRACKET'" >

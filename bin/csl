@@ -485,16 +485,15 @@ sub _getConciseView{
 }
 
 sub _getConciseView2 {
-  my ($dom, $stylesheet) = @_;
+  my ($dom, $stylesheet, $anonCounter) = @_;
 
   $stylesheet //= eval {$c->xslt("csl.xsl")};
   if ($@) {
     $log->fatalf('%s', $@);
     exit(EXIT_FAILURE);
   }
+  $anonCounter //= 0;
 
-  my $anonCounter = 0;
-  my %cdecl = ();
   XML::LibXSLT->register_function("urn:csl", "anon",
                                   sub {
                                     return $anon;
@@ -540,9 +539,9 @@ sub _getConciseView2 {
                                     #
                                     # In the recurse move we only want to see inner <DECLARATORS>
                                     #
-                                    my $toString = _getConciseView2($dom, $stylesheet)
-                                      ->firstChild()          # <CSL>
-                                        ->firstChild()          # <DECLARATORS>
+                                    my $toString = _getConciseView2($dom, $stylesheet, $anonCounter)
+                                      ->firstChild()          # <csl>
+                                        ->firstChild()          # <identifiers>
                                           ->toString(1);
                                     $log->tracef('recurse output: %s', $toString);
                                     return $toString;
