@@ -57,23 +57,25 @@
                              )
                             ]
                             ">
-        <xsl:choose>
-          <xsl:when test="local-name()='directDeclarator'">
-            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-            <xsl:call-template name="directDeclarator" />
-            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
-          </xsl:when>
-          <xsl:when test="local-name()='abstractDeclarator'">
-            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-            <xsl:call-template name="abstractDeclarator" />
-            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
-          </xsl:when>
-          <xsl:when test="local-name()='parameterDeclaration'">
-            <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
-            <xsl:call-template name="parameterDeclaration" />
-            <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
-          </xsl:when>
-        </xsl:choose>
+        <xsl:if test="csl:fileOk(./@file) != 0" >
+          <xsl:choose>
+            <xsl:when test="local-name()='directDeclarator'">
+              <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="./@text" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+              <xsl:call-template name="directDeclarator" />
+              <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+            </xsl:when>
+            <xsl:when test="local-name()='abstractDeclarator'">
+              <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+              <xsl:call-template name="abstractDeclarator" />
+              <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+            </xsl:when>
+            <xsl:when test="local-name()='parameterDeclaration'">
+              <xsl:text disable-output-escaping="yes">&lt;</xsl:text>identifier text="<xsl:value-of select="csl:getAnonIdentifier()" />"<xsl:text disable-output-escaping="yes">&gt;</xsl:text>
+              <xsl:call-template name="parameterDeclaration" />
+              <xsl:text disable-output-escaping="yes">&lt;&#47;identifier&gt;</xsl:text>
+            </xsl:when>
+          </xsl:choose>
+        </xsl:if>
       </xsl:for-each>
     </identifiers>
   </xsl:template>
@@ -82,7 +84,7 @@
   <!--                             directDeclarator                        -->
   <!-- =================================================================== -->
   <xsl:template name="directDeclarator">
-    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s in %s', local-name(), ./@text, ./@file)" />
     <xsl:call-template name="parent" />
   </xsl:template>
 
@@ -90,7 +92,7 @@
   <!--                            abstractDeclarator                       -->
   <!-- =================================================================== -->
   <xsl:template name="abstractDeclarator">
-    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s in %s', local-name(), ./@text, ./@file)" />
     <!--
         Before moving upward, the abstractDeclarator has a special case:
         it can refer to a pointer.
@@ -116,7 +118,7 @@
         without abstractDeclarator or directDeclarator.
         So the following test will match only declarationSpecifiers.
     -->
-    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s', local-name(), ./@text)" />
+    <xsl:variable name="dummyTracef" select="csl:tracef('%s: %s in %s', local-name(), ./@text, ./@file)" />
     <xsl:for-each select="./*" >
       <xsl:choose>
         <!--

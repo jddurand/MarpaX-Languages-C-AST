@@ -868,7 +868,13 @@ sub _pushNodeString {
 
 # ----------------------------------------------------------------------------------------
 
-sub _fileOk {
+=head2 fileOk($self, $file)
+
+Returns a true or false value if the $file argument matches the original filter. Default filter is the file being analysed.
+
+=cut
+
+sub fileOk {
   my ($self, $file) = @_;
 
   my $rc = 0;
@@ -941,7 +947,7 @@ sub _pushNodeFile {
     $node->setAttribute('file', $file);
   }
 
-  return $self->_fileOk($file);
+  return $self->fileOk($file);
 }
 
 # ----------------------------------------------------------------------------------------
@@ -2295,7 +2301,7 @@ sub _lexemeCallback {
     $lexemeHashp->{value} =~ s/\n/\\n/g;
   }
 
-  if (defined($tmpHashp->{_currentFile}) && $self->_fileOk($tmpHashp->{_currentFile})) {
+  if (defined($tmpHashp->{_currentFile}) && $self->fileOk($tmpHashp->{_currentFile})) {
     if ($lexemeHashp->{name} eq 'STRING_LITERAL_UNIT') {
       #
       # ISO C permits WS at the end of a string literal, we remove it

@@ -188,7 +188,7 @@ if (grep {$_ eq 'ast'} @print) {
 # --------------------------------
 # Get a concise view of the header
 # --------------------------------
-my $dom = _getConciseView2($c->ast);
+my $dom = _getConciseView2($c);
 if (grep {$_ eq 'dom'} @print) {
     print $dom->toString(1);
 }
@@ -485,7 +485,9 @@ sub _getConciseView{
 }
 
 sub _getConciseView2 {
-  my ($dom, $stylesheet, $anonCounter) = @_;
+  my ($c, $dom, $stylesheet, $anonCounter) = @_;
+
+  $dom //= $c->ast;
 
   $stylesheet //= eval {$c->xslt("csl.xsl")};
   if ($@) {
@@ -521,6 +523,12 @@ sub _getConciseView2 {
                                     ++$anonCounter;
                                     return "$anon$anonCounter";
                                   });
+  XML::LibXSLT->register_function("urn:csl", "fileOk",
+                                  sub {
+                                    my ($file) = @_;
+
+                                    return $c->fileOk(shift);
+                                  });
   XML::LibXSLT->register_function("urn:csl", "recurse",
                                   sub {
                                     my ($this) = @_;
@@ -539,7 +547,7 @@ sub _getConciseView2 {
                                     #
                                     # In the recurse move we only want to see inner <DECLARATORS>
                                     #
-                                    my $toString = _getConciseView2($dom, $stylesheet, $anonCounter)
+                                    my $toString = _getConciseView2($c, $dom, $stylesheet, $anonCounter)
                                       ->firstChild()          # <csl>
                                         ->firstChild()          # <identifiers>
                                           ->toString(1);
