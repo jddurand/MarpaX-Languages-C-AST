@@ -188,11 +188,10 @@ if (grep {$_ eq 'ast'} @print) {
 # --------------------------------
 # Get a concise view of the header
 # --------------------------------
-my $dom = _getConciseView2($c);
+my $dom = _getConciseView($c);
 if (grep {$_ eq 'dom'} @print) {
     print $dom->toString(1);
 }
-exit 0;
 
 # --------------------------------
 # Generate targets
@@ -253,238 +252,7 @@ sub _unredirect {
     }
 }
 
-sub _getConciseView{
-  my $dom;
-  my $anonCounter = 0;
-  my %contentToIdentifier = ();
-  my %doneIdentifier = ();
-  my @typedefs = ();
-  my %cdecl = ();
-  my @newTypedefs = ();
-  my $lastMember;
-  my $lastType;
-  my $lastIdentifier;
-  my $lastTypedef;
-  my @cdeclStack = ();
-  XML::LibXSLT->register_function("urn:csl", "toStringTracef",
-                                  sub {
-                                    my ($this) = @_;
-                                    #
-                                    # Force stringification in case of an XML object
-                                    #
-                                    $log->tracef('==> %s',
-                                                 defined($this) ?
-                                                 ((ref($this) eq 'XML::LibXML::NodeList') ?
-                                                  join("\n", map {$_->toString(1)} $this->get_nodelist)
-                                                  :
-                                                  (ref($this) eq 'XML::LibXML::Node') ?
-                                                  $this->toString(1)
-                                                  :
-                                                  '<not supported>: ' . ref($this)
-                                                 )
-                                                 :
-                                                 '<undef>');
-                                    return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "tracef",
-                                  sub {
-                                    my $format = shift;
-                                    #
-                                    # Force stringification in case of an XML object
-                                    #
-                                    $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
-                                    return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "warnf",
-                                  sub {
-                                    my $format = shift;
-                                    #
-                                    # Force stringification in case of an XML object
-                                    #
-                                    $log->warnf($format, map { defined($_) ? "$_" : ''} @_);
-                                    return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "prefix",
-                                  sub {
-                                      return $prefix;
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "anon",
-                                  sub {
-                                      return $anon;
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "nextAnonCounter",
-                                  sub {
-                                      ++$anonCounter;
-                                      return "$anonCounter";
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "getContentToIdentifier",
-                                  sub {
-                                      my ($content) = @_;
-                                      $contentToIdentifier{$content} //= '';
-                                      return "$contentToIdentifier{$content}";
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "getDoneIdentifier",
-                                  sub {
-                                      my ($identifier) = @_;
-                                      $doneIdentifier{$identifier} //= '';
-                                      return "$doneIdentifier{$identifier}";
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "setDoneIdentifier",
-                                  sub {
-                                      my ($identifier, $type) = @_;
-                                      $doneIdentifier{$identifier} = 1;
-                                      return "$doneIdentifier{$identifier}";
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "setContentToIdentifier",
-                                  sub {
-                                      my ($content, $identifier) = @_;
-                                      $contentToIdentifier{$content} = $identifier;
-                                      return "$identifier";
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "cdeclPush",
-                                  sub {
-                                      my ($identifier, $type) = @_;
-                                      $cdecl{$lastType = $type}{$lastIdentifier = $identifier} //= [];
-                                      push(@cdeclStack, [$lastType, $lastIdentifier]);
-                                      $lastMember = undef;
-                                      $log->debugf('Id>    %s %s', "$lastType", "$lastIdentifier");
-                                      return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "typedefPush",
-                                  sub {
-                                      my ($identifier) = @_;
-                                      push(@typedefs, {$identifier => []});
-                                      $lastTypedef = $typedefs[-1]->{$identifier};
-                                      $log->debugf('Typedef> %s', "$identifier");
-                                      return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "cdeclPop",
-                                  sub {
-                                      pop(@cdeclStack);
-                                      ($lastType, $lastIdentifier) = @cdeclStack ? @{$cdeclStack[-1]} : undef;
-                                      if (defined($lastIdentifier) && defined($lastType) && @{$cdecl{$lastType}{$lastIdentifier}}) {
-                                        $lastMember = (keys %{$cdecl{$lastType}{$lastIdentifier}->[-1]})[0];
-                                        $log->debugf('Id<    %s %s.%s', "$lastType", "$lastIdentifier", "$lastMember");
-                                      } else {
-                                        $log->debugf('Id<    undef');
-                                        $lastMember = undef;
-                                      }
-                                      return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "typedefPop",
-                                  sub {
-                                      $lastTypedef = undef;
-                                      $log->debugf('Typedef< undef');
-                                      return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "cdecl",
-                                  sub {
-                                      if (@_) {
-                                          my $member = shift;
-                                          #
-                                          # In typedef mode, the first argument is always empty
-                                          #
-                                          if (length($member) > 0) {
-                                              push(@{$cdecl{$lastType}{$lastIdentifier}}, {$member => [] });
-                                              $lastMember = $member;
-                                              $log->debugf('Member %s %s.%s', "$lastType", "$lastIdentifier", "$lastMember");
-                                          }
-                                          if (@_) {
-                                              if (defined($lastTypedef)) {
-                                                $log->debugf('Detail typedef: %s', join(' ', @_));
-                                                my %attributes = @_;
-                                                push(@{$lastTypedef}, \%attributes);
-                                              } else {
-                                                $log->debugf('Detail %s %s.%s: %s', "$lastType", "$lastIdentifier", "$lastMember", join(' ', @_));
-                                                my %attributes = @_;
-                                                push(@{$cdecl{$lastType}{$lastIdentifier}->[-1]->{$lastMember}}, \%attributes);
-                                              }
-                                          }
-                                      }
-                                      return '';
-                                  });
-  XML::LibXSLT->register_function("urn:csl", "addTypedef",
-                                  sub {
-                                      my ($type, $name, $def) = @_;
-                                      push(@newTypedefs, {name => $name, type => $type, def => $def});
-                                      return '';
-                                  });
-  my $stylesheet = eval {$c->xslt("h2decl.xsl")};
-  if ($@) {
-    $log->fatalf('%s', $@);
-    exit(EXIT_FAILURE);
-  }
-  my $result = eval {$stylesheet->transform($c->ast)};
-  if ($@) {
-    $log->fatalf('%s', $@);
-    exit(EXIT_FAILURE);
-  }
-  #
-  # Do an XML representation of cdecl and targetopt
-  #
-  $dom = XML::LibXML::Document->new();
-  my $newTypedefs = XML::LibXML::Element->new('newTypedefs');
-  $dom->addChild($newTypedefs);
-  foreach (@newTypedefs) {
-      my $typedef = XML::LibXML::Element->new('typedef');
-      $typedef->setAttribute('name', $_->{name});
-      $typedef->setAttribute('type', $_->{type});
-      $typedef->setAttribute('def', $_->{def});
-      $newTypedefs->addChild($typedef);
-  }
-  my $cdecl = XML::LibXML::Element->new('cdecl');
-  $dom->addChild($cdecl);
-  my $typedefs = XML::LibXML::Element->new('typedefs');
-  $cdecl->addChild($typedefs);
-  foreach (@typedefs) {
-      my $typedef = XML::LibXML::Element->new('typedef');
-      $typedefs->addChild($typedef);
-
-      my %hash = %{$_};
-      my @keys = keys %hash;
-      my @values = values %hash;
-      my $name = $keys[0];
-      my $attributes = $values[0];
-      $typedef->setAttribute('name', $name);
-      foreach (@{$attributes}) {
-        my $is = XML::LibXML::Element->new('is');
-        my %attributes = %{$_};
-        foreach (keys %attributes) {
-          $is->setAttribute($_, $attributes{$_});
-        }
-        $typedef->addChild($is);
-      }
-  }
-  my $identifiers = XML::LibXML::Element->new('identifiers');
-  $cdecl->addChild($identifiers);
-  foreach (keys %cdecl) {
-    my $type = $_;
-    foreach (keys %{$cdecl{$type}}) {
-      my $identifier = XML::LibXML::Element->new('identifier');
-      $identifiers->addChild($identifier);
-
-      $identifier->setAttribute('name', $_);
-      $identifier->setAttribute('type', $type);
-      foreach (@{$cdecl{$type}{$_}}) {
-        my $member = XML::LibXML::Element->new('member');
-        my $name = (keys %{$_})[0];
-        $member->setAttribute('name', $name);
-        $identifier->addChild($member);
-        foreach (@{$_->{$name}}) {
-          my $is = XML::LibXML::Element->new('is');
-          my %attributes = %{$_};
-          foreach (keys %attributes) {
-            $is->setAttribute($_, $attributes{$_});
-          }
-          $member->addChild($is);
-        }
-      }
-    }
-  }
-  return $dom;
-}
-
-sub _getConciseView2 {
+sub _getConciseView {
   my ($c, $dom, $stylesheet, $anonCounter) = @_;
 
   $dom //= $c->ast;
@@ -526,8 +294,7 @@ sub _getConciseView2 {
   XML::LibXSLT->register_function("urn:csl", "fileOk",
                                   sub {
                                     my ($file) = @_;
-
-                                    return $c->fileOk(shift);
+                                    return $c->fileOk($file);
                                   });
   XML::LibXSLT->register_function("urn:csl", "recurse",
                                   sub {
@@ -545,12 +312,12 @@ sub _getConciseView2 {
                                       '<undef>';
                                     my $dom = XML::LibXML->load_xml(string => $string);
                                     #
-                                    # In the recurse move we only want to see inner <DECLARATORS>
+                                    # In the recurse move we only want to see inner <identifiers>
                                     #
-                                    my $toString = _getConciseView2($c, $dom, $stylesheet, $anonCounter)
-                                      ->firstChild()          # <csl>
-                                        ->firstChild()          # <identifiers>
-                                          ->toString(1);
+                                    my $thisDom = _getConciseView($c, $dom, $stylesheet, $anonCounter);
+                                    my $thisCsl = $thisDom->firstChild;
+                                    my $thisIdentifiers = $thisCsl->firstChild;
+                                    my $toString = $thisIdentifiers->toString(1);
                                     $log->tracef('recurse output: %s', $toString);
                                     return $toString;
                                   });
@@ -567,9 +334,9 @@ sub _getConciseView2 {
 sub _generateTarget {
     my ($c, $dom, $target) = @_;
 
-    XML::LibXSLT->register_function("urn:csl", "content",
+    XML::LibXSLT->register_function("urn:csl", "prefix",
                                     sub {
-                                        return $c->content;
+                                        return $prefix;
                                     });
 
 
@@ -681,7 +448,7 @@ In case the file you parse I<already> contains preprocessing information, for ex
 
 =item B<--prefix <argument>>
 
-Prefix added to target declarations. Default is "csl_".
+Prefix added to any declaration added by csl. Default is "csl_".
 
 =item B<--anon <argument>>
 
