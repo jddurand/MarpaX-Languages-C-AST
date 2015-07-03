@@ -2,7 +2,7 @@
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format"
                 xmlns:csl="urn:csl">
-  <xsl:output method="xml" omit-xml-declaration="yes" cdata-section-elements="size" />
+  <xsl:output method="xml" omit-xml-declaration="no" cdata-section-elements="size" />
 
   <!-- =================================================================== -->
   <!--                                  MAIN                               -->

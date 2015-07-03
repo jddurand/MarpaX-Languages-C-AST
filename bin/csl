@@ -194,6 +194,14 @@ if (grep {$_ eq 'dom'} @print) {
 }
 
 # --------------------------------
+# Generate target template
+# --------------------------------
+my $template = _generateTemplate($dom);
+if (grep {$_ eq 'template'} @print) {
+    print $template;
+}
+
+# --------------------------------
 # Generate targets
 # --------------------------------
 foreach (@target) {
@@ -328,6 +336,31 @@ sub _getConciseView {
   }
   $log->tracef('%s', $stylesheet->output_as_bytes($result));
   my $rc = XML::LibXML->load_xml(string => $stylesheet->output_as_bytes($result));
+  return $rc;
+}
+
+sub _generateTemplate {
+  my ($dom) = @_;
+
+    XML::LibXSLT->register_function("urn:csl", "prefix",
+                                    sub {
+                                        return $prefix;
+                                    });
+
+
+  my $stylesheet = eval {$c->xslt("cslTemplate.xsl")};
+  if ($@) {
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
+  }
+
+  my $result = eval {$stylesheet->transform($dom)};
+  if ($@) {
+    $log->fatalf('%s', $@);
+    exit(EXIT_FAILURE);
+  }
+  $log->tracef('%s', $stylesheet->output_as_bytes($result));
+  my $rc = $stylesheet->output_as_bytes($result);
   return $rc;
 }
 
