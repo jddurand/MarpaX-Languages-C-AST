@@ -51,10 +51,6 @@
                                ]
                               )
                              )
-                             or
-                             (
-                             local-name()='parameterDeclaration' and not(descendant::*[self::directDeclarator or self::abstractDeclarator])
-                             )
                             ]
                             ">
         <xsl:if test="csl:fileOk(./@file) != 0" >
