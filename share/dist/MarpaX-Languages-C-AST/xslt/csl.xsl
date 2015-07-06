@@ -161,6 +161,9 @@
         <xsl:when test="local-name()='declarationSpecifiers'">
           <xsl:call-template name="declarationSpecifiers" />
         </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList'">
+          <xsl:call-template name="specifierQualifierList" />
+        </xsl:when>
       </xsl:choose>
     </xsl:for-each>
     <!--
@@ -729,6 +732,89 @@
       <xsl:choose>
         <xsl:when test="local-name()='declarationSpecifiers'" >
           <xsl:call-template name="declarationSpecifiers" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                          specifierQualifierList                     -->
+  <!-- =================================================================== -->
+  <xsl:template name="specifierQualifierList">
+    <xsl:variable name="dummyTracef" select="csl:tracef('.. %s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='specifierQualifierList0'" >
+          <xsl:call-template name="specifierQualifierList0" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList1'" >
+          <xsl:call-template name="specifierQualifierList1" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList2'" >
+          <xsl:call-template name="specifierQualifierList2" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                           specifierQualifierList0                   -->
+  <!-- =================================================================== -->
+  <xsl:template name="specifierQualifierList0">
+    <xsl:variable name="dummyTracef" select="csl:tracef('.. %s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='typeQualifier'" >
+          <xsl:call-template name="typeQualifier" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'" >
+          <xsl:call-template name="specifierQualifierList0" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                           specifierQualifierList1                   -->
+  <!-- =================================================================== -->
+  <xsl:template name="specifierQualifierList1">
+    <xsl:variable name="dummyTracef" select="csl:tracef('.. %s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier1'" >
+          <xsl:call-template name="typeSpecifier1" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'" >
+          <xsl:call-template name="specifierQualifierList0" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList1'" >
+          <xsl:call-template name="specifierQualifierList1" />
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'" >
+          <xsl:call-template name="typeQualifier" />
+        </xsl:when>
+      </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =================================================================== -->
+  <!--                           specifierQualifierList2                   -->
+  <!-- =================================================================== -->
+  <xsl:template name="specifierQualifierList2">
+    <xsl:variable name="dummyTracef" select="csl:tracef('.. %s: %s', local-name(), ./@text)" />
+    <xsl:for-each select="./*" >
+      <xsl:choose>
+        <xsl:when test="local-name()='typeSpecifier2'" >
+          <xsl:call-template name="typeSpecifier2" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList0'" >
+          <xsl:call-template name="specifierQualifierList0" />
+        </xsl:when>
+        <xsl:when test="local-name()='specifierQualifierList2'" >
+          <xsl:call-template name="specifierQualifierList2" />
+        </xsl:when>
+        <xsl:when test="local-name()='typeQualifier'" >
+          <xsl:call-template name="typeQualifier" />
         </xsl:when>
       </xsl:choose>
     </xsl:for-each>
