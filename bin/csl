@@ -261,9 +261,10 @@ sub _unredirect {
 }
 
 sub _getConciseView {
-  my ($c, $dom, $stylesheet, $anonCounter) = @_;
+  my ($c, $dom, $stylesheet, $anonCounter, $recurseNb) = @_;
 
-  $dom //= $c->ast;
+  $dom       //= $c->ast;
+  $recurseNb //= 0;
 
   $stylesheet //= eval {$c->xslt("csl.xsl")};
   if ($@) {
@@ -282,7 +283,7 @@ sub _getConciseView {
                                     #
                                     # Force stringification in case of an XML object
                                     #
-                                    $log->tracef($format, map { defined($_) ? "$_" : ''} @_);
+                                    $log->tracef("%s$format", '  ' x $recurseNb,  map { defined($_) ? "$_" : ''} @_);
                                     return '';
                                   });
   XML::LibXSLT->register_function("urn:csl", "warnf",
@@ -322,11 +323,13 @@ sub _getConciseView {
                                     #
                                     # In the recurse move we only want to see inner <identifiers>
                                     #
-                                    my $thisDom = _getConciseView($c, $dom, $stylesheet, $anonCounter);
+                                    ++$recurseNb;
+                                    my $thisDom = _getConciseView($c, $dom, $stylesheet, $anonCounter, $recurseNb);
                                     my $thisCsl = $thisDom->firstChild;
                                     my $thisIdentifiers = $thisCsl->firstChild;
                                     my $toString = $thisIdentifiers->toString(1);
                                     $log->tracef('recurse output: %s', $toString);
+                                    --$recurseNb;
                                     return $toString;
                                   });
   my $result = eval {$stylesheet->transform($dom)};
