@@ -1,6 +1,6 @@
 preamble
 
-0.46 2015-02-04T21:39:40
+0.46 2017-02-11T10:28:34
  [Ben Bullock <benkasminbullock@gmail.com>]
  - indent the heredocument part of the code correctly
 
@@ -8,6 +8,20 @@ preamble
  - Fix issue with shared dir
 
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - csl.xsl: do not take parameterDeclaration by default
+ - csl: recurse number
+ - csl: added missing specifierQualifierList
+ - csl: dev+
+ - hsl: dev+
+ - perl5.xsl: dev+
+ - xslt/perl5.xsl: dev+
+ - ISO_ANSI_C_2011/Scan.pm: export of xslt() and content() methods
+ - bin/cscan: POD fix
+ - ISO_ANSI_C_2011/Scan.pm: fix usage of temp filehandle
+ - ISO_ANSI_C_2011/Scan.pm: switch to the more portable IO::CaptureOutput
+   module
+ - Grammar/ISO_ANSI_C_2011.pm: Removed non-needed (seems to me)
+   MSVS___C_ASSERT, added more MSVS compatibility stuff
  - perlcritic
  - perlcritic.rc: allow_includes
  - bin/c2ast: remove mention of cpretty
@@ -257,7 +271,6 @@ preamble
  - ISO_ANSI_C_2011/Scan: function type is not inherited
  - bin/cscan: generic get argument
  - ISO_ANSI_C_2011/Scan.pm: original filename processing fix
- - bin/cscan: POD fix
  - bin/cscan : a very special replacement for POD not generated at run time
  - ISO_ANSI_C_2011/Scan.pm: perlcritic on $_
  - t/scan.t: fix following removal of use C::Scan
@@ -1851,4 +1864,3 @@ preamble
 
 0.01 2013-05-21T12:19:33Z
  - No changes found
-

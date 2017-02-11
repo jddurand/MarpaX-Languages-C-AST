@@ -4,21 +4,21 @@
       "Jean-Damien Durand <jeandamiendurand@free.fr>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Dist::Zilla version 5.031, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Dist::Zilla version 6.008, CPAN::Meta::Converter version 2.150005",
    "license" : [
       "perl_5"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
-      "version" : "2"
+      "version" : 2
    },
    "name" : "MarpaX-Languages-C-AST",
    "no_index" : {
       "directory" : [
-         "t",
-         "xt",
+         "blog",
          "examples",
-         "blog"
+         "t",
+         "xt"
       ]
    },
    "prereqs" : {
@@ -31,15 +31,22 @@
       },
       "develop" : {
          "requires" : {
+            "English" : "0",
             "Pod::Coverage::TrustPod" : "0",
+            "Pod::Wordlist" : "0",
             "Test::CPAN::Changes" : "0.19",
             "Test::CPAN::Meta" : "0",
+            "Test::CPAN::Meta::JSON" : "0.16",
             "Test::EOL" : "0",
             "Test::Kwalitee" : "1.21",
-            "Test::More" : "0",
+            "Test::MinimumVersion" : "0",
+            "Test::Mojibake" : "0",
+            "Test::More" : "0.96",
             "Test::NoTabs" : "0",
             "Test::Pod" : "1.41",
             "Test::Pod::Coverage" : "1.08",
+            "Test::Pod::LinkCheck" : "0",
+            "Test::Portability::Files" : "0",
             "Test::Spelling" : "0.12",
             "Test::Synopsis" : "0",
             "Test::Version" : "1"
@@ -60,6 +67,7 @@
             "File::Spec" : "0",
             "File::Temp" : "0",
             "Getopt::Long" : "0",
+            "IO::CaptureOutput" : "0",
             "IO::File" : "0",
             "IO::Handle" : "0",
             "IO::String" : "0",
@@ -74,8 +82,8 @@
             "Regexp::Common" : "0",
             "SUPER" : "0",
             "Scalar::Util" : "0",
-            "String::ShellQuote" : "0",
             "Term::ProgressBar" : "0",
+            "Try::Tiny" : "0",
             "Unicode::CaseFold" : "0",
             "XML::LibXML" : "0",
             "XML::LibXSLT" : "0",
@@ -102,6 +110,7 @@
             "Test::Differences" : "0",
             "Test::More" : "0",
             "Test::Trap" : "0",
+            "blib" : "1.01",
             "perl" : "5.010"
          }
       }
@@ -196,6 +205,7 @@
       "Jeffrey Kegler <JKEGL@cpan.org>",
       "Jeffrey Kegler <jkegl@cpan.org>",
       "jddurand <jeandamiendurand@free.fr>"
-   ]
+   ],
+   "x_serialization_backend" : "Cpanel::JSON::XS version 3.0225"
 }
 
