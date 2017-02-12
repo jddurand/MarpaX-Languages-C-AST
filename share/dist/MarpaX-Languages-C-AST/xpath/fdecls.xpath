@@ -1,1 +1,1 @@
-.//declaration[not (descendant::*[self::declaration])][.//LPAREN_SCOPE]
+.//declaration[declarationCheck/declarationCheckinitDeclaratorList/initDeclaratorList/initDeclarator/declarator[.//directDeclarator[following-sibling::*[1]/self::LPAREN_SCOPE]]]
