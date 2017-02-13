@@ -19,16 +19,14 @@ This modules give the actions associated to ISO_ANSI_C_2011 grammar in Scan mode
 # Because Marpa is using $CODE{}
 #
 sub new {
-  super();
+  super()
 }
 
 sub nonTerminalSemantic {
-  super();
+  super()
 }
 
 sub getRuleDescription {
-  my ($self) = @_;
-
   my ($lhs, @rhs) = super();
 
   #
@@ -38,7 +36,7 @@ sub getRuleDescription {
                     $_ ne 'structContextEnd' &&
                     $_ ne 'WS_MANY'} @rhs;
 
-  return ($lhs, @okRhs);
+  return ($lhs, @okRhs)
 }
 
 1;

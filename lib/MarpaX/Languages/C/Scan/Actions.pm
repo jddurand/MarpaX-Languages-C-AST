@@ -18,10 +18,11 @@ This modules give the actions associated to ISO_ANSI_C grammar in Scan mode.
 sub new {
     my $class = shift;
     my $self = {
-                dom => XML::LibXML::Document->new(),
-               };
+        dom => XML::LibXML::Document->new(),
+        _ruleDescription => []
+    };
     bless($self, $class);
-    return $self;
+    return $self
 }
 
 sub nonTerminalSemantic {
@@ -44,39 +45,41 @@ sub nonTerminalSemantic {
           #
           # Ok only if $maxRhs is 0 : this is (probably) a sequence
           #
-          $name = $rhs[0];
+          $name = $rhs[0]
         } else {
-          croak "Too many arguments on the stack. Rule was: $lhs ::= @rhs\n";
+          croak "Too many arguments on the stack. Rule was: $lhs ::= @rhs\n"
         }
       } else {
-        $name = $rhs[$_];
+        $name = $rhs[$_]
       }
       $child = XML::LibXML::Element->new($name);
       $child->setAttribute('start', $_[$_]->[0]);
       $child->setAttribute('length', $_[$_]->[1]);
-      $child->setAttribute('text', $_[$_]->[2]);
+      $child->setAttribute('text', $_[$_]->[2])
     } else {
-      $child = $_[$_];
+      $child = $_[$_]
     }
-    $node->addChild($child);
+    $node->addChild($child)
   }
 
   if ($lhs eq 'translationUnit') {
     $self->{dom}->setDocumentElement($node);
-    return $self->{dom};
+    return $self->{dom}
   } else {
-    return $node;
+    return $node
   }
 }
 
 sub getRuleDescription {
-  my ($self) = @_;
+    my $rule_id          = $Marpa::R2::Context::rule;
+    my $_ruleDescription = $_[0]->{_ruleDescription};
+    my $rule_desc        = $_ruleDescription->[$rule_id];
+    if (! $rule_desc) {
+        my $slg                       = $Marpa::R2::Context::slg;
+        $_ruleDescription->[$rule_id] = $rule_desc = [ map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id) ]
+  }
 
-  my $rule_id     = $Marpa::R2::Context::rule;
-  my $slg         = $Marpa::R2::Context::slg;
-  my ($lhs, @rhs) = map { $slg->symbol_display_form($_) } $slg->rule_expand($rule_id);
-
-  return ($lhs, @rhs);
+  return @{$rule_desc}
 }
 
 1;

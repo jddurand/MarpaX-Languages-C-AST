@@ -43,86 +43,86 @@ use Carp qw/croak/;
 =cut
 
 sub _sort_by_option_priority_desc {
-  return $b->option->priority <=> $a->option->priority;
+  return $b->option->priority <=> $a->option->priority
 }
 
 sub _sort_by_numeric_desc {
-  return $b <=> $a;
+  return $b <=> $a
 }
 
 sub register {
   my ($self, $cb) = @_;
 
   if (ref($cb) ne 'MarpaX::Languages::C::AST::Callback::Method') {
-    croak 'argument bust be a reference to a MarpaX::Languages::C::AST::Callback::Method object';
+    croak 'argument bust be a reference to a MarpaX::Languages::C::AST::Callback::Method object'
   }
   #
   # Sanitize self
   #
   if (! defined($self->log_prefix)) {
-      $self->log_prefix('');
+      $self->log_prefix('')
   }
 
   #
   # Sanitize cb
   #
   if (defined($cb->method) && ref($cb->method) ne 'ARRAY') {
-    croak 'method must be an ARRAY ref';
+    croak 'method must be an ARRAY ref'
   }
   if (defined($cb->method)) {
     if (! @{$cb->method}) {
-      croak 'method is a reference to an empty array';
+      croak 'method is a reference to an empty array'
     }
     if (ref(($cb->method)->[0]) ne 'CODE' && (! ref($cb->method) && $cb->method eq 'auto')) {
-      croak 'method must be an ARRAY ref starting with a CODE reference, or the string \'auto\'';
+      croak 'method must be an ARRAY ref starting with a CODE reference, or the string \'auto\''
     }
   }
   if (! defined($cb->method_mode)) {
-    $cb->method_mode('push');
+    $cb->method_mode('push')
   }
   if ($cb->method_mode ne 'push' && $cb->method_mode ne 'replace') {
-    croak 'method_mode must be \'push\' or \'replace\'';
+    croak 'method_mode must be \'push\' or \'replace\''
   }
   #
   # Sanitize $cb->option
   #
   if (! defined($cb->option)) {
-    $cb->option(MarpaX::Languages::C::AST::Callback::Option->new());
+    $cb->option(MarpaX::Languages::C::AST::Callback::Option->new())
   }
   my $option = $cb->option;
   foreach (@{$option->condition}) {
     if (! defined($_) || (! (ref($_) eq 'ARRAY')) || (! (ref($_->[0]) eq 'CODE' || (! ref($_->[0]) && $_->[0] eq 'auto')))) {
-        croak 'A condition is not an ARRAY reference, that must start with a CODE reference or the "auto" keyword"';
+        croak 'A condition is not an ARRAY reference, that must start with a CODE reference or the "auto" keyword"'
     }
   }
 
   if (! defined($option->conditionMode)) {
-    $option->conditionMode('and');
+    $option->conditionMode('and')
   }
   if (! grep {$option->conditionMode eq $_} qw/and or/) {
-    croak 'condition mode must be "and" or "or"';
+    croak 'condition mode must be "and" or "or"'
   }
 
   if (! defined($option->subscriptionMode)) {
-    $option->subscriptionMode('required');
+    $option->subscriptionMode('required')
   }
   if (! grep {$option->subscriptionMode eq $_} qw/required optional/) {
-    croak 'condition mode must be "and" or "or"';
+    croak 'condition mode must be "and" or "or"'
   }
 
   if (! defined($option->topic_persistence)) {
-    $option->topic_persistence('none');
+    $option->topic_persistence('none')
   }
   if (! grep {$option->topic_persistence eq $_} qw/none any level/) {
-    croak 'topic persistence mode must be "none", "any" or "level"';
+    croak 'topic persistence mode must be "none", "any" or "level"'
   }
 
   if (! defined($option->priority)) {
-    $option->priority(0);
+    $option->priority(0)
   }
   my $priority = $option->priority;
   if (! ("$priority" =~ /^[+-]?\d+$/)) {
-    croak 'priority must be a number';
+    croak 'priority must be a number'
   }
 
   $self->ncb(0) if (! defined($self->ncb));
@@ -138,7 +138,7 @@ sub register {
   #
   # We return the indice within Callback
   #
-  return $self->ncb - 1;
+  return $self->ncb - 1
 }
 
 sub _unregister {
@@ -151,12 +151,11 @@ sub _unregister {
 
         splice(@{$self->cb}, $_, 1);
         $self->ncb($self->ncb - 1);
-        $self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}]);
+        $self->prioritized_cb([sort _sort_by_option_priority_desc @{$self->cb}])
 
     }
 
-    return;
-
+    return
 }
 
 sub unregister {
@@ -164,12 +163,12 @@ sub unregister {
 
   my $firing = $self->firing() || 0;
   if (! $firing) {
-      $self->_unregister(@_);
+      $self->_unregister(@_)
   } else {
-      push(@{$self->cb_unregistered}, @_);
+      push(@{$self->cb_unregistered}, @_)
   }
 
-  return;
+  return
 }
 
 sub exec {
@@ -213,19 +212,20 @@ sub exec {
   $self->_unregister(@{$self->cb_unregistered});
   $self->cb_unregistered([]);
 
-  return;
+  return
 }
 
 sub _inventory_condition_tofire {
-  my $self = shift;
+  # my $self = shift;
+
   my $nbNewTopics = 0;
-  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
-  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $self->prioritized_cb;
-  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $self->prioritized_cb_tofire;
-  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $self->arguments;
-  my $topic_firedp = $self->topic_fired;
-  my $topic_fired_datap = $self->topic_fired_data;
-  my $topic_fired_persistencep = $self->topic_fired_persistence;
+  my $ncb = $__PACKAGE__::_cacheNcb // $_[0]->ncb;
+  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $_[0]->prioritized_cb;
+  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $_[0]->prioritized_cb_tofire;
+  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $_[0]->arguments;
+  my $topic_firedp = $_[0]->topic_fired;
+  my $topic_fired_datap = $_[0]->topic_fired_data;
+  my $topic_fired_persistencep = $_[0]->topic_fired_persistence;
 
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
@@ -237,12 +237,12 @@ sub _inventory_condition_tofire {
     foreach my $condition (defined($__PACKAGE__::_cacheOptionConditionp) ? @{$__PACKAGE__::_cacheOptionConditionp->[$i]} : @{$option->condition}) {
         my ($coderef, @arguments) = @{$condition};
         if (ref($coderef) eq 'CODE') {
-            push(@condition, &$coderef($cb, $self, $argumentsp, @arguments) ? 1 :0);
+            push(@condition, &$coderef($cb, $_[0], $argumentsp, @arguments) ? 1 :0)
         } elsif (defined($description)) {
             #
             # Per def condition is the string 'auto'
             #
-            push(@condition, (grep {$_ eq $description} @{$argumentsp}) ? 1 :0);
+            push(@condition, (grep {$_ eq $description} @{$argumentsp}) ? 1 :0)
         }
     }
     #
@@ -257,14 +257,14 @@ sub _inventory_condition_tofire {
           # Per def, this is 'and'
           #
         foreach (@condition) {
-          $condition &&= $_;
+          $condition &&= $_
         }
       } else {
           #
           # Per def, this is 'or'
           #
         foreach (@condition) {
-          $condition ||= $_;
+          $condition ||= $_
         }
       }
     }
@@ -281,18 +281,18 @@ sub _inventory_condition_tofire {
           $topic_fired_persistencep->{$topic} = defined($__PACKAGE__::_cacheOptionTopic_persistencep) ? $__PACKAGE__::_cacheOptionTopic_persistencep->[$i] : $option->topic_persistence;
           if (! defined($topic_fired_datap->{$topic})) {
             $topic_fired_datap->{$topic} = [];
-            ++$nbNewTopics;
+            ++$nbNewTopics
           }
         }
       }
     } else {
       if (@condition) {
-        $prioritized_cb_tofirep->[$i] = -1;
+        $prioritized_cb_tofirep->[$i] = -1
       }
     }
   }
 
-  return $nbNewTopics;
+  return $nbNewTopics
 }
 
 #
@@ -301,7 +301,7 @@ sub _inventory_condition_tofire {
 # Devel::NYTProf are cached here.
 #
 sub cache {
-  my $self = shift;
+  # my $self = shift;
 
   my @cacheOption = ();
   my @cacheOptionConditionMode = ();
@@ -313,10 +313,10 @@ sub cache {
   my @cacheCbDescription = ();
   my @cacheCbMethod = ();
   my @cacheCbMethod_void = ();
-  my $prioritized_cbp = $self->prioritized_cb;
-  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
-  my $prioritized_cb_firedp = $self->prioritized_cb_fired;
-  my $ncb = $self->ncb;
+  my $prioritized_cbp = $_[0]->prioritized_cb;
+  my $prioritized_cb_tofirep = $_[0]->prioritized_cb_tofire;
+  my $prioritized_cb_firedp = $_[0]->prioritized_cb_fired;
+  my $ncb = $_[0]->ncb;
   foreach (my $i = 0; $i < $ncb; $i++) {
     my $cb = $prioritized_cbp->[$i];
     my $option = $cb->option;
@@ -331,30 +331,30 @@ sub cache {
     push(@cacheCbMethod, $cb->method);
     push(@cacheCbMethod_void, $cb->method_void);
   }
-  $self->hscratchpad('_cacheNcb', $ncb);
-  $self->hscratchpad('_cachePrioritized_cb', $prioritized_cbp);
-  $self->hscratchpad('_cachePrioritized_cb_tofire', $prioritized_cb_tofirep);
-  $self->hscratchpad('_cachePrioritized_cb_fired', $prioritized_cb_firedp);
-  $self->hscratchpad('_cacheOption', \@cacheOption);
-  $self->hscratchpad('_cacheOptionConditionMode', \@cacheOptionConditionMode);
-  $self->hscratchpad('_cacheOptionCondition', \@cacheOptionCondition);
-  $self->hscratchpad('_cacheOptionSubscription', \@cacheOptionSubscription);
-  $self->hscratchpad('_cacheOptionSubscriptionMode', \@cacheOptionSubscriptionMode);
-  $self->hscratchpad('_cacheOptionTopic', \@cacheOptionTopic);
-  $self->hscratchpad('_cacheOptionTopic_persistence', \@cacheOptionTopic_persistence);
-  $self->hscratchpad('_cacheCbDescription', \@cacheCbDescription);
-  $self->hscratchpad('_cacheCbMethod', \@cacheCbMethod);
-  $self->hscratchpad('_cacheCbMethod_void', \@cacheCbMethod_void);
+  $_[0]->hscratchpad('_cacheNcb', $ncb);
+  $_[0]->hscratchpad('_cachePrioritized_cb', $prioritized_cbp);
+  $_[0]->hscratchpad('_cachePrioritized_cb_tofire', $prioritized_cb_tofirep);
+  $_[0]->hscratchpad('_cachePrioritized_cb_fired', $prioritized_cb_firedp);
+  $_[0]->hscratchpad('_cacheOption', \@cacheOption);
+  $_[0]->hscratchpad('_cacheOptionConditionMode', \@cacheOptionConditionMode);
+  $_[0]->hscratchpad('_cacheOptionCondition', \@cacheOptionCondition);
+  $_[0]->hscratchpad('_cacheOptionSubscription', \@cacheOptionSubscription);
+  $_[0]->hscratchpad('_cacheOptionSubscriptionMode', \@cacheOptionSubscriptionMode);
+  $_[0]->hscratchpad('_cacheOptionTopic', \@cacheOptionTopic);
+  $_[0]->hscratchpad('_cacheOptionTopic_persistence', \@cacheOptionTopic_persistence);
+  $_[0]->hscratchpad('_cacheCbDescription', \@cacheCbDescription);
+  $_[0]->hscratchpad('_cacheCbMethod', \@cacheCbMethod);
+  $_[0]->hscratchpad('_cacheCbMethod_void', \@cacheCbMethod_void);
 
-  $self->hscratchpad('_cache', 1);
+  $_[0]->hscratchpad('_cache', 1);
 
-  return;
+  return
 }
 
 sub _fire {
-  my $self = shift;
+  # my $self = shift;
 
-  $self->firing(1);
+  $_[0]->firing(1);
 
   #
   # Make sure the raised topic data always exist.
@@ -362,24 +362,24 @@ sub _fire {
   # or unregistration. Thus all dependencies are expressed in the beginning.
   # This mean that nay on-the-flu registration/unregistration will happend at NEXT round.
   #
-  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
-  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $self->prioritized_cb_tofire;
-  my $prioritized_cb_firedp = $__PACKAGE__::_cachePrioritized_cb_firedp // $self->prioritized_cb_fired;
-  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $self->prioritized_cb;
-  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $self->arguments;
-  my $topic_fired_datap = $self->topic_fired_data;
+  my $ncb = $__PACKAGE__::_cacheNcb // $_[0]->ncb;
+  my $prioritized_cb_tofirep = $__PACKAGE__::_cachePrioritized_cb_tofirep // $_[0]->prioritized_cb_tofire;
+  my $prioritized_cb_firedp = $__PACKAGE__::_cachePrioritized_cb_firedp // $_[0]->prioritized_cb_fired;
+  my $prioritized_cbp = $__PACKAGE__::_cachePrioritized_cbp // $_[0]->prioritized_cb;
+  my $argumentsp = $__PACKAGE__::_cacheArgumentsp // $_[0]->arguments;
+  my $topic_fired_datap = $_[0]->topic_fired_data;
 
   foreach (my $i = 0; $i < $ncb; $i++) {
     if ($prioritized_cb_tofirep->[$i] <= 0) {
       # -1: Condition KO
       # -2: Condition NA and Subscription NA
       # -3: Subscription KO
-      next;
+      next
     }
     my $cb = $prioritized_cbp->[$i];
     if ($prioritized_cb_firedp->[$i]) {
       # already fired
-      next;
+      next
     }
     #
     # Fire the callback (if there is a method)
@@ -391,12 +391,12 @@ sub _fire {
       if (ref($method) eq 'ARRAY') {
         my ($method, @arguments) = @{$method};
         if (ref($method) eq 'CODE') {
-            @rc = &$method($cb, $self, $argumentsp, @arguments);
+            @rc = &$method($cb, $_[0], $argumentsp, @arguments)
         } else {
             #
             # Per def method is the string 'auto'
             #
-            @rc = $topic_fired_datap->{$cb->description} || [];
+            @rc = $topic_fired_datap->{$cb->description} || []
         }
       }
       #
@@ -411,32 +411,30 @@ sub _fire {
           my $topic_fired_data = $topic_fired_datap->{$topic} || [];
           if (ref($cb->method) eq 'ARRAY') {
             if ($cb->method_mode eq 'push') {
-              push(@{$topic_fired_data}, @rc);
+              push(@{$topic_fired_data}, @rc)
             } else {
-              @{$topic_fired_data} = @rc;
+              @{$topic_fired_data} = @rc
             }
           } else {
             if ($cb->method_mode eq 'push') {
-              push(@{$topic_fired_data}, @rc);
+              push(@{$topic_fired_data}, @rc)
             } else {
-              @{$topic_fired_data} = @rc;
+              @{$topic_fired_data} = @rc
             }
           }
-          $topic_fired_datap->{$topic} = $topic_fired_data;
+          $topic_fired_datap->{$topic} = $topic_fired_data
         }
       }
     }
   }
 
-  $self->firing(0);
+  $_[0]->firing(0);
 
-  return;
+  return
 }
 
 sub topic_level_fired_data {
-    my $self = shift;
-    my $topic = shift;
-    my $level = shift;
+    my ($self, $topic, $level) = (shift, shift, shift);
 
     $level //= 0;
 
@@ -445,30 +443,31 @@ sub topic_level_fired_data {
     #
     $level = int($level);
     if ($level > 0) {
-        croak 'int(level) must be 0 or a negative number';
+        croak 'int(level) must be 0 or a negative number'
     }
     if ($level == 0) {
         if (@_) {
-            $self->topic_fired_data($topic, shift);
+            $self->topic_fired_data($topic, shift)
         }
         return $self->topic_fired_data($topic);
     } else {
         my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level($level)};
         if (@_) {
-            $old_topic_datap->{$topic} = shift;
+            $old_topic_datap->{$topic} = shift
         }
-        return $old_topic_datap->{$topic};
+        return $old_topic_datap->{$topic}
     }
 }
 
 sub _inventory_initialize_topic {
-  my $self = shift;
+  # my ($self) = @_;
+
   #
   # For topics, we want to keep those that have a persistence of 'level' or 'any'
   #
-  my $topic_firedp = $self->topic_fired;
-  my $topic_fired_datap = $self->topic_fired_data;
-  my $topic_fired_persistencep = $self->topic_fired_persistence;
+  my $topic_firedp = $_[0]->topic_fired;
+  my $topic_fired_datap = $_[0]->topic_fired_data;
+  my $topic_fired_persistencep = $_[0]->topic_fired_persistence;
 
   my $keep_topic_firedp = {};
   my $keep_topic_fired_persistencep = {};
@@ -479,78 +478,82 @@ sub _inventory_initialize_topic {
     if (grep {$_ eq $persistence} qw/any level/) {
       $keep_topic_firedp->{$topic} = $topic_firedp->{$topic};
       $keep_topic_fired_persistencep->{$topic} = $topic_fired_persistencep->{$topic};
-      $keep_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic};
+      $keep_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic}
     }
   }
-  $self->topic_fired($keep_topic_firedp);
-  $self->topic_fired_persistence($keep_topic_fired_persistencep);
-  $self->topic_fired_data($keep_topic_fired_datap);
+  $_[0]->topic_fired($keep_topic_firedp);
+  $_[0]->topic_fired_persistence($keep_topic_fired_persistencep);
+  $_[0]->topic_fired_data($keep_topic_fired_datap);
 
-  return;
+  return
 }
 
 sub _inventory_initialize_tofire {
-  my ($self) = @_;
-  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  # my ($self) = @_;
+
+  my $ncb = $__PACKAGE__::_cacheNcb // $_[0]->ncb;
   my $prioritized_cb_tofirep = [ (0) x $ncb ];
-  $self->prioritized_cb_tofire($prioritized_cb_tofirep);
+  $_[0]->prioritized_cb_tofire($prioritized_cb_tofirep);
   if (defined($__PACKAGE__::_cachePrioritized_cb_tofirep)) {
-    $__PACKAGE__::_cachePrioritized_cb_tofirep = $prioritized_cb_tofirep;
+    $__PACKAGE__::_cachePrioritized_cb_tofirep = $prioritized_cb_tofirep
   }
-  return;
+  return
 }
 
 sub _inventory_initialize_fired {
-  my ($self) = @_;
-  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
+  # my ($self) = @_;
+
+  my $ncb = $__PACKAGE__::_cacheNcb // $_[0]->ncb;
   my $prioritized_cb_firedp = [ (0) x $ncb ];
-  $self->prioritized_cb_fired($prioritized_cb_firedp);
+  $_[0]->prioritized_cb_fired($prioritized_cb_firedp);
   if (defined($__PACKAGE__::_cachePrioritized_cb_firedp)) {
-    $__PACKAGE__::_cachePrioritized_cb_firedp = $prioritized_cb_firedp;
+    $__PACKAGE__::_cachePrioritized_cb_firedp = $prioritized_cb_firedp
   }
-  return;
+  return
 }
 
 sub _inventory_fire {
-  my ($self) = @_;
+  # my ($self) = @_;
 
   #
   # Inventory
   #
-  $self->_inventory_initialize_topic();
-  $self->_inventory();
-  return;
+  $_[0]->_inventory_initialize_topic();
+  $_[0]->_inventory();
+  return
 }
 
 sub _inventory {
-  my ($self) = @_;
+  # my ($self) = @_;
+
   my $nbTopicsCreated = 0;
   do {
-      $self->_inventory_initialize_tofire();
-      $self->_inventory_initialize_fired();
-      $nbTopicsCreated += $self->_inventory_condition_tofire();
-      $nbTopicsCreated += $self->_inventory_subscription_tofire();
+      $_[0]->_inventory_initialize_tofire();
+      $_[0]->_inventory_initialize_fired();
+      $nbTopicsCreated += $_[0]->_inventory_condition_tofire();
+      $nbTopicsCreated += $_[0]->_inventory_subscription_tofire();
       if ($nbTopicsCreated > 0) {
-          $self->_fire();
-          $nbTopicsCreated = 0;
+          $_[0]->_fire();
+          $nbTopicsCreated = 0
       }
   } while ($nbTopicsCreated > 0);
-  return;
+
+  return
 }
 
 sub _inventory_subscription_tofire {
-  my $self = shift;
+  # my ($self) = @_;
   #
   # This is a loop because when a new callback is eligible there might be new topics
   #
   my $nbNewTopics = 0;
   my $nbSubscriptionOK = 0;
-  my $ncb = $__PACKAGE__::_cacheNcb // $self->ncb;
-  my $prioritized_cbp = $self->prioritized_cb;
-  my $prioritized_cb_tofirep = $self->prioritized_cb_tofire;
-  my $topic_firedp = $self->topic_fired;
-  my $topic_fired_datap = $self->topic_fired_data;
-  my $topic_fired_persistencep = $self->topic_fired_persistence;
+  my $ncb = $__PACKAGE__::_cacheNcb // $_[0]->ncb;
+  my $prioritized_cbp = $_[0]->prioritized_cb;
+  my $prioritized_cb_tofirep = $_[0]->prioritized_cb_tofire;
+  my $topic_firedp = $_[0]->topic_fired;
+  my $topic_fired_datap = $_[0]->topic_fired_data;
+  my $topic_fired_persistencep = $_[0]->topic_fired_persistence;
   my @keys_topic_fired = keys %{$topic_firedp};
 
   foreach (my $i = 0; $i < $ncb; $i++) {
@@ -572,13 +575,13 @@ sub _inventory_subscription_tofire {
       if (ref($subscription) eq 'Regexp') {
         foreach (@keys_topic_fired) {
           if ($_ =~ $subscription) {
-            $subscribed{$_} = 1;
+            $subscribed{$_} = 1
           }
         }
       } else {
         foreach (@keys_topic_fired) {
           if ("$_" eq "$subscription") {
-            $subscribed{$_} = 1;
+            $subscribed{$_} = 1
           }
         }
       }
@@ -589,7 +592,7 @@ sub _inventory_subscription_tofire {
       # no condition was setted and no subscription is raised
       #
       $prioritized_cb_tofirep->[$i] = -2;
-      next;
+      next
     }
 
     if ($nbSubscription > 0 && (defined($__PACKAGE__::_cacheOptionSubscriptionModep) ? $__PACKAGE__::_cacheOptionSubscriptionModep->[$i] : $option->subscriptionMode) eq 'required' && $nbSubscription != keys %subscribed) {
@@ -597,7 +600,7 @@ sub _inventory_subscription_tofire {
       # There are active subscription not raised, and subscriptionMode is 'required'
       #
       $prioritized_cb_tofirep->[$i] = -3;
-      next;
+      next
     }
 
     if ($prioritized_cb_tofirep->[$i] == 0) {
@@ -605,7 +608,7 @@ sub _inventory_subscription_tofire {
       # There must have been topic subscription being raised
       #
       $prioritized_cb_tofirep->[$i] = 1;
-      ++$nbSubscriptionOK;
+      ++$nbSubscriptionOK
     }
 
     foreach my $topic (keys %{defined($__PACKAGE__::_cacheOptionTopicp) ? $__PACKAGE__::_cacheOptionTopicp->[$i] : $option->topic}) {
@@ -615,32 +618,32 @@ sub _inventory_subscription_tofire {
         $topic_firedp->{$topic} = 1;
         $topic_fired_persistencep->{$topic} = $option->topic_persistence;
         $topic_fired_datap->{$topic} = [];
-        ++$nbNewTopics;
+        ++$nbNewTopics
       }
     }
   }
 
-  return $nbNewTopics;
+  return $nbNewTopics
 }
 
 sub currentTopicLevel {
-  my $self = shift;
+  # my ($self) = @_;
 
-  return scalar(@{$self->topic_level});
+  return scalar(@{$_[0]->topic_level})
 }
 
 sub pushTopicLevel {
-  my $self = shift;
+  # my ($self) = @_;
 
-  my $topic_firedp = $self->topic_fired;
-  my $topic_fired_datap = $self->topic_fired_data;
-  my $topic_fired_persistencep = $self->topic_fired_persistence;
+  my $topic_firedp = $_[0]->topic_fired;
+  my $topic_fired_datap = $_[0]->topic_fired_data;
+  my $topic_fired_persistencep = $_[0]->topic_fired_persistence;
 
   #
   # Since we are going to replace the entire hash, keeping a copy of them
   # in @{$self->topic_level} is enough
   #
-  push(@{$self->topic_level}, [ $topic_firedp, $topic_fired_persistencep, $topic_fired_datap ]);
+  push(@{$_[0]->topic_level}, [ $topic_firedp, $topic_fired_persistencep, $topic_fired_datap ]);
   #
   # We remove from current topics those that do not have the 'any' persistence
   #
@@ -652,64 +655,65 @@ sub pushTopicLevel {
     if (grep {$_ eq $persistence} qw/any/) {
       $new_topic_firedp->{$topic} = $topic_firedp->{$topic};
       $new_topic_fired_persistencep->{$topic} = $topic_fired_persistencep->{$topic};
-      $new_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic};
+      $new_topic_fired_datap->{$topic} = $topic_fired_datap->{$topic}
     }
   }
   #
   # These lines guarantee that what we have pushed will not be touched using $self->topic_fired() etc... accessors
   # because we replace the entire hash.
   #
-  $self->topic_fired($new_topic_firedp);
-  $self->topic_fired_persistence($new_topic_fired_persistencep);
-  $self->topic_fired_data($new_topic_fired_datap);
+  $_[0]->topic_fired($new_topic_firedp);
+  $_[0]->topic_fired_persistence($new_topic_fired_persistencep);
+  $_[0]->topic_fired_data($new_topic_fired_datap);
 
-  return;
+  return
 
 }
 
 sub popTopicLevel {
-  my $self = shift;
+  # my ($self) = @_;
 
   #
   # We pop current topics and their persistence from the topic_level
   #
-  my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$self->topic_level(-1)};
-  pop(@{$self->topic_level});
-  $self->topic_fired($old_topic_firedp);
-  $self->topic_fired_persistence($old_topic_persistencep);
-  $self->topic_fired_data($old_topic_datap);
+  my ($old_topic_firedp, $old_topic_persistencep, $old_topic_datap) = @{$_[0]->topic_level(-1)};
+  pop(@{$_[0]->topic_level});
+  $_[0]->topic_fired($old_topic_firedp);
+  $_[0]->topic_fired_persistence($old_topic_persistencep);
+  $_[0]->topic_fired_data($old_topic_datap);
 
-  return;
+  return
 
 }
 
 sub reset_topic_fired_data {
-    my ($self, $topic, $value, $level) = @_;
+    # my ($self, $topic, $value, $level) = @_;
 
-    $value //= [];
-    $level //= 0;
+    # $value //= [];
+    $_[2] //= [];
+    # $level //= 0;
+    $_[3] //= 0;
 
-    if (ref($value) ne 'ARRAY') {
-      croak 'Topic fired data must be an ARRAY reference';
+    if (ref($_[2]) ne 'ARRAY') {
+      croak 'Topic fired data must be an ARRAY reference'
     }
 
     #
     # Level MUST be 0 or a negative number
-    # It is okay if $value is undef
+    # It is okay if $_[2] is undef
     #
-    $level = int($level);
-    if ($level > 0) {
-        croak 'int(level) must be 0 or a negative number';
+    $_[3] = int($_[3]);
+    if ($_[3] > 0) {
+        croak 'int(level) must be 0 or a negative number'
     }
-    if ($level == 0) {
-        $self->topic_fired_data($topic, $value);
+    if ($_[3] == 0) {
+        $_[0]->topic_fired_data($_[1], $_[2]);
     } else {
-        my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$self->topic_level($level)};
-        $old_topic_data->{$topic} = $value;
+        my ($old_topic_fired, $old_topic_persistence, $old_topic_data) = @{$_[0]->topic_level($_[3])};
+        $old_topic_data->{$_[1]} = $_[2];
     }
 
-    return;
-
+    return
 }
 
 1;

@@ -28,7 +28,7 @@ sub new {
     my $self = $class->SUPER();
 
     if (! defined($outerSelf) || ref($outerSelf) ne 'MarpaX::Languages::C::AST') {
-      croak 'outerSelf must be a reference to MarpaX::Languages::C::AST';
+      croak 'outerSelf must be a reference to MarpaX::Languages::C::AST'
     }
 
     $self->hscratchpad('_impl', $outerSelf->{_impl});
@@ -95,7 +95,7 @@ sub new {
                                           counters => {
                                                        'structContext' => [ 'structContextStart[]', 'structContextEnd[]', 'level' ]
                                                       },
-                                          process_priority => CLOSEANYSCOPE_PRIORITY - 1,
+                                          process_priority => CLOSEANYSCOPE_PRIORITY - 1
                                          }
                                         )
         );
@@ -126,7 +126,7 @@ sub new {
                                                    [ 'functionDefinitionCheck1declarationList',       [ [ 'storageClassSpecifierTypedef', 'typedef' ] ] ]
                                                  ],
                                           method => \&_functionDefinitionCheck1,
-                                          process_priority => CLOSEANYSCOPE_PRIORITY + 1,
+                                          process_priority => CLOSEANYSCOPE_PRIORITY + 1
                                          }
                                         )
         );
@@ -136,7 +136,7 @@ sub new {
                                           rhs => [ [ 'functionDefinitionCheck2declarationSpecifiers', [ [ 'storageClassSpecifierTypedef', 'typedef' ] ] ],
                                                  ],
                                           method => \&_functionDefinitionCheck2,
-                                          process_priority => CLOSEANYSCOPE_PRIORITY + 1,
+                                          process_priority => CLOSEANYSCOPE_PRIORITY + 1
                                          }
                                         )
         );
@@ -161,7 +161,7 @@ sub new {
                                           counters => {
                                                        'structContext' => [ 'structContextStart[]', 'structContextEnd[]', 'level' ]
                                                       },
-                                          method => \&_parameterDeclarationCheck,
+                                          method => \&_parameterDeclarationCheck
                                          }
                                         )
         );
@@ -176,7 +176,7 @@ sub new {
                      method =>  [ \&_enumerationConstantIdentifier_optimized, $outerSelf->{_impl}, $outerSelf->{_scope} ],
                      option => MarpaX::Languages::C::AST::Callback::Option->new
                      (
-                      condition => [ [ 'auto' ] ],
+                      condition => [ [ 'auto' ] ]
                      )
                     )
         );
@@ -206,7 +206,7 @@ sub new {
                                    ],
                       topic => {'fileScopeDeclarator' => 1,
                                 'reenterScope' => 1},
-                      topic_persistence => 'any',
+                      topic_persistence => 'any'
                      )
                     )
         );
@@ -241,17 +241,17 @@ sub new {
     # can cache everything that is intensive. Take care, any configuration data to Callback becomes then static.
     #
     foreach ($self, @callbacks) {
-      $_->cache();
+      $_->cache()
     }
 
-    return $self;
+    return $self
 }
 # ----------------------------------------------------------------------------------------
 sub _closeAnyScope {
     my ($method, $callback, $eventsp, $scope) = @_;
 
     while ($scope->parseScopeLevel >= 1) {
-      $scope->doExitScope();
+      $scope->doExitScope()
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -259,7 +259,7 @@ sub _resetAnyData {
     my ($method, $callback, $eventsp, @callbacks) = @_;
 
     foreach (@callbacks) {
-      $_->exec(LHS_RESET_EVENT);
+      $_->exec(LHS_RESET_EVENT)
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -269,12 +269,12 @@ sub _enumerationConstantIdentifier {
     my $impl = $callback->hscratchpad('_impl');
 
     my $enum = lastCompleted($impl, 'enumerationConstantIdentifier');
-    $callback->hscratchpad('_scope')->parseEnterEnum($enum, startAndLength($impl));
+    return $callback->hscratchpad('_scope')->parseEnterEnum($enum, startAndLength($impl))
 }
 sub _enumerationConstantIdentifier_optimized {
     # my ($method, $callback, $eventsp, $impl, $scope) = @_;
 
-    return $_[4]->parseEnterEnum(lastCompleted($_[3], 'enumerationConstantIdentifier'), startAndLength($_[3]));
+    return $_[4]->parseEnterEnum(lastCompleted($_[3], 'enumerationConstantIdentifier'), startAndLength($_[3]))
 }
 # ----------------------------------------------------------------------------------------
 sub _parameterDeclarationCheck {
@@ -291,7 +291,7 @@ sub _parameterDeclarationCheck {
     my $nbTypedef = $#{$parameterDeclarationdeclarationSpecifiers};
     if ($nbTypedef >= 0) {
         my ($start_lengthp, $line_columnp, $last_completed)  = @{$parameterDeclarationdeclarationSpecifiers->[0]};
-        logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        logCroak("[%s[%d]] %s is not valid in a parameter declaration\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')))
     }
     #
     # By definition parameterDeclarationCheckDeclarator contains only directDeclaratorIdentifier
@@ -301,7 +301,7 @@ sub _parameterDeclarationCheck {
     # We are called at every parameterDeclarationCheck, and parameterDeclarationCheckDeclarator is an aggregation
     # of all directDeclaratorIdentifier. We don't need this data anymore
     #
-    $callback->reset_topic_fired_data('parameterDeclarationCheckDeclarator$');
+    return $callback->reset_topic_fired_data('parameterDeclarationCheckDeclarator$')
 }
 # ----------------------------------------------------------------------------------------
 sub _functionDefinitionCheck1 {
@@ -319,13 +319,13 @@ sub _functionDefinitionCheck1 {
     my $nbTypedef1 = $#{$functionDefinitionCheck1declarationSpecifiers};
     if ($nbTypedef1 >= 0) {
         my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationSpecifiers->[0]};
-        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')))
     }
 
     my $nbTypedef2 = $#{$functionDefinitionCheck1declarationList};
     if ($nbTypedef2 >= 0) {
         my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck1declarationList->[0]};
-        logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        logCroak("[%s[%d]] %s is not valid in a function declaration list\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')))
     }
 }
 sub _functionDefinitionCheck2 {
@@ -341,7 +341,7 @@ sub _functionDefinitionCheck2 {
     my $nbTypedef = $#{$functionDefinitionCheck2declarationSpecifiers};
     if ($nbTypedef >= 0) {
         my ($start_lengthp, $line_columnp, $last_completed)  = @{$functionDefinitionCheck2declarationSpecifiers->[0]};
-        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        logCroak("[%s[%d]] %s is not valid in a function declaration specifier\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')))
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -365,10 +365,10 @@ sub _declarationCheck {
         # Take the second typedef
         #
         my ($start_lengthp, $line_columnp, $last_completed)  = @{$declarationCheckdeclarationSpecifiers->[1]};
-        logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')));
+        logCroak("[%s[%d]] %s cannot appear more than once\n%s\n", whoami(__PACKAGE__), $callback->currentTopicLevel, $last_completed, showLineAndCol(@{$line_columnp}, $callback->hscratchpad('_sourcep')))
     }
 
-    _enterOrObscureTypedef($callback, $nbTypedef, $declarationCheckinitDeclaratorList);
+    return _enterOrObscureTypedef($callback, $nbTypedef, $declarationCheckinitDeclaratorList)
 }
 # ----------------------------------------------------------------------------------------
 sub _enterOrObscureTypedef {
@@ -380,9 +380,9 @@ sub _enterOrObscureTypedef {
     my ($start_lengthp, $line_columnp, $last_completed, %counters)  = @{$_};
     if (! $counters{structContext}) {
       if ($nbTypedef >= 0) {
-        $scope->parseEnterTypedef($last_completed, $start_lengthp);
+        $scope->parseEnterTypedef($last_completed, $start_lengthp)
       } else {
-        $scope->parseObscureTypedef($last_completed);
+        $scope->parseObscureTypedef($last_completed)
       }
     }
   }
@@ -390,12 +390,12 @@ sub _enterOrObscureTypedef {
 # ----------------------------------------------------------------------------------------
 sub _enterScopeCallback {
     foreach (@_) {
-        $_->pushTopicLevel();
+        $_->pushTopicLevel()
     }
 }
 sub _exitScopeCallback {
     foreach (@_) {
-        $_->popTopicLevel();
+        $_->popTopicLevel()
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -407,7 +407,7 @@ sub _storage_helper {
     my %counters = ();
     foreach (keys %{$countersHashp}) {
       my $counterDatap = $callback->topic_fired_data($_) || [0];
-      $counters{$_} = $counterDatap->[0] || 0;
+      $counters{$_} = $counterDatap->[0] || 0
     }
     #
     # The event name, by convention, is 'event$' or '^$event'
@@ -417,17 +417,17 @@ sub _storage_helper {
     my $g1 = $impl->current_g1_location();
     my ($start, $length) = $impl->g1_location_to_span($g1);
     if (substr($event, 0, 1) eq '^') {
-        $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ];
+        $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), %counters ]
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
-          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), &$callbackValue(), %counters ];
+          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), &$callbackValue(), %counters ]
         } else {
           substr($event, -1, 1, '');
-          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), $fixedValue || lastCompleted($impl, $event), %counters ];
+          $rc = [ [ $start, $length ], lineAndCol($impl, $g1, $start), $fixedValue || lastCompleted($impl, $event), %counters ]
         }
     }
 
-    return $rc;
+    return $rc
 }
 sub _storage_helper_optimized {
     my ($method, $callback, $eventsp, $event, $countersHashp, $fixedValue, $callbackValue, $impl) = @_;
@@ -437,7 +437,7 @@ sub _storage_helper_optimized {
     my %counters = ();
     foreach (keys %{$countersHashp}) {
       my $counterDatap = $callback->topic_fired_data($_) || [0];
-      $counters{$_} = $counterDatap->[0] || 0;
+      $counters{$_} = $counterDatap->[0] || 0
     }
     #
     # The event name, by convention, is 'event$' or '^$event'
@@ -448,17 +448,17 @@ sub _storage_helper_optimized {
     my ($start, $length) = $_[7]->g1_location_to_span($g1);
 
     if (substr($event, 0, 1) eq '^') {
-        $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), %counters ];
+        $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), %counters ]
     } elsif (substr($event, -1, 1) eq '$') {
         if (defined($callbackValue)) {
-          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), &$callbackValue(), %counters ];
+          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), &$callbackValue(), %counters ]
         } else {
           substr($event, -1, 1, '');
-          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), $_[5] || lastCompleted($_[7], $event), %counters ];
+          $rc = [ [ $start, $length ], lineAndCol($_[7], $g1, $start), $_[5] || lastCompleted($_[7], $event), %counters ]
         }
     }
 
-    return $rc;
+    return $rc
 }
 # ----------------------------------------------------------------------------------------
 sub _inc_helper {
@@ -467,26 +467,26 @@ sub _inc_helper {
     my $old_value = $callback->topic_fired_data($topic)->[0] || 0;
     my $new_value = $old_value + $increment;
 
-    return $new_value;
+    return $new_value
 }
 sub _inc_helper_optimized {
     # my ($method, $callback, $eventsp, $topic, $increment) = @_;
 
-    return (($_[1]->topic_fired_data($_[3])->[0] || 0) + $_[4]);
+    return (($_[1]->topic_fired_data($_[3])->[0] || 0) + $_[4])
 }
 # ----------------------------------------------------------------------------------------
 sub _set_helper {
     my ($method, $callback, $eventsp, %topic) = @_;
 
     foreach (keys %topic) {
-      $callback->topic_fired_data($_, [ $topic{$_} ]);
+      $callback->topic_fired_data($_, [ $topic{$_} ])
     }
 }
 sub _set_helper_optimized {
     my (undef, undef, undef, %topic) = @_;
 
     foreach (keys %topic) {
-      $_[1]->topic_fired_data($_, [ $topic{$_} ]);
+      $_[1]->topic_fired_data($_, [ $topic{$_} ])
     }
 }
 # ----------------------------------------------------------------------------------------
@@ -494,10 +494,10 @@ sub _reset_helper {
     my ($method, $callback, $eventsp, @topics) = @_;
 
     my @rc = ();
-    return @rc;
+    return @rc
 }
 sub _reset_helper_optimized {
-    return ();
+    return ()
 }
 # ----------------------------------------------------------------------------------------
 sub _collect_and_reset_helper {
@@ -507,10 +507,10 @@ sub _collect_and_reset_helper {
     foreach (@topics) {
         my $topic = $_;
         push(@rc, @{$callback->topic_fired_data($topic)});
-        $callback->topic_fired_data($topic, []);
+        $callback->topic_fired_data($topic, [])
     }
 
-    return @rc;
+    return @rc
 }
 sub _collect_and_reset_helper_optimized {
     #
@@ -522,7 +522,7 @@ sub _collect_and_reset_helper_optimized {
         my $this = $_[1]->topic_fired_data($_);
         $_[1]->topic_fired_data($_, []);
         @{$this};
-    } @_[3..$#_];
+    } @_[3..$#_]
 
 }
 # ----------------------------------------------------------------------------------------
@@ -534,9 +534,9 @@ sub _subFire {
     if (defined($transformEventsp)) {
       my %tmp = ();
       my @transformEvents = grep {++$tmp{$_} == 1} map {$transformEventsp->{$_} || $_} @subEvents;
-      $subCallback->exec(@transformEvents);
+      $subCallback->exec(@transformEvents)
     } else {
-      $subCallback->exec(@subEvents);
+      $subCallback->exec(@subEvents)
     }
   }
 }
@@ -550,9 +550,9 @@ sub _subFire_optimized {
   if (@subEvents) {
     if (defined($_[6])) {
       my %tmp = ();
-      $_[4]->exec(grep {++$tmp{$_} == 1} map {$_[6]->{$_} || $_} @subEvents);
+      $_[4]->exec(grep {++$tmp{$_} == 1} map {$_[6]->{$_} || $_} @subEvents)
     } else {
-      $_[4]->exec(@subEvents);
+      $_[4]->exec(@subEvents)
     }
   }
 }
@@ -597,7 +597,7 @@ sub _register_rule_callbacks {
                           topic => {$counter => 1},
                           topic_persistence => $persistence,
                           condition => [ [ 'auto' ] ],  # == match on description
-                          priority => 999,
+                          priority => 999
                          )
                         )
                        );
@@ -613,7 +613,7 @@ sub _register_rule_callbacks {
                           topic => {$counter => 1},
                           topic_persistence => $persistence,
                           condition => [ [ 'auto' ] ],  # == match on description
-                          priority => 999,
+                          priority => 999
                          )
                         )
                        );
@@ -636,14 +636,14 @@ sub _register_rule_callbacks {
         #
         # Token value known in advance
         #
-        ($name, $value) = @{$_};
+        ($name, $value) = @{$_}
       } else {
-        ($name, $value) = ($_, undef);
+        ($name, $value) = ($_, undef)
       }
       my $event = $name . '$';
       ++$genomeEvents{$event};
       ++$rshProcessEvents{$event};
-      $genomeEventValues{$event} = $value;
+      $genomeEventValues{$event} = $value
     }
   }
   #
@@ -653,9 +653,9 @@ sub _register_rule_callbacks {
   foreach (keys %genomeEvents) {
         my ($fixedValue, $callbackValue) = (undef, undef);
         if (ref($genomeEventValues{$_}) eq 'CODE') {
-          $callbackValue = $genomeEventValues{$_};
+          $callbackValue = $genomeEventValues{$_}
         } else {
-          $fixedValue = $genomeEventValues{$_};
+          $fixedValue = $genomeEventValues{$_}
         }
         $callback->register(MarpaX::Languages::C::AST::Callback::Method->new
                             (
@@ -667,7 +667,7 @@ sub _register_rule_callbacks {
                               topic => {$_ => 1},
                               topic_persistence => 'level',
                               condition => [ [ 'auto' ] ],  # == match on description
-                              priority => 999,
+                              priority => 999
                              )
                             )
             );
@@ -690,12 +690,12 @@ sub _register_rule_callbacks {
         #
         # Token value known in advance
         #
-        ($name, $value) = @{$_};
+        ($name, $value) = @{$_}
       } else {
-        ($name, $value) = ($_, undef);
+        ($name, $value) = ($_, undef)
       }
       $genomeTopicsToUpdate{$name . '$'} = 1;
-      $genomeTopicsNotToUpdate{$name . '$'} = -1;
+      $genomeTopicsNotToUpdate{$name . '$'} = -1
     }
     #
     # rhs$ event will collect into rhs$ topic all Gx$ topics (created automatically if needed)
@@ -715,7 +715,7 @@ sub _register_rule_callbacks {
                           topic => {$rhsTopic => 1,
                                    %genomeTopicsNotToUpdate},
                           topic_persistence => 'level',
-                          priority => 1,
+                          priority => 1
                          )
                         )
         );
@@ -737,7 +737,7 @@ sub _register_rule_callbacks {
                     condition => [ [ 'auto' ] ],  # == match on description
                     topic => \%rhsTopicsNotToUpdate,
                     topic_persistence => 'level',
-                    priority => 1,
+                    priority => 1
                    )
                   )
                  );
@@ -754,7 +754,7 @@ sub _register_rule_callbacks {
                     condition => [ [ 'auto' ] ],  # == match on description
                     topic => \%rhsTopicsToUpdate,
                     topic_persistence => 'level',
-                    priority => 0,
+                    priority => 0
                    )
                   )
                  );
@@ -772,7 +772,7 @@ sub _register_rule_callbacks {
                     condition => [
                                   [ sub { return grep {exists($rshProcessEvents{$_})} @{$_[2]} }
                                   ]
-                                 ],
+                                 ]
                    )
                   )
                  );
@@ -799,7 +799,7 @@ sub _register_rule_callbacks {
                   )
                  );
 
-  return $callback;
+  return $callback
 }
 
 1;
