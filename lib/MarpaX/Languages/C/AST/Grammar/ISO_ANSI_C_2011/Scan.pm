@@ -23,7 +23,7 @@ use constant {
     LEXEME_VALUE_INDEX => 2
 };
 use MarpaX::Languages::C::AST::Grammar::ISO_ANSI_C_2011::Scan::Actions;
-use File::ShareDir::ProjectDistDir 1.0 ':all', strict => 1;
+use File::ShareDir qw/dist_dir/;
 use File::Find qw/find/;
 use File::Spec;
 use File::Basename qw/basename/;
