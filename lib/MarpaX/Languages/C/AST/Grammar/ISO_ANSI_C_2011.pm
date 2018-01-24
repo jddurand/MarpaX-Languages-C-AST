@@ -1284,7 +1284,8 @@ gccAsmClobberList ::= gccAsmClobber | gccAsmClobberList COMMA gccAsmClobber
 
 gccAsmOperandList ::= gccAsmOperand | gccAsmOperandList COMMA gccAsmOperand
 
-gccAsmInnerClobberList ::= COLON gccAsmClobberList
+gccAsmInnerClobberList ::= COLON
+                         | COLON gccAsmClobberList
 
 gccAsmInnerOperandList2 ::= COLON
                           | COLON gccAsmInnerClobberList
