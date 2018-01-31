@@ -655,10 +655,10 @@ directAbstractDeclarator
         | directAbstractDeclarator LBRACKET typeQualifierList STATIC assignmentExpression RBRACKET
         | directAbstractDeclarator LBRACKET typeQualifierList RBRACKET
         | directAbstractDeclarator LBRACKET assignmentExpression RBRACKET
-        | LPAREN_SCOPE RPAREN_SCOPE
-        | LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
-        | directAbstractDeclarator LPAREN_SCOPE RPAREN_SCOPE
-        | directAbstractDeclarator LPAREN_SCOPE parameterTypeList RPAREN_SCOPE
+        | LPAREN RPAREN
+        | LPAREN parameterTypeList RPAREN
+        | directAbstractDeclarator LPAREN RPAREN
+        | directAbstractDeclarator LPAREN parameterTypeList RPAREN
 
 initializer
         ::= LCURLY initializerList RCURLY
