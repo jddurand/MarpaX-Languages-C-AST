@@ -27,6 +27,8 @@ This module implements the full syntax, as well as those specification constrain
 
 The C standards contain many constraints that are non-syntactic. MarpaX::Languages::C::AST does not implement these, leaving them for AST post-process. One example of a non-syntactic constraint is the requirement that labeled statements within a function be unique. Another is the requirement that declarations include at most one storage class specifier.
 
+It is recommended to start with L<MarpaX::Languages::C::Scan> when starting with this package.
+
 =head1 SYNOPSIS
 
     use strict;
