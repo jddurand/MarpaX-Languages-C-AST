@@ -1409,7 +1409,7 @@ sub _parseDeclarator {
     while ($last->{node}->localname() eq 'LBRACKET') {
       $last = $self->_readArraySize($callLevel, $nodesp, $cdeclp);
     }
-  } elsif ($last->{node}->localname() eq 'LPAREN_SCOPE') {
+  } elsif (($last->{node}->localname() eq 'LPAREN_SCOPE') || ($last->{node}->localname() eq 'LPAREN')) {
     $last = $self->_readFunctionArgs($callLevel, $nodesp, $cdeclp);
   } elsif ($last->{node}->localname() eq 'LCURLY') {
     if ($last->{node}->parentNode()->localname() eq 'structOrUnionSpecifier') {
